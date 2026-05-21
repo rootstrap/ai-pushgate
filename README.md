@@ -123,6 +123,44 @@ The hook is responsible for passing along Git hook input and exiting with the
 runner's exit code. The runner owns config loading, changed-file detection,
 deterministic checks, optional local AI, and user-facing output.
 
+```text
+git push
+    |
+    v
++-------------------------------------+
+|  Installed pre-push hook            |
+|  delegates to pushgate pre-push     |
++------------------+------------------+
+                   |
+                   v
++-------------------------------------+
+|  Changed files vs project.base_ref  |
+|  include/exclude path policy        |
++------------------+------------------+
+                   |
+                   v
++-------------------------------------+
+|  Run deterministic checks           |
+|  linters, type checkers, tests      |
+|  blocking failures stop local push  |
++------------------+------------------+
+                   |
+                   | checks pass
+                   v
++-------------------------------------+
+|  Optional local AI review           |
+|  diff-only context by default       |
+|  advisory unless explicitly blocking|
++------------------+------------------+
+                   |
+                   | push proceeds
+                   v
++-------------------------------------+
+|  CI/PR checks and policy            |
+|  authoritative team enforcement    |
++-------------------------------------+
+```
+
 The `pushgate push` wrapper is an ergonomic layer for flags Git cannot pass to
 hooks, not a replacement for the normal Git workflow. It should translate
 pushgate-specific flags into temporary Git config and then call `git push`.
