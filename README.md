@@ -1,174 +1,226 @@
-# ai-git-hooks / push-review
+# ai-pushgate
 
-A language-agnostic `pre-push` hook that runs your linters and tests against changed files, then asks Claude to review the diff before every push.
+`ai-pushgate` is the v2 direction for a local pre-push gate plus CI/PR
+enforcement workflow.
 
-## How it works
+The product contract in this README defines what v2 will guarantee before the
+runtime rewrite starts. The current repository still contains the inherited v1
+`push-review` shell hook and templates; those runtime pieces will be migrated in
+later roadmap issues.
 
-```
-git push
-    │
-    ▼
-┌─────────────────────────────────────┐
-│  Changed files vs target branch     │
-│  (ignore_paths filtering applied)   │
-└──────────────┬──────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────┐
-│  Run configured tools               │
-│  (linters, type checkers, tests)    │
-│  ✗ any failure → push blocked       │
-└──────────────┬──────────────────────┘
-               │ all pass
-               ▼
-┌─────────────────────────────────────┐
-│  AI review via Claude Code CLI      │
-│  (diff sent, findings returned)     │
-│  BLOCK → push blocked               │
-│  PASS  → push proceeds              │
-└─────────────────────────────────────┘
-```
+## v2 Product Contract
 
-## Install
+`ai-pushgate` separates fast local feedback from authoritative enforcement:
 
-```bash
-# Default (base template — no tools pre-configured, fully documented)
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash
+| Surface | Purpose | Blocking authority |
+|---|---|---|
+| Local pre-push | Fast deterministic checks before code leaves a developer machine | Convenience only; always bypassable |
+| Local AI | Optional review feedback near the developer workflow | Advisory by default |
+| CI/PR | Repeatable checks, review summaries, and policy enforcement | Source of truth for teams |
 
-# Node.js
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template node
+Local hooks help developers catch issues early, but they are not a security or
+compliance boundary. Anything that must be enforced for a team belongs in CI/PR
+checks combined with repository branch protection.
 
-# TypeScript
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template typescript
+## v2 Defaults
 
-# Next.js
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template nextjs
+- Config file: `.pushgate.yml`.
+- v2 does not read `.push-review.yml`; v1 users must migrate.
+- Deterministic local checks are the default local gate.
+- Local AI defaults to `advisory` when configured and available.
+- Local AI can block only through explicit advanced configuration.
+- Provider failures do not block in advisory mode.
+- AI payloads default to diff-only context.
+- Full-file AI context is opt-in.
+- Secret redaction is expected before any source content is sent to an AI
+  provider.
 
-# Ruby
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template ruby
+## Proposed v2 Config Shape
 
-# Ruby on Rails
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template rails
-```
-
-The installer:
-
-1. Downloads and validates `hook/pre-push` → `.git/hooks/pre-push`
-2. Backs up any existing `pre-push` hook before overwriting
-3. Downloads the template config → `.push-review.yml` (only on first install — never overwrites)
-4. Checks for Claude Code CLI and warns about missing runtimes
-
-## Requirements
-
-**Claude Code CLI** (required for AI review):
-
-```bash
-npm install -g @anthropic-ai/claude-code
-claude /login
-```
-
-**Runtime dependencies** depend on the tools you configure:
-
-| Runtime | Required by |
-|---------|-------------|
-| Node.js | `node`, `typescript`, `nextjs` templates |
-| Ruby    | `ruby`, `rails` templates |
-| Python  | Python tools (manual config) |
-| Go      | Go tools (manual config) |
-
-The installer checks which runtimes your config requires and warns about any that are missing. If Claude Code CLI is not installed, the hook still runs tool checks — it only skips the AI review step.
-
-## Configuration
-
-After install, edit `.push-review.yml` in your project root:
+This is the public contract shape for the v2 schema. Exact validation and
+runtime parsing are tracked separately in the roadmap.
 
 ```yaml
-agent:
-  # Claude model used for AI review. Requires Claude Code CLI (claude /login).
-  model: claude-sonnet-4-20250514
+version: 2
 
-review:
-  target_branch: main       # diff base: git diff <target_branch>...HEAD
-  context_lines: 10         # surrounding context lines included in the diff
-  max_lines_for_full_file: 300  # below this threshold, full file contents are sent
-                                # instead of just the diff for richer context
+project:
+  base_ref: main
+  include_paths:
+    - "**/*"
+  exclude_paths:
+    - "*.lock"
+    - "dist/**"
+    - "coverage/**"
 
-  # Topics the AI reviewer focuses on
-  focus:
-    - security
-    - logic_errors
-    - test_coverage
-    - performance
-    - naming_and_readability
+local:
+  fail_fast: true
+  budget_seconds: 60
 
-  # Findings in these categories block the push
-  blocking_categories:
-    - security
-    - logic_errors
-
-  # Findings in these categories are printed as warnings but never block
-  warning_categories:
-    - test_coverage
-    - performance
-    - naming_and_readability
-
-# Tools to run before AI review — first failure blocks the push immediately
-tools:
+checks:
   - name: eslint
-    command: npx eslint {changed_files}   # {changed_files} is replaced at runtime
+    command: ["npx", "eslint", "{changed_files}"]
+    mode: blocking
+    run: changed_files
     extensions: [".js", ".jsx", ".ts", ".tsx"]
+    timeout_seconds: 30
 
-  - name: brakeman
-    command: bundle exec brakeman --no-pager --quiet
-    # no {changed_files} → runs on the whole project
+  - name: tests
+    command: ["npm", "test"]
+    mode: warning
+    run: always
+    timeout_seconds: 60
 
-# Files and patterns excluded from tool checks and AI review
-ignore_paths:
-  - "*.lock"
-  - "dist/**"
-  - "coverage/**"
+ai:
+  mode: advisory # off | advisory | blocking
+  provider:
+    name: claude
+  privacy:
+    send_diff: true
+    send_full_files: false
+    redact_secrets: true
+
+ci:
+  mirror_blocking_checks: true
 ```
 
-## Available templates
+### Config Fields
 
-| `--template` | Stack | Tools pre-configured |
-|---|---|---|
-| `base` | Any | None (fully-documented reference config) |
-| `node` | Node.js | ESLint, Prettier, Jest |
-| `typescript` | TypeScript | tsc, ESLint, Prettier, Jest |
-| `nextjs` | Next.js | tsc, next lint, Prettier, Jest |
-| `ruby` | Ruby | RuboCop, Reek, RSpec |
-| `rails` | Ruby on Rails | RuboCop, Reek, Brakeman, RSpec |
+`project.base_ref` defines the comparison base used to collect changed files.
+`project.include_paths` and `project.exclude_paths` define the shared path
+policy for deterministic checks and optional AI.
 
-## Skip checks
+`checks[]` defines deterministic commands. Commands are argv arrays, not shell
+strings, so changed files can be passed safely as discrete arguments. A check can
+run on changed files or the whole project, and can be `blocking` or `warning`.
 
-To bypass the hook for a single push:
+`ai.mode` controls local AI behavior:
+
+| Mode | Behavior |
+|---|---|
+| `off` | Do not run local AI |
+| `advisory` | Run local AI when available, print findings, never block |
+| `blocking` | Allow local AI findings to block only when explicitly configured |
+
+`ci` is reserved for generated or documented CI mirror behavior. CI/PR policy is
+where teams should enforce required checks.
+
+## Git Workflow Integration
+
+The default developer workflow should remain regular Git:
+
+```bash
+git push
+```
+
+In v2, the installed `.git/hooks/pre-push` hook should be a thin delegator that
+invokes the versioned runner:
+
+```bash
+pushgate pre-push
+```
+
+The hook is responsible for passing along Git hook input and exiting with the
+runner's exit code. The runner owns config loading, changed-file detection,
+deterministic checks, optional local AI, and user-facing output.
+
+The `pushgate push` wrapper is an ergonomic layer for flags Git cannot pass to
+hooks, not a replacement for the normal Git workflow. It should translate
+pushgate-specific flags into temporary Git config and then call `git push`.
+
+## Skip Controls
+
+Raw `git push` cannot pass arbitrary `--skip-*` flags to a pre-push hook; Git
+rejects unknown `git push` flags before the hook runs. For a one-off skip in the
+regular Git workflow, pass temporary pushgate config with Git:
+
+```bash
+git -c pushgate.skip-ai-check=true push
+git -c pushgate.skip-all-checks=true push
+```
+
+`pushgate.skip-ai-check` skips only local AI while preserving deterministic
+checks. `pushgate.skip-all-checks` skips all local pushgate behavior for that
+push.
+
+The `pushgate push` wrapper provides shorter equivalents:
+
+```bash
+pushgate push --skip-ai-check
+pushgate push --skip-all-checks
+```
+
+The wrapper should apply the matching temporary Git config before it calls
+`git push`.
+
+Git also keeps its native escape hatch:
 
 ```bash
 git push --no-verify
 ```
 
-## Updating
+`--no-verify` skips Git hooks entirely, including pushgate.
 
-Re-run the installer to update the hook script. Your `.push-review.yml` is **never overwritten** — it stays exactly as you've configured it.
+## Privacy Contract
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash
-```
+The default AI payload is changed-file metadata and diff context only. Full-file
+context must be enabled explicitly because it can increase latency, cost, and
+privacy exposure.
 
-To also reset your config to a template, delete it first:
+Before any AI call, pushgate should apply the configured path policy and secret
+redaction. If redaction cannot run, local AI should fail closed for privacy by
+skipping AI feedback instead of sending unredacted content.
 
-```bash
-rm .push-review.yml
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template <name>
-```
+## v1 Migration
+
+v2 is a hard break from the inherited v1 `push-review` contract.
+
+| v1 | v2 |
+|---|---|
+| `.push-review.yml` | `.pushgate.yml` |
+| `review.target_branch` | `project.base_ref` |
+| `ignore_paths` | `project.exclude_paths` |
+| shell-string tool commands | argv-array `checks[].command` |
+| AI review can block local pushes by default | local AI defaults to advisory |
+| Claude-specific local review path | provider abstraction tracked for v2 AI work |
+
+The migration layer should produce clear errors when only `.push-review.yml` is
+present, point users to `.pushgate.yml`, and avoid silently interpreting a v1
+file as v2 config.
+
+## Roadmap Boundaries
+
+This README documents the v2 contract for
+[issue #1](https://github.com/rootstrap/ai-pushgate/issues/1). Implementation is
+split across later issues:
+
+- Schema validation and config loading: issue #2.
+- Hook and runner test harness: issue #3.
+- Thin Git hook plus `pushgate` runner: issue #4.
+- Changed-file policy, deterministic commands, and built-in checks: issues #5-#7.
+- CI mirror generation and parity reporting: issues #8-#9.
+- AI providers, local AI guardrails, structured output, and PR surfaces: issues
+  #10-#14.
+
+## Current Runtime Status
+
+The checked-in runtime is still the v1 `push-review` shell implementation. It
+uses `.push-review.yml`, includes Claude-specific behavior, and predates the v2
+contract above. That code remains in place until the roadmap issues replace it.
+
+When contributing to issue #1, avoid changing runtime files such as
+`hook/pre-push`, `install.sh`, or `templates/*.yml`; this issue is intentionally
+limited to the public contract.
 
 ## Contributing
 
-To add a new template:
+All changes should go through a pull request. Release files are managed by
+release-please and should not be edited manually.
 
-1. Add `templates/<name>.yml` following the structure of an existing template (e.g. `ruby.yml`)
-2. Add a row to the **Available templates** table in this README
-3. Open a pull request
+For this documentation milestone, verify that runtime scripts still parse and
+that template YAML remains valid:
 
-Templates should include sensible `ignore_paths` defaults and pre-configured `tools` for the common tools in that stack. The `base.yml` template is the reference for all available config options.
+```bash
+bash -n hook/pre-push
+bash -n install.sh
+for f in templates/*.yml; do python3 -c "import yaml; yaml.safe_load(open('$f'))"; done
+```
