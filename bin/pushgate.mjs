@@ -17,7 +17,7 @@ switch (command) {
     process.stdout.write(`${HOOK_PROTOCOL}\n`);
     break;
   case "pre-push":
-    await drainStdin();
+    drainStdin();
     break;
   default:
     fail(command ? `Unsupported Pushgate command: ${command}` : "Missing Pushgate command.");
@@ -28,15 +28,13 @@ function fail(message) {
   process.exitCode = 64;
 }
 
-async function drainStdin() {
-  try {
-    for await (const _chunk of process.stdin) {
-      // Drain Git hook ref updates. Later runner layers will parse this stream.
-    }
-  } catch (error) {
+function drainStdin() {
+  process.stdin.on("error", (error) => {
     const detail = error instanceof Error ? error.message : String(error);
 
     process.stderr.write(`Failed to read pre-push input: ${detail}\n`);
     process.exitCode = 1;
-  }
+  });
+  // Drain Git hook ref updates. Later runner layers will parse this stream.
+  process.stdin.resume();
 }
