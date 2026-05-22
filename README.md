@@ -1,6 +1,6 @@
-# ai-git-hooks / push-review
+# ai-pushgate
 
-A language-agnostic `pre-push` hook that runs your linters and tests against changed files, then asks Claude to review the diff before every push.
+A language-agnostic push gate for regular git push workflows. An installed pre-push hook runs local checks and AI review before the push proceeds, helping clean up obvious issues early and prevent sensitive or unwanted changes from reaching the next layer of review.
 
 ## How it works
 
@@ -29,38 +29,46 @@ git push
 └─────────────────────────────────────┘
 ```
 
+`git push` stays the main entry point. Pushgate plugs into it through the installed `pre-push` hook; `pushgate push` is an optional friendly wrapper for the same workflow.
+
+Local deterministic checks can block a push. Local AI supports `blocking`, `advisory`, and `off` modes; `blocking` is the default, matching the review gate shown above. CI and PR checks remain the final enforcement point for policy that must survive local hook skips.
+
+`.pushgate.yml` is the primary project config. `.push-review.yml` belongs to migration compatibility rather than the public config contract.
+
 ## Install
 
 ```bash
 # Default (base template — no tools pre-configured, fully documented)
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash
 
 # Node.js
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template node
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template node
 
 # TypeScript
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template typescript
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template typescript
 
 # Next.js
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template nextjs
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template nextjs
 
 # Ruby
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template ruby
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template ruby
 
 # Ruby on Rails
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template rails
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template rails
 ```
 
 The installer:
 
 1. Downloads and validates `hook/pre-push` → `.git/hooks/pre-push`
 2. Backs up any existing `pre-push` hook before overwriting
-3. Downloads the template config → `.push-review.yml` (only on first install — never overwrites)
-4. Checks for Claude Code CLI and warns about missing runtimes
+3. Downloads the template config → `.pushgate.yml` (only on first install — never overwrites)
+4. Checks configured runtimes and AI dependencies
 
 ## Requirements
 
-**Claude Code CLI** (required for AI review):
+**Git** is required. Pushgate plugs into its `pre-push` hook path.
+
+**AI providers** depend on the configured mode. For example, Claude feedback requires Claude Code CLI:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -76,15 +84,18 @@ claude /login
 | Python  | Python tools (manual config) |
 | Go      | Go tools (manual config) |
 
-The installer checks which runtimes your config requires and warns about any that are missing. If Claude Code CLI is not installed, the hook still runs tool checks — it only skips the AI review step.
+The installer checks which runtimes your config requires and warns about any that are missing.
 
 ## Configuration
 
-After install, edit `.push-review.yml` in your project root:
+After install, edit `.pushgate.yml` in your project root:
 
 ```yaml
-agent:
-  # Claude model used for AI review. Requires Claude Code CLI (claude /login).
+ai:
+  # Supported modes: blocking (default), advisory, off.
+  mode: blocking
+
+  # Claude model used when the Claude Code CLI provider is configured.
   model: claude-sonnet-4-20250514
 
 review:
@@ -148,19 +159,33 @@ To bypass the hook for a single push:
 git push --no-verify
 ```
 
-## Updating
-
-Re-run the installer to update the hook script. Your `.push-review.yml` is **never overwritten** — it stays exactly as you've configured it.
+To keep deterministic checks but skip AI for one push, use Git's temporary config channel:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash
+git -c pushgate.skip-ai-check=true push
+git -c pushgate.skip-all-checks=true push
+```
+
+The optional wrapper maps friendly flags to the same one-push config:
+
+```bash
+pushgate push --skip-ai-check
+pushgate push --skip-all-checks
+```
+
+## Updating
+
+Re-run the installer to update the hook script. Your `.pushgate.yml` is **never overwritten** — it stays exactly as you've configured it.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash
 ```
 
 To also reset your config to a template, delete it first:
 
 ```bash
-rm .push-review.yml
-curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template <name>
+rm .pushgate.yml
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template <name>
 ```
 
 ## Contributing
