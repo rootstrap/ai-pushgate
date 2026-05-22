@@ -1,8 +1,8 @@
 # ai-pushgate
 
-A language-agnostic push gate for regular git push workflows. An installed pre-push hook runs local checks and AI review before the push proceeds, helping clean up obvious issues early and prevent sensitive or unwanted changes from reaching the next layer of review.
+A language-agnostic push gate for regular git push workflows. An installed pre-push hook delegates into a managed Pushgate runner so local checks and AI review can fit the normal `git push` flow before changes reach the next layer of review.
 
-## How it works
+## Target workflow
 
 ```
 git push
@@ -35,6 +35,11 @@ Local deterministic checks can block a push. Local AI supports `blocking`, `advi
 
 `.pushgate.yml` is the primary project config. `.push-review.yml` belongs to migration compatibility rather than the public config contract.
 
+The current M1 runner boundary is intentionally thin: the installer wires the
+hook to the managed `pushgate` command, the command accepts Git pre-push
+context, and policy execution lands in the changed-file, deterministic-check,
+and AI runner work that follows.
+
 ## Install
 
 ```bash
@@ -63,11 +68,13 @@ The installer:
 2. Downloads and validates `hook/pre-push` → `.git/hooks/pre-push`
 3. Backs up any existing `pre-push` hook before overwriting
 4. Downloads the template config → `.pushgate.yml` (only on first install — never overwrites)
-5. Checks configured runtimes and AI dependencies
+5. Checks the Node.js runtime required by the managed command
 
 ## Requirements
 
 **Git** is required. Pushgate plugs into its `pre-push` hook path.
+
+**Node.js** is required by the installer-managed `pushgate` command.
 
 **AI providers** depend on the configured mode. For example, Claude feedback requires Claude Code CLI:
 
@@ -76,7 +83,7 @@ npm install -g @anthropic-ai/claude-code
 claude /login
 ```
 
-**Runtime dependencies** depend on the tools you configure:
+**Configured tool runtimes** depend on the tools you configure:
 
 | Runtime | Required by |
 |---------|-------------|
@@ -84,8 +91,6 @@ claude /login
 | Ruby    | `ruby`, `rails` templates |
 | Python  | Python tools (manual config) |
 | Go      | Go tools (manual config) |
-
-The installer checks which runtimes your config requires and warns about any that are missing.
 
 ## Configuration
 
@@ -148,14 +153,15 @@ To bypass the hook for a single push:
 git push --no-verify
 ```
 
-To keep deterministic checks but skip AI for one push, use Git's temporary config channel:
+Scoped one-push skip controls are the v2 contract for the runner work that
+follows. They use Git's temporary config channel:
 
 ```bash
 git -c pushgate.skip-ai-check=true push
 git -c pushgate.skip-all-checks=true push
 ```
 
-The optional wrapper maps friendly flags to the same one-push config:
+The planned optional wrapper maps friendly flags to the same one-push config:
 
 ```bash
 pushgate push --skip-ai-check
@@ -164,7 +170,7 @@ pushgate push --skip-all-checks
 
 ## Updating
 
-Re-run the installer to update the hook script. Your `.pushgate.yml` is **never overwritten** — it stays exactly as you've configured it.
+Re-run the installer to update the managed command and hook script. Your `.pushgate.yml` is **never overwritten** — it stays exactly as you've configured it.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash

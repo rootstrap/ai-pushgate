@@ -22,8 +22,9 @@ corepack enable
 pnpm install
 ```
 
-Pushgate uses pnpm for its Node config parser dependencies and scripts. The
-hook, installer, and templates remain shell and YAML.
+Pushgate uses pnpm for its Node config parser, runner tests, and scripts. The
+installed command is a small Node entrypoint, the hook and installer are shell,
+and templates remain YAML.
 
 ---
 
@@ -71,19 +72,19 @@ commit as-is and customise from there.
 
 ### Fixing the hook script
 
-`hook/pre-push` has been hardened over many iterations. Before making changes:
+`hook/pre-push` is the thin delegator between Git and the managed Pushgate
+runner. Before making changes:
 
 - Run `bash -n hook/pre-push` to validate syntax before committing
-- Avoid `eval`, heredoc variable expansion, and unquoted variable interpolation
-- File lists must always be passed as arrays, never as interpolated strings
-- Test on both macOS (BSD tools) and Linux (GNU tools) if possible — `sed`,
-  `grep`, and `printf` behave differently between them
+- Keep hook arguments, stdin, and exit codes intact across the runner boundary
+- Keep missing-runner and incompatible-protocol diagnostics actionable
+- Avoid adding policy execution back into the installed hook
 
 ### Fixing the installer
 
 `install.sh` follows the same shell safety rules as the hook. Additionally:
 - It must work when piped through `bash` (`curl ... | bash`)
-- It must not assume any tools beyond `bash`, `curl`, and `git` are available
+- It must not assume any tools beyond `bash`, `curl`, `git`, and `node` are available
 
 ---
 

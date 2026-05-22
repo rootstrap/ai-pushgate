@@ -34,20 +34,28 @@ export interface HookRunOptions {
   stdin?: string;
 }
 
+/** Controls for the managed runner stub used by hook boundary tests. */
+export interface RunnerStubOptions {
+  /** Leave the stub without execute bits when testing hook diagnostics. */
+  executable?: boolean;
+}
+
 /**
- * Disposable Git workspace used to characterize hook and runner behavior.
+ * Disposable Git workspace used to exercise the thin hook boundary.
  *
  * The harness owns one temp root with a seeded repository, an isolated home
- * directory, executable stubs on `PATH`, and an artifact directory where those
- * stubs record arguments and prompts for assertions.
+ * directory, the managed runner location, and an artifact directory where
+ * runner stubs record pre-push arguments and stdin.
  */
 export interface HookHarness {
-  /** Directory where tool and provider stubs write assertion artifacts. */
+  /** Directory where runner stubs write assertion artifacts. */
   artifactsDir: string;
   /** Directory prepended to `PATH` for test-local executables. */
   binDir: string;
   /** Base isolated environment used for every harness command. */
   env: NodeJS.ProcessEnv;
+  /** Isolated home containing the installer-managed Pushgate runner path. */
+  homeDir: string;
   /** Seeded feature repository used as the hook working directory. */
   repoRoot: string;
   /** Parent directory containing every disposable harness resource. */
@@ -58,127 +66,54 @@ export interface HookHarness {
   cleanup(): Promise<void>;
   /** Run Git inside the seeded feature repository. */
   git(args: string[], options?: HookRunOptions): Promise<CommandResult>;
-  /** Install the deterministic Claude CLI stub onto the sandbox `PATH`. */
-  installClaudeStub(): Promise<void>;
-  /** Copy the repository hook into `.git/hooks/pre-push` for push smoke tests. */
+  /** Copy the repository hook into `.git/hooks/pre-push`. */
   installInstalledHook(): Promise<void>;
-  /** Install a deterministic command stub under the given executable name. */
-  installToolStub(name?: string): Promise<void>;
-  /** Read a stub artifact, returning `null` when the stub did not create it. */
+  /** Copy the repository runner into the managed home runner location. */
+  installRealRunner(): Promise<void>;
+  /** Install a managed runner stub that records pre-push context. */
+  installRunnerStub(options?: RunnerStubOptions): Promise<void>;
+  /** Read a runner stub artifact, returning `null` when it does not exist. */
   readArtifact(name: string): Promise<string | null>;
   /** Run the repository hook directly without installing it into `.git`. */
   runHook(options?: HookRunOptions): Promise<CommandResult>;
-  /** Write the legacy config consumed by the current Bash hook. */
-  writeLegacyConfig(config: string): Promise<void>;
 }
 
 const hookSourcePath = fileURLToPath(
   new URL("../../hook/pre-push", import.meta.url),
 );
+const runnerSourcePath = fileURLToPath(
+  new URL("../../bin/pushgate.mjs", import.meta.url),
+);
+const systemPath = [dirname(process.execPath), "/usr/bin", "/bin", "/usr/sbin", "/sbin"];
 
-const sandboxSystemPath = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"];
-
-/**
- * Tool stub that records argv as one line per argument.
- *
- * Line-oriented artifacts preserve filenames with whitespace while keeping the
- * test fixtures easy to inspect when a hook expectation fails.
- */
-const toolStub = `#!/usr/bin/env bash
+/** Managed runner stub used by the thin hook tests. */
+const runnerStub = `#!/usr/bin/env bash
 set -u
 
-printf '%s\n' "$@" > "$PUSHGATE_STUB_DIR/tool-args.txt"
-printf 'tool invoked\n' >> "$PUSHGATE_STUB_DIR/tool-invocations.log"
-
-if [ -n "$PUSHGATE_TOOL_EXIT" ]; then
-  printf 'stub tool failed\n' >&2
-  exit "$PUSHGATE_TOOL_EXIT"
-fi
-
-printf 'stub tool passed\n'
-`;
-
-/**
- * Current-hook provider stub.
- *
- * The Bash hook still invokes `claude --print`, so this stub models only the
- * response forms that the characterization tests need before provider adapters
- * and structured output are moved behind the future runner boundary.
- */
-const claudeStub = `#!/usr/bin/env bash
-set -u
-
-printf '%s\n' "$@" > "$PUSHGATE_STUB_DIR/claude-args.txt"
-cat > "$PUSHGATE_STUB_DIR/claude-prompt.txt"
-
-case "$PUSHGATE_CLAUDE_RESULT" in
-  pass)
-    printf '%s\n' \\
-      'SUMMARY' \\
-      'blocking_count: 0' \\
-      'warning_count: 0' \\
-      'verdict: PASS'
+case "\${1:-}" in
+  hook-protocol)
+    if [ "$#" -ne 1 ]; then
+      exit 64
+    fi
+    printf '%s\\n' "$PUSHGATE_RUNNER_PROTOCOL"
     ;;
-  warning)
-    cat <<'EOF'
-FINDING
-category: test_coverage
-severity: warning
-file: src/changed.ts
-line: 1
-message: stub warning
-suggestion: keep the harness exercised
-
-SUMMARY
-blocking_count: 0
-warning_count: 1
-verdict: PASS
-EOF
-    ;;
-  block)
-    cat <<'EOF'
-FINDING
-category: security
-severity: blocking
-file: src/changed.ts
-line: 1
-message: stub block
-suggestion: fix the blocking finding
-
-SUMMARY
-blocking_count: 1
-warning_count: 0
-verdict: BLOCK
-EOF
-    ;;
-  fail)
-    printf 'stub provider failed\n' >&2
-    exit 7
-    ;;
-  empty)
+  pre-push)
+    printf '%s\\n' "$@" > "$PUSHGATE_STUB_DIR/runner-args.txt"
+    cat > "$PUSHGATE_STUB_DIR/runner-stdin.txt"
+    exit "$PUSHGATE_RUNNER_EXIT"
     ;;
   *)
-    printf 'unknown claude stub result: %s\n' "$PUSHGATE_CLAUDE_RESULT" >&2
     exit 64
     ;;
 esac
-`;
-
-/** Non-network stub for the hook update check. */
-const curlStub = `#!/usr/bin/env bash
-set -u
-
-printf 'curl blocked by hook harness\n' >> "$PUSHGATE_STUB_DIR/curl.log"
-exit 22
 `;
 
 /**
  * Create a fully isolated harness around a seeded feature repository.
  *
  * The repository starts with `main` at a baseline commit and `feature` at a
- * second commit that changes a regular file, adds a filename with spaces,
- * changes an ignorable path, and deletes a tracked file. Stubs are opt-in per
- * test so missing-tool and missing-provider behavior can be asserted.
+ * second commit that preserves the changed-file shapes later runner layers
+ * need while giving real pushes normal pre-push input for the hook.
  */
 export async function createHookHarness(): Promise<HookHarness> {
   const tempRoot = await mkdtemp(join(tmpdir(), "pushgate-hook-"));
@@ -195,13 +130,13 @@ export async function createHookHarness(): Promise<HookHarness> {
 
   const env = createSandboxEnv(homeDir, artifactsDir, binDir);
 
-  await installExecutable(binDir, "curl", curlStub);
   await seedFeatureRepo(repoRoot, env);
 
   return {
     artifactsDir,
     binDir,
     env,
+    homeDir,
     repoRoot,
     tempRoot,
     async addBareOrigin() {
@@ -228,17 +163,26 @@ export async function createHookHarness(): Promise<HookHarness> {
         stdin: options.stdin,
       });
     },
-    async installClaudeStub() {
-      await installExecutable(binDir, "claude", claudeStub);
-    },
     async installInstalledHook() {
       const installedHook = join(repoRoot, ".git", "hooks", "pre-push");
 
       await copyFile(hookSourcePath, installedHook);
       await chmod(installedHook, 0o755);
     },
-    async installToolStub(name = "record-tool") {
-      await installExecutable(binDir, name, toolStub);
+    async installRealRunner() {
+      const installedRunner = await prepareRunnerPath(homeDir);
+
+      await copyFile(runnerSourcePath, installedRunner);
+      await chmod(installedRunner, 0o755);
+    },
+    async installRunnerStub(options = {}) {
+      const installedRunner = await prepareRunnerPath(homeDir);
+
+      await writeFile(installedRunner, runnerStub);
+
+      if (options.executable !== false) {
+        await chmod(installedRunner, 0o755);
+      }
     },
     async readArtifact(name) {
       try {
@@ -258,17 +202,11 @@ export async function createHookHarness(): Promise<HookHarness> {
         stdin: options.stdin,
       });
     },
-    async writeLegacyConfig(config) {
-      await writeFile(join(repoRoot, ".push-review.yml"), config);
-    },
   };
 }
 
 /**
  * Merge hook output streams and strip ANSI colors before matching messages.
- *
- * Hook tests use this for stable message assertions while artifact assertions
- * cover exact tool/provider invocations.
  */
 export function cleanHookOutput(result: CommandResult): string {
   return `${result.stdout}\n${result.stderr}`.replace(
@@ -277,9 +215,14 @@ export function cleanHookOutput(result: CommandResult): string {
   );
 }
 
-/**
- * Seed the branch topology and changed-file shapes reused by hook scenarios.
- */
+async function prepareRunnerPath(homeDir: string): Promise<string> {
+  const runnerDir = join(homeDir, ".pushgate", "bin");
+
+  await mkdir(runnerDir, { recursive: true });
+  return join(runnerDir, "pushgate");
+}
+
+/** Seed the branch topology reused by direct hook and installed-hook tests. */
 async function seedFeatureRepo(
   repoRoot: string,
   env: NodeJS.ProcessEnv,
@@ -352,22 +295,8 @@ async function writeRepoFile(
   await writeFile(filePath, content);
 }
 
-async function installExecutable(
-  binDir: string,
-  name: string,
-  content: string,
-): Promise<void> {
-  const executablePath = join(binDir, name);
-
-  await writeFile(executablePath, content);
-  await chmod(executablePath, 0o755);
-}
-
 /**
  * Build the environment inherited by commands inside the disposable repo.
- *
- * User Git configuration and network update checks are isolated so tests do not
- * depend on the developer machine, provider auth, or internet availability.
  */
 function createSandboxEnv(
   homeDir: string,
@@ -380,10 +309,10 @@ function createSandboxEnv(
     GIT_TERMINAL_PROMPT: "0",
     HOME: homeDir,
     LC_ALL: "C",
-    PATH: [binDir, ...sandboxSystemPath].join(delimiter),
-    PUSHGATE_CLAUDE_RESULT: "pass",
+    PATH: [binDir, ...systemPath].join(delimiter),
+    PUSHGATE_RUNNER_EXIT: "0",
+    PUSHGATE_RUNNER_PROTOCOL: "1",
     PUSHGATE_STUB_DIR: artifactsDir,
-    PUSHGATE_TOOL_EXIT: "",
     TERM: "dumb",
     XDG_CONFIG_HOME: join(homeDir, ".config"),
   };
