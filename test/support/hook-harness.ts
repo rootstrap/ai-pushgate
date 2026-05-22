@@ -420,14 +420,21 @@ function runCommand(
   args: string[],
   options: CommandOptions,
 ): Promise<CommandResult> {
+  const stdinMode = options.stdin === undefined ? "ignore" : "pipe";
+
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: options.env,
-      stdio: "pipe",
+      stdio: [stdinMode, "pipe", "pipe"],
     });
     let stderr = "";
     let stdout = "";
+
+    if (!child.stdout || !child.stderr) {
+      reject(new Error("Harness commands must capture stdout and stderr."));
+      return;
+    }
 
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
@@ -441,6 +448,19 @@ function runCommand(
     child.on("close", (code, signal) => {
       resolve({ code, signal, stderr, stdout });
     });
-    child.stdin.end(options.stdin ?? "");
+
+    if (options.stdin !== undefined) {
+      if (!child.stdin) {
+        reject(new Error("Harness command stdin was not piped."));
+        return;
+      }
+
+      child.stdin.on("error", (error: NodeJS.ErrnoException) => {
+        if (error.code !== "EPIPE") {
+          reject(error);
+        }
+      });
+      child.stdin.end(options.stdin);
+    }
   });
 }
