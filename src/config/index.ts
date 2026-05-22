@@ -34,8 +34,11 @@ const ajv = new Ajv({ allErrors: true, strict: true });
 const validateSchema: ValidateFunction<RawPushgateConfig> =
   ajv.compile<RawPushgateConfig>(schema);
 
+/** Base error shape thrown by the v2 config loader boundary. */
 export class ConfigError extends Error {
+  /** Stable machine-readable error code for caller-specific rendering. */
   readonly code: string;
+  /** Human-readable validation details when the error has diagnostics. */
   readonly diagnostics: string[];
 
   constructor(message: string, code: string, diagnostics: string[] = []) {
@@ -46,7 +49,9 @@ export class ConfigError extends Error {
   }
 }
 
+/** Raised when v2 YAML parses incorrectly or violates config validation. */
 export class ConfigValidationError extends ConfigError {
+  /** Path used to identify the YAML source in diagnostics. */
   readonly sourcePath: string;
 
   constructor(sourcePath: string, diagnostics: string[]) {
@@ -61,7 +66,9 @@ export class ConfigValidationError extends ConfigError {
   }
 }
 
+/** Raised when a repository has no v2 or legacy Pushgate config file. */
 export class MissingConfigError extends ConfigError {
+  /** Expected `.pushgate.yml` path checked by the loader. */
   readonly configPath: string;
 
   constructor(configPath: string) {
@@ -73,8 +80,16 @@ export class MissingConfigError extends ConfigError {
   }
 }
 
+/**
+ * Raised when only the legacy config exists.
+ *
+ * The loader does not parse `.push-review.yml` as v2 config; callers should
+ * surface this as migration guidance instead of silently adapting the file.
+ */
 export class LegacyConfigError extends ConfigError {
+  /** Legacy `.push-review.yml` path found by the loader. */
   readonly legacyPath: string;
+  /** Expected v2 `.pushgate.yml` path for migration output. */
   readonly configPath: string;
 
   constructor(legacyPath: string, configPath: string) {
@@ -87,7 +102,13 @@ export class LegacyConfigError extends ConfigError {
   }
 }
 
-/** Parse, validate, and normalize a v2 Pushgate YAML config. */
+/**
+ * Parse, validate, and normalize a v2 Pushgate YAML config string.
+ *
+ * YAML syntax errors, schema errors, and active-AI provider selection errors
+ * are reported as `ConfigValidationError` before callers receive a normalized
+ * config object.
+ */
 export function parseConfigYaml(
   source: string,
   sourcePath: string = CONFIG_FILENAME,
@@ -121,8 +142,11 @@ export function parseConfigYaml(
 }
 
 /**
- * Load the repository v2 config and surface legacy-file warnings separately
- * from the normalized config value.
+ * Load the repository v2 config from disk.
+ *
+ * A present `.pushgate.yml` is parsed and returned with migration warnings for
+ * an accompanying legacy file. Legacy-only and missing-config repositories
+ * fail with dedicated errors so callers can choose actionable output.
  */
 export async function loadConfig(
   repoRoot: string = process.cwd(),
