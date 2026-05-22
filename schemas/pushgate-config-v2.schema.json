@@ -26,7 +26,7 @@
       "$ref": "#/definitions/ai"
     },
     "ignore_paths": {
-      "description": "Glob-like changed-file paths omitted by later Pushgate layers.",
+      "description": "Gitignore-like repo-relative changed-file paths omitted by later Pushgate layers.",
       "type": "array",
       "default": [],
       "items": {

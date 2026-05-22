@@ -109,7 +109,7 @@ ai:
       model: claude-sonnet-4-20250514
 
 review:
-  target_branch: main       # diff base: git diff <target_branch>...HEAD
+  target_branch: main       # local ref for git diff <target_branch>...HEAD
   context_lines: 10         # surrounding context lines included in the diff
   max_lines_for_full_file: 300  # below this threshold, full file contents are sent
                                 # instead of just the diff for richer context
@@ -125,14 +125,14 @@ tools:
     command: ["bundle", "exec", "brakeman", "--no-pager", "--quiet"]
     # no {changed_files} → runs on the whole project
 
-# Files and patterns excluded from tool checks and AI review
+# Gitignore-like repo-relative paths excluded from tool checks and AI review
 ignore_paths:
   - "*.lock"
   - "dist/**"
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 ## Available templates
 

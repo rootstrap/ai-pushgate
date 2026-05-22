@@ -11,6 +11,9 @@ importers:
       ajv:
         specifier: ^8.17.1
         version: 8.20.0
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
       yaml:
         specifier: ^2.8.1
         version: 2.9.0
@@ -205,6 +208,10 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  ignore@7.0.5:
+    resolution: {integrity: sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==}
+    engines: {node: '>= 4'}
+
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
@@ -356,6 +363,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  ignore@7.0.5: {}
 
   json-schema-traverse@1.0.0: {}
 
