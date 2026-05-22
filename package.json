@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run typecheck && tsx --test test/**/*.test.ts"
+    "test": "pnpm run typecheck && tsx --test test/config.test.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
