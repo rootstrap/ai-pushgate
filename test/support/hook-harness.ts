@@ -95,6 +95,10 @@ case "\${1:-}" in
     if [ "$#" -ne 1 ]; then
       exit 64
     fi
+    if [ "$PUSHGATE_RUNNER_PROTOCOL_EXIT" -ne 0 ]; then
+      printf '%s\\n' "$PUSHGATE_RUNNER_PROTOCOL_ERROR" >&2
+      exit "$PUSHGATE_RUNNER_PROTOCOL_EXIT"
+    fi
     printf '%s\\n' "$PUSHGATE_RUNNER_PROTOCOL"
     ;;
   pre-push)
@@ -312,6 +316,8 @@ function createSandboxEnv(
     PATH: [binDir, ...systemPath].join(delimiter),
     PUSHGATE_RUNNER_EXIT: "0",
     PUSHGATE_RUNNER_PROTOCOL: "1",
+    PUSHGATE_RUNNER_PROTOCOL_ERROR: "",
+    PUSHGATE_RUNNER_PROTOCOL_EXIT: "0",
     PUSHGATE_STUB_DIR: artifactsDir,
     TERM: "dumb",
     XDG_CONFIG_HOME: join(homeDir, ".config"),

@@ -81,6 +81,25 @@ test("fails clearly when the runner hook protocol is outdated", async () => {
   });
 });
 
+test("surfaces runner output when the protocol probe cannot execute", async () => {
+  await withHarness(async (harness) => {
+    await harness.installRunnerStub();
+
+    const result = await harness.runHook({
+      env: {
+        PUSHGATE_RUNNER_PROTOCOL_ERROR: "env: node: No such file or directory",
+        PUSHGATE_RUNNER_PROTOCOL_EXIT: "127",
+      },
+      stdin: "",
+    });
+    const output = cleanHookOutput(result);
+
+    assert.equal(result.code, 1, output);
+    assert.match(output, /could not report its hook protocol/);
+    assert.match(output, /env: node: No such file or directory/);
+  });
+});
+
 test("allows a real installed-hook push through the boundary runner", async () => {
   await withHarness(async (harness) => {
     await harness.installRealRunner();

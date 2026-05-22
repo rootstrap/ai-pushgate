@@ -44,8 +44,16 @@ if [ ! -x "$PUSHGATE_RUNNER" ]; then
   exit 1
 fi
 
-if ! RUNNER_PROTOCOL="$("$PUSHGATE_RUNNER" hook-protocol 2>/dev/null)"; then
+if ! RUNNER_PROTOCOL="$("$PUSHGATE_RUNNER" hook-protocol 2>&1)"; then
   error "Pushgate runner at ${PUSHGATE_RUNNER} could not report its hook protocol."
+  if [ -n "$RUNNER_PROTOCOL" ]; then
+    error "Runner output:"
+    while IFS= read -r line; do
+      error "  $line"
+    done <<EOF
+$RUNNER_PROTOCOL
+EOF
+  fi
   reinstall_hint
   exit 1
 fi
