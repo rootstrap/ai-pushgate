@@ -28,11 +28,14 @@ The primary project config is `.pushgate.yml`. Any `.push-review.yml` support is
 
 `pushgate pre-push` is part of Pushgate, not a separate product or user-facing dependency. The implementation question is how the installed hook finds the Pushgate command once the hook delegates work out of the current single Bash script.
 
+The initial installation path is installer-first: `install.sh` installs the Pushgate command and wires the project hook and config. Package-manager installs such as npm can be added later as convenience paths.
+
 ## Defaults
 
 | Surface | Default contract |
 |---|---|
 | Developer entry point | `git push` |
+| Initial install path | `install.sh` installs the Pushgate command, hook, and config |
 | Hook behavior | Delegate to `pushgate pre-push` |
 | Config filename | `.pushgate.yml` |
 | Local deterministic checks | Run only when configured; blocking checks may stop a push |
@@ -45,8 +48,8 @@ The primary project config is `.pushgate.yml`. Any `.push-review.yml` support is
 
 ### Pushgate Command And Distribution
 
-- Choose the runtime and distribution form for the `pushgate` command: packaged script, standalone binary, package-manager install, or a hybrid.
-- Decide whether the installer installs Pushgate, only locates `pushgate` already on `PATH`, or supports both.
+- Choose the install artifact and location for the initial installer-first Pushgate command.
+- Decide how `install.sh` makes the installed `pushgate` command available to the hook and the user's shell.
 - Define the missing-command behavior for the installed hook. A local hook should fail clearly if a blocking Pushgate policy cannot run.
 - Decide how command version compatibility is checked between the installed hook, config schema, and templates.
 
@@ -102,7 +105,7 @@ The primary project config is `.pushgate.yml`. Any `.push-review.yml` support is
 ## Execution Plan
 
 1. Freeze the decisions needed by the Pushgate command and config parser.
-   - Choose runtime/distribution, hook composition, skip precedence, `.pushgate.yml` schema shape, and `.push-review.yml` migration behavior.
+   - Choose the installer artifact/location, hook composition, skip precedence, `.pushgate.yml` schema shape, and `.push-review.yml` migration behavior.
    - Turn the agreed schema and product defaults into fixtures and validation examples before behavior changes.
 
 2. Add verification scaffolding around the current repo.
@@ -112,7 +115,7 @@ The primary project config is `.pushgate.yml`. Any `.push-review.yml` support is
 
 3. Introduce the Pushgate command boundary.
    - Replace the installed `hook/pre-push` body with a small delegator to `pushgate pre-push`.
-   - Preserve install backup behavior and make missing-command or incompatible-command errors actionable.
+   - Make `install.sh` install the Pushgate command, preserve hook backup behavior, and make missing-command or incompatible-command errors actionable.
    - Keep `git push` as the primary path and add `pushgate push` only as a wrapper over Git.
 
 4. Move config and deterministic policy into `pushgate pre-push`.
@@ -138,7 +141,7 @@ The primary project config is `.pushgate.yml`. Any `.push-review.yml` support is
 |---|---|---|
 | Public docs | `README.md` | Describe the Pushgate contract, `.pushgate.yml`, and scoped skip commands |
 | Hook entry point | `hook/pre-push` | Become a thin delegator to `pushgate pre-push` |
-| Installer | `install.sh` | Install the hook/config and handle Pushgate command discovery or distribution |
+| Installer | `install.sh` | Install the Pushgate command, hook, and config |
 | Templates | `templates/*.yml` | Move to the frozen `.pushgate.yml` schema and new defaults |
 | Existing compatibility | current `.push-review.yml` parsing in `hook/pre-push` | Move behind the chosen migration behavior |
 | Tests | none yet | Add temporary-repo integration coverage before large behavior moves |
