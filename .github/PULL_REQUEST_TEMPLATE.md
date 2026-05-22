@@ -26,6 +26,7 @@
 
 <!-- How did you verify this works? What edge cases did you consider? -->
 
+- [ ] `pnpm test` passes
 - [ ] `bash -n hook/pre-push` passes with no output
 - [ ] `bash -n install.sh` passes with no output
 - [ ] Manually tested the hook on a real repository

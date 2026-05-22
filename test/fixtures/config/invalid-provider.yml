@@ -1,0 +1,6 @@
+version: 2
+
+ai:
+  provider: copilot
+  providers:
+    claude: {}

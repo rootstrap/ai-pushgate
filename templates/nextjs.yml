@@ -1,53 +1,44 @@
 # =============================================================================
-# push-review configuration — Next.js
-# https://github.com/rootstrap/ai-git-hooks
+# Pushgate v2 configuration - Next.js
+# https://github.com/rootstrap/ai-pushgate
 # =============================================================================
 
-agent:
-  model: claude-sonnet-4-20250514
+version: 2
+
+ai:
+  mode: blocking
+  provider: claude
+  providers:
+    claude:
+      model: claude-sonnet-4-20250514
 
 review:
   target_branch: main
   context_lines: 10
   max_lines_for_full_file: 300
 
-  focus:
-    - security
-    - logic_errors
-    - test_coverage
-    - performance
-    - naming_and_readability
-
-  blocking_categories:
-    - security
-    - logic_errors
-
-  warning_categories:
-    - test_coverage
-    - performance
-    - naming_and_readability
-
 tools:
   - name: tsc
-    command: npx tsc --noEmit
+    command: ["npx", "tsc", "--noEmit"]
     extensions: [".ts", ".tsx"]
 
   - name: eslint
     # Uses Next.js built-in ESLint config
-    command: npx next lint --file {changed_files}
+    command: ["npx", "next", "lint", "--file", "{changed_files}"]
     extensions: [".ts", ".tsx", ".js", ".jsx"]
 
   - name: prettier
-    command: npx prettier --check {changed_files}
+    command: ["npx", "prettier", "--check", "{changed_files}"]
     extensions: [".ts", ".tsx", ".js", ".jsx", ".json", ".css", ".scss", ".md"]
 
   - name: jest
-    command: npx jest --passWithNoTests --findRelatedTests {changed_files}
+    command: ["npx", "jest", "--passWithNoTests", "--findRelatedTests", "{changed_files}"]
     extensions: [".ts", ".tsx", ".js", ".jsx"]
 
 ignore_paths:
   - "*.lock"
   - "package-lock.json"
+  - "pnpm-lock.yaml"
   - "yarn.lock"
   - ".next/**"
   - "dist/**"

@@ -1,0 +1,35 @@
+# Comments and multiline arrays must survive the real YAML parser path.
+version: 2
+
+review:
+  target_branch: develop
+  context_lines: 14
+  max_lines_for_full_file: 450
+
+tools:
+  - name: eslint
+    command:
+      - npx
+      - eslint
+      - "{changed_files}"
+    extensions:
+      - ".js"
+      - ".ts"
+
+ai:
+  mode: advisory
+  provider: claude
+  providers:
+    claude:
+      model: claude-sonnet-4-20250514
+      transport:
+        auth:
+          source: cli
+        flags:
+          - quiet
+    copilot:
+      model: gpt-5
+
+ignore_paths:
+  - "*.lock"
+  - "dist/**"

@@ -1,122 +1,72 @@
 # =============================================================================
-# push-review configuration — full reference
-# https://github.com/rootstrap/ai-git-hooks
+# Pushgate v2 configuration - full reference
+# https://github.com/rootstrap/ai-pushgate
 # =============================================================================
-# This file controls the AI-assisted pre-push code review hook.
-# Commit this file so all team members share the same review settings.
+# Commit .pushgate.yml so the team shares review settings.
 #
-# To install or update the hook:
-#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash
+# To install or update Pushgate:
+#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash
 #
-# This is the fully-commented reference config with all available options.
-# Customize it for your stack, or reinstall with a pre-built template:
-#
-#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template node
-#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template typescript
-#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template nextjs
-#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template ruby
-#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-git-hooks/main/install.sh | bash -s -- --template rails
+# Reinstall with a pre-built template when useful:
+#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template node
+#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template typescript
+#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template nextjs
+#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template ruby
+#   curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash -s -- --template rails
 # =============================================================================
 
-agent:
-  # The Claude model used for code review.
-  # Requires Claude Code CLI to be installed and authenticated (claude /login).
-  # Available models: claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5
-  model: claude-sonnet-4-20250514
+version: 2
+
+ai:
+  # Supported modes: blocking, advisory, off.
+  mode: blocking
+
+  # Blocking and advisory modes select a provider and define its matching block.
+  provider: claude
+  providers:
+    # Provider-specific settings are kept below the provider name.
+    claude:
+      model: claude-sonnet-4-20250514
+    # copilot:
+    #   model: gpt-5
 
 review:
   # Branch to diff against when collecting changes.
-  # Common values: main, master, develop
   target_branch: main
 
-  # Lines of surrounding context included in the diff sent to the agent.
-  # Higher values give more context but increase prompt size and latency.
+  # Lines of surrounding context included in the diff sent to the provider.
   context_lines: 10
 
-  # When the total changed lines are below this threshold, the full contents
-  # of changed files are sent instead of just the diff. This gives the agent
-  # better structural understanding for small changesets.
+  # Below this changed-line threshold, later AI work can send full file context.
   max_lines_for_full_file: 300
-
-  # Areas the agent should focus on during review.
-  # These are injected into the prompt as explicit instructions.
-  # You can remove areas you don't care about or add custom ones.
-  focus:
-    - security
-    - logic_errors
-    - test_coverage
-    - performance
-    - naming_and_readability
-
-  # Findings in these categories will BLOCK the push.
-  # The developer must fix them before the push is allowed.
-  blocking_categories:
-    - security
-    - logic_errors
-
-  # Findings in these categories are shown as warnings.
-  # They are always printed but do NOT block the push.
-  warning_categories:
-    - test_coverage
-    - performance
-    - naming_and_readability
 
 # =============================================================================
 # Tools
 # =============================================================================
-# Tools run before the AI review. All must pass or the push is blocked immediately.
-# Tools are run in order — the first failure stops execution.
-#
-# Keys:
-#   name:       Display name shown in terminal output.
-#   command:    Shell command to run. Use {changed_files} as a placeholder —
-#               it will be replaced with the list of changed files at runtime.
-#               Omit {changed_files} if the tool should run on the whole project.
-#   extensions: Optional list of file extensions. Only changed files matching
-#               these extensions will be passed to the tool. If omitted, all
-#               changed files are passed.
+# Tools run before AI review. Each command is an argv array, not a shell string.
+# A {changed_files} token is reserved for the later deterministic command
+# runner to expand without shell interpolation.
 #
 # Examples (uncomment and adapt as needed):
 #
-# JavaScript / TypeScript:
 # tools:
 #   - name: eslint
-#     command: npx eslint {changed_files}
+#     command: ["npx", "eslint", "{changed_files}"]
 #     extensions: [".js", ".jsx", ".ts", ".tsx", ".mjs"]
 #
 #   - name: prettier
-#     command: npx prettier --check {changed_files}
+#     command: ["npx", "prettier", "--check", "{changed_files}"]
 #     extensions: [".js", ".jsx", ".ts", ".tsx", ".mjs", ".json", ".css", ".md"]
 #
-#   - name: jest
-#     command: npx jest --passWithNoTests --findRelatedTests {changed_files}
-#     extensions: [".js", ".jsx", ".ts", ".tsx"]
-#
-# Ruby / Rails:
-# tools:
 #   - name: rubocop
-#     command: bundle exec rubocop {changed_files}
+#     command: ["bundle", "exec", "rubocop", "{changed_files}"]
 #     extensions: [".rb", ".rake", ".gemspec"]
 #
-#   - name: reek
-#     command: bundle exec reek {changed_files}
-#     extensions: [".rb"]
-#
-#   - name: rspec
-#     command: bundle exec rspec --format progress
-#     extensions: [".rb"]
-#
 #   - name: brakeman
-#     command: bundle exec brakeman --no-pager
-#
-# Python:
-# tools:
-#   - name: ruff
-#     command: ruff check {changed_files}
-#     extensions: [".py"]
+#     command: ["bundle", "exec", "brakeman", "--no-pager"]
 #
 #   - name: pytest
-#     command: pytest --tb=short
+#     command: ["pytest", "--tb=short"]
 #     extensions: [".py"]
 #
 tools: []
@@ -124,11 +74,11 @@ tools: []
 # =============================================================================
 # Ignore paths
 # =============================================================================
-# Files and patterns to exclude from the changed files list passed to both
-# tools and the AI agent. Supports glob patterns.
+# Files and patterns excluded from tool checks and AI review.
 ignore_paths:
   - "*.lock"
   - "package-lock.json"
+  - "pnpm-lock.yaml"
   - "yarn.lock"
   - "Gemfile.lock"
   - "dist/**"

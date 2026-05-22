@@ -92,12 +92,16 @@ The installer checks which runtimes your config requires and warns about any tha
 After install, edit `.pushgate.yml` in your project root:
 
 ```yaml
+version: 2
+
 ai:
   # Supported modes: blocking (default), advisory, off.
   mode: blocking
-
-  # Claude model used when the Claude Code CLI provider is configured.
-  model: claude-sonnet-4-20250514
+  provider: claude
+  providers:
+    claude:
+      # Provider-specific settings live below the selected provider block.
+      model: claude-sonnet-4-20250514
 
 review:
   target_branch: main       # diff base: git diff <target_branch>...HEAD
@@ -105,33 +109,15 @@ review:
   max_lines_for_full_file: 300  # below this threshold, full file contents are sent
                                 # instead of just the diff for richer context
 
-  # Topics the AI reviewer focuses on
-  focus:
-    - security
-    - logic_errors
-    - test_coverage
-    - performance
-    - naming_and_readability
-
-  # Findings in these categories block the push
-  blocking_categories:
-    - security
-    - logic_errors
-
-  # Findings in these categories are printed as warnings but never block
-  warning_categories:
-    - test_coverage
-    - performance
-    - naming_and_readability
-
 # Tools to run before AI review — first failure blocks the push immediately
 tools:
   - name: eslint
-    command: npx eslint {changed_files}   # {changed_files} is replaced at runtime
+    # Commands are argv arrays. {changed_files} is expanded by the runner.
+    command: ["npx", "eslint", "{changed_files}"]
     extensions: [".js", ".jsx", ".ts", ".tsx"]
 
   - name: brakeman
-    command: bundle exec brakeman --no-pager --quiet
+    command: ["bundle", "exec", "brakeman", "--no-pager", "--quiet"]
     # no {changed_files} → runs on the whole project
 
 # Files and patterns excluded from tool checks and AI review
@@ -140,6 +126,8 @@ ignore_paths:
   - "dist/**"
   - "coverage/**"
 ```
+
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary and migration behavior for `.push-review.yml`.
 
 ## Available templates
 
