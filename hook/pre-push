@@ -62,7 +62,7 @@ config_value() {
 
 config_list() {
   local key="$1"
-  awk "/^${key}:/{flag=1;next} flag && /^[^ ]/{flag=0} flag && /^\s*-/{gsub(/^\s*-\s*/,\"\"); print}" \
+  awk "/^${key}:/{flag=1;next} flag && /^[^[:space:]]/{flag=0} flag && /^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,\"\"); print}" \
     "$CONFIG_FILE" 2>/dev/null | tr -d '"' | tr -d "'"
 }
 
@@ -111,8 +111,8 @@ while IFS= read -r f; do
     if [ -z "$pattern" ]; then
       continue
     fi
+    # shellcheck disable=SC2254
     case "$f" in
-      # shellcheck disable=SC2254
       $pattern)
         skip=true
         break

@@ -26,14 +26,17 @@ jobs:
       - name: Build TypeScript config layer
         run: pnpm build
 
-      - name: Test Node config layer
+      - name: Test Node layer and hook harness
         run: pnpm test
 
-      - name: Check hook syntax
-        run: bash -n hook/pre-push
+      - name: Check shell syntax
+        run: pnpm run check:shell
 
-      - name: Check installer syntax
-        run: bash -n install.sh
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install --yes shellcheck
+
+      - name: Check shell scripts with ShellCheck
+        run: pnpm run lint:shell
 
       - name: Verify hook is executable
         run: |

@@ -89,18 +89,21 @@ commit as-is and customise from there.
 
 ## Testing your changes
 
-Run the Node config tests before manual hook or installer checks:
+Run the automated tests before manual hook or installer checks:
 
 ```bash
 # Install config parser dependencies
 pnpm install
 
-# Typecheck the v2 config loader, then validate schema fixtures and templates
+# Typecheck the Node layer, validate config fixtures, and run the hook harness
+# against disposable Git repos and local tool/provider stubs
 pnpm test
 
 # Validate shell syntax
-bash -n hook/pre-push
-bash -n install.sh
+pnpm run check:shell
+
+# Run ShellCheck's error-level static checks when ShellCheck is installed
+pnpm run lint:shell
 
 # Test the installer locally (from inside a git repo)
 bash install.sh --template node
@@ -118,8 +121,8 @@ verify the configured tools run correctly against changed files.
 ## Pull request checklist
 
 - [ ] `pnpm test` passes
-- [ ] `bash -n hook/pre-push` passes with no output
-- [ ] `bash -n install.sh` passes with no output
+- [ ] `pnpm run check:shell` passes with no output
+- [ ] `pnpm run lint:shell` passes when ShellCheck is installed
 - [ ] Commit messages follow Conventional Commits
 - [ ] New templates include all keys from an existing template
 - [ ] `README.md` updated if a new template was added
