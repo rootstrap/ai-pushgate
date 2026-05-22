@@ -1,47 +1,37 @@
 # =============================================================================
-# push-review configuration — Ruby on Rails
-# https://github.com/rootstrap/ai-git-hooks
+# Pushgate v2 configuration - Ruby on Rails
+# https://github.com/rootstrap/ai-pushgate
 # =============================================================================
 
-agent:
-  model: claude-sonnet-4-20250514
+version: 2
+
+ai:
+  mode: blocking
+  provider: claude
+  providers:
+    claude:
+      model: claude-sonnet-4-20250514
 
 review:
   target_branch: main
   context_lines: 10
   max_lines_for_full_file: 300
 
-  focus:
-    - security
-    - logic_errors
-    - test_coverage
-    - performance
-    - naming_and_readability
-
-  blocking_categories:
-    - security
-    - logic_errors
-
-  warning_categories:
-    - test_coverage
-    - performance
-    - naming_and_readability
-
 tools:
   - name: rubocop
-    command: bundle exec rubocop {changed_files}
+    command: ["bundle", "exec", "rubocop", "{changed_files}"]
     extensions: [".rb", ".rake", ".gemspec", ".ru"]
 
   - name: reek
-    command: bundle exec reek {changed_files}
+    command: ["bundle", "exec", "reek", "{changed_files}"]
     extensions: [".rb"]
 
   - name: brakeman
     # Security vulnerability scanner for Rails — runs on whole project
-    command: bundle exec brakeman --no-pager --quiet
+    command: ["bundle", "exec", "brakeman", "--no-pager", "--quiet"]
 
   - name: rspec
-    command: bundle exec rspec --format progress
+    command: ["bundle", "exec", "rspec", "--format", "progress"]
     extensions: [".rb"]
 
 ignore_paths:

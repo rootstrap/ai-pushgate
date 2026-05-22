@@ -1,0 +1,29 @@
+{
+  "name": "ai-pushgate",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm run typecheck && tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.9",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "default": "./dist/config/index.js"
+    }
+  }
+}

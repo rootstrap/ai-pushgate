@@ -1,49 +1,40 @@
 # =============================================================================
-# push-review configuration — Node.js
-# https://github.com/rootstrap/ai-git-hooks
+# Pushgate v2 configuration - Node.js
+# https://github.com/rootstrap/ai-pushgate
 # =============================================================================
 
-agent:
-  model: claude-sonnet-4-20250514
+version: 2
+
+ai:
+  mode: blocking
+  provider: claude
+  providers:
+    claude:
+      model: claude-sonnet-4-20250514
 
 review:
   target_branch: main
   context_lines: 10
   max_lines_for_full_file: 300
 
-  focus:
-    - security
-    - logic_errors
-    - test_coverage
-    - performance
-    - naming_and_readability
-
-  blocking_categories:
-    - security
-    - logic_errors
-
-  warning_categories:
-    - test_coverage
-    - performance
-    - naming_and_readability
-
 tools:
   - name: eslint
-    command: npx eslint {changed_files}
+    command: ["npx", "eslint", "{changed_files}"]
     extensions: [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]
 
   - name: prettier
-    command: npx prettier --check {changed_files}
+    command: ["npx", "prettier", "--check", "{changed_files}"]
     extensions:
       [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".json", ".css", ".md"]
 
   - name: jest
-    command: npx jest --passWithNoTests --findRelatedTests {changed_files}
+    command: ["npx", "jest", "--passWithNoTests", "--findRelatedTests", "{changed_files}"]
     extensions: [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]
 
 ignore_paths:
   - "*.lock"
   - "package-lock.json"
+  - "pnpm-lock.yaml"
   - "yarn.lock"
   - "dist/**"
   - "build/**"

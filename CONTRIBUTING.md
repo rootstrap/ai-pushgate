@@ -1,4 +1,4 @@
-# Contributing to ai-git-hooks
+# Contributing to ai-pushgate
 
 Thank you for your interest in contributing! This document covers everything
 you need to know to get changes merged.
@@ -14,11 +14,16 @@ All changes — including from maintainers — must go through a pull request. D
 ## Development setup
 
 ```bash
-git clone git@github.com:rootstrap/ai-git-hooks.git
-cd ai-git-hooks
+git clone git@github.com:rootstrap/ai-pushgate.git
+cd ai-pushgate
+
+# Let Corepack use the pnpm version pinned in package.json
+corepack enable
+pnpm install
 ```
 
-No dependencies to install — the project is pure shell scripts and YAML.
+Pushgate uses pnpm for its Node config parser dependencies and scripts. The
+hook, installer, and templates remain shell and YAML.
 
 ---
 
@@ -84,9 +89,15 @@ commit as-is and customise from there.
 
 ## Testing your changes
 
-There is no automated test suite yet. To test manually:
+Run the Node config tests before manual hook or installer checks:
 
 ```bash
+# Install config parser dependencies
+pnpm install
+
+# Typecheck the v2 config loader, then validate schema fixtures and templates
+pnpm test
+
 # Validate shell syntax
 bash -n hook/pre-push
 bash -n install.sh
@@ -106,6 +117,7 @@ verify the configured tools run correctly against changed files.
 
 ## Pull request checklist
 
+- [ ] `pnpm test` passes
 - [ ] `bash -n hook/pre-push` passes with no output
 - [ ] `bash -n install.sh` passes with no output
 - [ ] Commit messages follow Conventional Commits

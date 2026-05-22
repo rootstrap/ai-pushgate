@@ -7,11 +7,27 @@ on:
 
 jobs:
   validate:
-    name: Validate shell scripts
+    name: Validate shell scripts and config
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript config layer
+        run: pnpm build
+
+      - name: Test Node config layer
+        run: pnpm test
 
       - name: Check hook syntax
         run: bash -n hook/pre-push
@@ -65,7 +81,7 @@ jobs:
 
       - name: Verify templates contain required keys
         run: |
-          required_keys="agent review tools ignore_paths"
+          required_keys="version ai review tools ignore_paths"
           for f in templates/*.yml; do
             for key in $required_keys; do
               if ! grep -q "^${key}:" "$f"; then

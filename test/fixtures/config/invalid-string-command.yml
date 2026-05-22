@@ -1,0 +1,8 @@
+version: 2
+
+tools:
+  - name: eslint
+    command: npx eslint {changed_files}
+
+ai:
+  mode: off
