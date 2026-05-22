@@ -77,8 +77,8 @@ The initial installation path is installer-first: `install.sh` installs the Push
 
 ### Local Checks
 
-- Define the base-ref algorithm when the configured target branch is absent locally, a push creates a new branch, or a remote ref differs from local history.
-- Freeze changed-file semantics for deleted files, renames, binary files, generated files, ignored paths, extension filters, and filenames with whitespace.
+- The changed-file resolver uses the locally resolvable configured target branch and fails explicitly when Git cannot use that ref or find its diff base with `HEAD`; it does not auto-fetch or silently choose a remote or push-range fallback.
+- Keep normalized changed-file semantics shared for deleted files, renames, binary files, ignored paths, extension filters, and filenames with whitespace as deterministic and AI consumers land.
 - Decide check mode defaults and failure handling for missing commands, timeouts, warnings, fail-fast, and checks that must run on the whole repo.
 - Define which local blocking checks must have a CI mirror and how local-only exceptions are recorded.
 
@@ -98,7 +98,7 @@ The initial installation path is installer-first: `install.sh` installs the Push
 
 ### Support And Verification
 
-- Freeze supported platforms and shells before choosing parser, timeout, path glob, and packaging implementations.
+- The initial changed-file path-policy layer targets macOS and Linux; Windows and Git Bash support remains a deliberate support boundary for later parser, timeout, path glob, and packaging decisions.
 - Build a test harness that creates temporary Git repos and stubs checks and AI providers before moving behavior out of the existing Bash hook.
 - Decide migration and release messaging for old repository names, old config files, old hook output prefixes, and existing install URLs.
 

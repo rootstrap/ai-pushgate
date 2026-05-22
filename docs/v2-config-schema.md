@@ -65,6 +65,25 @@ tools:
     command: ["npx", "prettier", "--check", "{changed_files}"]
 ```
 
+## Changed-File Policy
+
+The changed-file path policy resolves `review.target_branch` locally and uses
+the documented `<target_branch>...HEAD` Git diff range. If that ref is missing
+or Git cannot find a merge base with `HEAD`, Pushgate fails with an explicit
+diagnostic instead of fetching, guessing a remote variant, or switching to a
+different history range.
+
+`ignore_paths` uses gitignore-like rules against Git's repo-relative paths.
+Patterns such as `*.lock` match basenames across the changed tree, while
+directory rules such as `dist/**` remove that generated subtree before
+deterministic tools or AI consume the shared changed-file list. Tool
+`extensions` are suffix filters over the remaining current paths; deleted files
+remain in normalized changed-file metadata but are not live argv paths for
+later changed-file tool commands.
+
+The initial path-policy implementation targets macOS and Linux behavior.
+Windows and Git Bash path support remain explicit follow-up scope.
+
 ## Review Prompt
 
 Legacy `.push-review.yml` stored reviewer `focus`, `blocking_categories`, and
