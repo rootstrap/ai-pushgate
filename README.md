@@ -52,6 +52,37 @@ checks combined with repository branch protection.
 - Secret redaction is expected before any source content is sent to an AI
   provider.
 
+## Install
+
+Run the installer from the Git repository where pushgate should guard pushes:
+
+```bash
+# Default base template
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash
+
+# Stack-specific template
+curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh \
+  | bash -s -- --template <name>
+```
+
+Available templates are `base`, `node`, `typescript`, `nextjs`, `ruby`, and
+`rails`.
+
+The installer:
+
+1. Installs or verifies the `pushgate` runner.
+2. Installs `.git/hooks/pre-push` as a thin delegator to `pushgate pre-push`.
+3. Backs up an existing `pre-push` hook before replacing it.
+4. Writes the selected template to `.pushgate.yml` when that config does not
+   already exist.
+5. Checks configured tool and AI provider dependencies.
+
+If `pushgate` is already installed, the CLI can set up a repository directly:
+
+```bash
+pushgate install --template <name>
+```
+
 ## Configuration
 
 The config contract is:
