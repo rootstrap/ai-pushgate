@@ -59,10 +59,11 @@ curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.
 
 The installer:
 
-1. Downloads and validates `hook/pre-push` → `.git/hooks/pre-push`
-2. Backs up any existing `pre-push` hook before overwriting
-3. Downloads the template config → `.pushgate.yml` (only on first install — never overwrites)
-4. Checks configured runtimes and AI dependencies
+1. Installs the `pushgate` command used by the hook
+2. Downloads and validates `hook/pre-push` → `.git/hooks/pre-push`
+3. Backs up any existing `pre-push` hook before overwriting
+4. Downloads the template config → `.pushgate.yml` (only on first install — never overwrites)
+5. Checks configured runtimes and AI dependencies
 
 ## Requirements
 
