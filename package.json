@@ -7,11 +7,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && pnpm run bundle",
+    "bundle": "node scripts/build-runner.mjs",
     "check:shell": "bash -n hook/pre-push && bash -n install.sh",
     "lint:shell": "shellcheck --severity=error hook/pre-push install.sh",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run typecheck && tsx --test test/*.test.ts"
+    "test": "pnpm run typecheck && pnpm run bundle && tsx --test test/*.test.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.18.9",
+    "esbuild": "^0.28.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },

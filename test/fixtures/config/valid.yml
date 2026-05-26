@@ -15,6 +15,10 @@ tools:
     extensions:
       - ".js"
       - ".ts"
+    timeout_seconds: 12
+    mode: warning
+    run: changed_files
+    fail_fast: false
 
 ai:
   mode: advisory

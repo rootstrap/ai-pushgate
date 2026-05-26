@@ -20,6 +20,10 @@ tools:
   - name: eslint
     command: ["npx", "eslint", "{changed_files}"]
     extensions: [".js", ".jsx", ".ts", ".tsx"]
+    timeout_seconds: 60
+    mode: blocking
+    run: changed_files
+    fail_fast: true
 
 ai:
   mode: blocking
@@ -49,6 +53,10 @@ The loader normalizes omitted optional values into one internal shape:
 | `tools` | `[]` |
 | `ignore_paths` | `[]` |
 | `ai.mode` | `blocking` |
+| `tools[].timeout_seconds` | `60` |
+| `tools[].mode` | `blocking` |
+| `tools[].run` | `changed_files` |
+| `tools[].fail_fast` | `true` |
 
 `blocking` and `advisory` AI modes must set `ai.provider` and define a matching
 `ai.providers.<provider>` block. `ai.mode: off` may omit provider config.
@@ -56,14 +64,33 @@ The loader normalizes omitted optional values into one internal shape:
 ## Tool Commands
 
 Tool commands are argv arrays, not shell strings. `{changed_files}` may be one
-array token for the later deterministic command runner to expand without shell
-interpolation:
+array token for the deterministic command runner to expand into individual argv
+entries without shell interpolation:
 
 ```yaml
 tools:
   - name: prettier
     command: ["npx", "prettier", "--check", "{changed_files}"]
 ```
+
+Each tool may also define execution behavior:
+
+```yaml
+tools:
+  - name: eslint
+    command: ["npx", "eslint", "{changed_files}"]
+    extensions: [".js", ".jsx", ".ts", ".tsx"]
+    timeout_seconds: 60
+    mode: blocking      # blocking | warning
+    run: changed_files  # changed_files | always
+    fail_fast: true
+```
+
+`run: changed_files` skips the tool when no non-deleted changed files match its
+optional `extensions` filter. `run: always` runs the command regardless of the
+scoped file list; if the command includes `{changed_files}`, that token expands
+to zero or more argv entries. Warning-mode failures are reported but do not
+block the push. Blocking failures stop later tools when `fail_fast` is true.
 
 ## Changed-File Policy
 

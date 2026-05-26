@@ -17,7 +17,8 @@ git push
 ┌─────────────────────────────────────┐
 │  Run configured tools               │
 │  (linters, type checkers, tests)    │
-│  ✗ any failure → push blocked       │
+│  ✗ blocking failure → push blocked  │
+│  ! warning failure → push proceeds  │
 └──────────────┬──────────────────────┘
                │ all pass
                ▼
@@ -120,10 +121,14 @@ tools:
     # Commands are argv arrays. {changed_files} is expanded by the runner.
     command: ["npx", "eslint", "{changed_files}"]
     extensions: [".js", ".jsx", ".ts", ".tsx"]
+    timeout_seconds: 60  # default command budget
+    mode: blocking       # blocking failures stop the push; warning only reports
+    run: changed_files   # skip when no matching live changed files exist
+    fail_fast: true      # stop later tools after this blocking failure
 
   - name: brakeman
     command: ["bundle", "exec", "brakeman", "--no-pager", "--quiet"]
-    # no {changed_files} → runs on the whole project
+    run: always          # no {changed_files} -> runs on the whole project
 
 # Gitignore-like repo-relative paths excluded from tool checks and AI review
 ignore_paths:
@@ -132,7 +137,7 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 ## Available templates
 
