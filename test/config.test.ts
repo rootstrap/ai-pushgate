@@ -30,6 +30,10 @@ test("parses a representative v2 config with nested provider settings", async ()
     "{changed_files}",
   ]);
   assert.deepEqual(config.tools[0].extensions, [".js", ".ts"]);
+  assert.equal(config.tools[0].timeout_seconds, 12);
+  assert.equal(config.tools[0].mode, "warning");
+  assert.equal(config.tools[0].run, "changed_files");
+  assert.equal(config.tools[0].fail_fast, false);
   assert.equal(config.ai.mode, "advisory");
   assert.deepEqual(config.ai.providers.claude.transport, {
     auth: { source: "cli" },
@@ -54,6 +58,29 @@ test("normalizes defaults before later Pushgate layers consume config", async ()
       providers: { claude: {} },
     },
     ignore_paths: [],
+  });
+});
+
+test("normalizes deterministic tool execution defaults", () => {
+  const config = parseConfigYaml(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "tools:",
+      "  - name: eslint",
+      '    command: ["npx", "eslint", "{changed_files}"]',
+    ].join("\n"),
+    "tool-defaults.yml",
+  );
+
+  assert.deepEqual(config.tools[0], {
+    name: "eslint",
+    command: ["npx", "eslint", "{changed_files}"],
+    timeout_seconds: 60,
+    mode: "blocking",
+    run: "changed_files",
+    fail_fast: true,
   });
 });
 
@@ -85,6 +112,45 @@ test("requires deterministic tool commands to be non-empty argv arrays", async (
   assertValidationError(
     'version: 2\nai:\n  mode: off\ntools:\n  - name: eslint\n    command: ["npx", ""]\n',
     /\/tools\/0\/command\/1 must NOT have fewer than 1 characters/,
+  );
+});
+
+test("rejects invalid deterministic tool execution settings", () => {
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "tools:",
+      "  - name: eslint",
+      '    command: ["npx", "eslint"]',
+      "    timeout_seconds: 0",
+    ].join("\n"),
+    /\/tools\/0\/timeout_seconds must be >= 1/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "tools:",
+      "  - name: eslint",
+      '    command: ["npx", "eslint"]',
+      "    mode: advisory",
+    ].join("\n"),
+    /\/tools\/0\/mode must be equal to one of the allowed values/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "tools:",
+      "  - name: eslint",
+      '    command: ["npx", "eslint"]',
+      "    run: staged",
+    ].join("\n"),
+    /\/tools\/0\/run must be equal to one of the allowed values/,
   );
 });
 

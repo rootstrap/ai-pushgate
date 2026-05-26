@@ -27,8 +27,9 @@ tools:
     extensions: [".rb"]
 
   - name: brakeman
-    # Security vulnerability scanner for Rails — runs on whole project
+    # Security vulnerability scanner for Rails; runs on the whole project.
     command: ["bundle", "exec", "brakeman", "--no-pager", "--quiet"]
+    run: always
 
   - name: rspec
     command: ["bundle", "exec", "rspec", "--format", "progress"]

@@ -81,6 +81,29 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "timeout_seconds": {
+          "description": "Maximum runtime before the deterministic command is treated as timed out.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 60
+        },
+        "mode": {
+          "description": "Whether command failures block the push or only warn locally.",
+          "type": "string",
+          "enum": ["blocking", "warning"],
+          "default": "blocking"
+        },
+        "run": {
+          "description": "Whether the command requires matching live changed files or always runs.",
+          "type": "string",
+          "enum": ["changed_files", "always"],
+          "default": "changed_files"
+        },
+        "fail_fast": {
+          "description": "Whether a blocking failure stops later deterministic command checks.",
+          "type": "boolean",
+          "default": true
         }
       }
     },

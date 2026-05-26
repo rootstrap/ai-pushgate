@@ -1,6 +1,12 @@
 /** Local AI policy modes accepted by the v2 config boundary. */
 export type AiMode = "blocking" | "advisory" | "off";
 
+/** Local deterministic command failure behavior. */
+export type ToolMode = "blocking" | "warning";
+
+/** Determines whether a tool is scoped to live changed files or always runs. */
+export type ToolRunMode = "changed_files" | "always";
+
 /** Normalized diff-context settings consumed after v2 config validation. */
 export interface ReviewConfig {
   /** Local or remote-tracking branch name used as the review base. */
@@ -19,6 +25,14 @@ export interface ToolConfig {
   command: string[];
   /** File extensions that scope changed-file execution when provided. */
   extensions?: string[];
+  /** Maximum command runtime before Pushgate treats the tool as timed out. */
+  timeout_seconds: number;
+  /** Whether command failure blocks the push or only warns locally. */
+  mode: ToolMode;
+  /** Whether to require scoped live changed files before running. */
+  run: ToolRunMode;
+  /** Whether a blocking failure stops later deterministic checks. */
+  fail_fast: boolean;
 }
 
 /** Provider-specific config extension block preserved for provider adapters. */
@@ -65,6 +79,10 @@ export interface RawToolConfig {
   name: string;
   command: string[];
   extensions?: string[];
+  timeout_seconds?: number;
+  mode?: ToolMode;
+  run?: ToolRunMode;
+  fail_fast?: boolean;
 }
 
 /** Raw AI shape before default mode and provider diagnostics are applied. */

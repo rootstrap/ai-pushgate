@@ -44,8 +44,14 @@ review:
 # Tools
 # =============================================================================
 # Tools run before AI review. Each command is an argv array, not a shell string.
-# A {changed_files} token is reserved for the later deterministic command
-# runner to expand without shell interpolation.
+# A {changed_files} token expands to individual argv entries without shell
+# interpolation, so filenames with spaces stay one argument.
+#
+# Tool defaults:
+#   timeout_seconds: 60
+#   mode: blocking       # blocking | warning
+#   run: changed_files   # changed_files | always
+#   fail_fast: true
 #
 # Examples (uncomment and adapt as needed):
 #
@@ -53,6 +59,10 @@ review:
 #   - name: eslint
 #     command: ["npx", "eslint", "{changed_files}"]
 #     extensions: [".js", ".jsx", ".ts", ".tsx", ".mjs"]
+#     timeout_seconds: 60
+#     mode: blocking
+#     run: changed_files
+#     fail_fast: true
 #
 #   - name: prettier
 #     command: ["npx", "prettier", "--check", "{changed_files}"]
@@ -64,6 +74,7 @@ review:
 #
 #   - name: brakeman
 #     command: ["bundle", "exec", "brakeman", "--no-pager"]
+#     run: always
 #
 #   - name: pytest
 #     command: ["pytest", "--tb=short"]

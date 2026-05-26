@@ -1,9 +1,10 @@
 import { access, readFile } from "node:fs/promises";
-import { constants, readFileSync } from "node:fs";
+import { constants } from "node:fs";
 import { join } from "node:path";
 
 import { Ajv, type ErrorObject, type ValidateFunction } from "ajv";
 import { parseDocument } from "yaml";
+import schema from "../../schemas/pushgate-config-v2.schema.json" with { type: "json" };
 
 import type {
   LoadedConfig,
@@ -19,17 +20,13 @@ export type {
   PushgateConfig,
   ReviewConfig,
   ToolConfig,
+  ToolMode,
+  ToolRunMode,
 } from "./types.js";
 
 export const CONFIG_FILENAME = ".pushgate.yml" as const;
 export const LEGACY_CONFIG_FILENAME = ".push-review.yml" as const;
 
-const schema: object = JSON.parse(
-  readFileSync(
-    new URL("../../schemas/pushgate-config-v2.schema.json", import.meta.url),
-    "utf8",
-  ),
-);
 const ajv = new Ajv({ allErrors: true, strict: true });
 const validateSchema: ValidateFunction<RawPushgateConfig> =
   ajv.compile<RawPushgateConfig>(schema);
@@ -196,6 +193,10 @@ function normalizeConfig(rawConfig: RawPushgateConfig): PushgateConfig {
       name: tool.name,
       command: [...tool.command],
       ...(tool.extensions ? { extensions: [...tool.extensions] } : {}),
+      timeout_seconds: tool.timeout_seconds ?? 60,
+      mode: tool.mode ?? "blocking",
+      run: tool.run ?? "changed_files",
+      fail_fast: tool.fail_fast ?? true,
     })),
     ai: {
       mode: ai.mode ?? "blocking",

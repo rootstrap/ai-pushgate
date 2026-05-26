@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { chmod, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
@@ -104,11 +106,45 @@ test("allows a real installed-hook push through the boundary runner", async () =
   await withHarness(async (harness) => {
     await harness.installRealRunner();
     await harness.installInstalledHook();
+    await writePushgateConfig(harness, "version: 2\nai:\n  mode: off\ntools: []\n");
     await harness.addBareOrigin();
 
     const result = await harness.git(["push", "origin", "feature"]);
 
     assert.equal(result.code, 0, formatResult(result));
+  });
+});
+
+test("blocks a real installed-hook push on deterministic command failure", async () => {
+  await withHarness(async (harness) => {
+    const failingTool = join(harness.binDir, "failing-tool");
+
+    await writeFile(
+      failingTool,
+      "#!/usr/bin/env bash\nprintf 'tool failed\\n' >&2\nexit 3\n",
+    );
+    await chmod(failingTool, 0o755);
+    await writePushgateConfig(
+      harness,
+      [
+        "version: 2",
+        "ai:",
+        "  mode: off",
+        "tools:",
+        "  - name: failing",
+        '    command: ["failing-tool"]',
+      ].join("\n"),
+    );
+    await harness.installRealRunner();
+    await harness.installInstalledHook();
+    await harness.addBareOrigin();
+
+    const result = await harness.git(["push", "origin", "feature"]);
+    const output = cleanHookOutput(result);
+
+    assert.equal(result.code, 1, output);
+    assert.match(output, /BLOCK failing: exited with code 3/);
+    assert.match(output, /tool failed/);
   });
 });
 
@@ -147,4 +183,11 @@ function formatResult(result: CommandResult): string {
     `stdout:\n${result.stdout}`,
     `stderr:\n${result.stderr}`,
   ].join("\n");
+}
+
+async function writePushgateConfig(
+  harness: HookHarness,
+  content: string,
+): Promise<void> {
+  await writeFile(join(harness.repoRoot, ".pushgate.yml"), `${content.trimEnd()}\n`);
 }
