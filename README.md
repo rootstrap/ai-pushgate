@@ -38,8 +38,10 @@ Local deterministic checks can block a push. Local AI supports `blocking`, `advi
 
 The current M1 runner boundary is intentionally thin: the installer wires the
 hook to the managed `pushgate` command, the command accepts Git pre-push
-context, and policy execution lands in the changed-file, deterministic-check,
-and AI runner work that follows.
+context, and policy execution now flows through the changed-file layer,
+deterministic checks, and a provider-backed local AI phase. The first adapter
+keeps Claude-specific invocation behind the runner's provider boundary so later
+providers can reuse the same seam.
 
 ## Install
 
@@ -81,7 +83,7 @@ The installer:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
-claude /login
+claude auth login
 ```
 
 **Configured tool runtimes** depend on the tools you configure:

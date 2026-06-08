@@ -123,6 +123,101 @@ test("skip-ai-check keeps deterministic work and prints visible AI skip output",
   });
 });
 
+test("blocking local AI findings block the pre-push runner", async () => {
+  await withAiRepo(async (repoRoot, env) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: claude",
+        "  providers:",
+        "    claude:",
+        "      model: claude-sonnet-4-20250514",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot, env },
+    );
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /Running local AI review with claude/);
+    assert.match(result.stdout, /BLOCK AI logic_errors at src\/changed\.ts:2-3/);
+    assert.match(result.stdout, /Local AI review blocked the push/);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("blocking local AI provider failures block the pre-push runner", async () => {
+  await withAiRepo(async (repoRoot) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot },
+    );
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(
+      result.stdout,
+      /BLOCK local AI provider claude failed: Claude Code CLI was not found on PATH/,
+    );
+    assert.match(result.stdout, /Local AI is blocking in this repository/);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("advisory local AI provider failures do not block the pre-push runner", async () => {
+  await withAiRepo(async (repoRoot) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: advisory",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot },
+    );
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(
+      result.stdout,
+      /WARN local AI provider claude failed: Claude Code CLI was not found on PATH/,
+    );
+    assert.match(result.stdout, /Continuing because ai.mode is advisory/);
+    assert.equal(result.stderr, "");
+  });
+});
+
 test("push wrapper maps skip-all-checks to one-command Git config", async () => {
   await withGitStub(async ({ argsPath, env, root }) => {
     const result = await runRunner(
@@ -335,6 +430,59 @@ async function withPolicyRepo(
   }
 }
 
+async function withAiRepo(
+  callback: (repoRoot: string, env: NodeJS.ProcessEnv) => Promise<void>,
+): Promise<void> {
+  const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-ai-cli-"));
+  const binDir = join(repoRoot, "bin");
+
+  try {
+    await mkdir(binDir, { recursive: true });
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.email", "runner@example.test"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.name", "Pushgate Runner"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "src/changed.ts", "export const base = true;\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "baseline"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["switch", "--quiet", "-c", "feature"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(
+      repoRoot,
+      "src/changed.ts",
+      [
+        "export function changed(flag) {",
+        "  if (flag) {",
+        "    return false;",
+        "  }",
+        "  return flag;",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
+      cwd: repoRoot,
+    });
+    await installClaudeStub(binDir);
+
+    await callback(repoRoot, {
+      ...process.env,
+      PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+    });
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+}
+
 async function writeRepoFile(
   repoRoot: string,
   relativePath: string,
@@ -344,6 +492,32 @@ async function writeRepoFile(
 
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, content);
+}
+
+async function installClaudeStub(binDir: string): Promise<void> {
+  await writeFile(
+    join(binDir, "claude"),
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      "cat > /dev/null",
+      "cat <<'EOF'",
+      "FINDING",
+      "category: logic_errors",
+      "severity: blocking",
+      "file: src/changed.ts",
+      "line: 2-3",
+      "message: The true branch always returns false instead of preserving the flag.",
+      "suggestion: Return the computed value for the true branch and cover it with a regression test.",
+      "",
+      "SUMMARY",
+      "blocking_count: 1",
+      "warning_count: 0",
+      "verdict: BLOCK",
+      "EOF",
+    ].join("\n"),
+  );
+  await chmod(join(binDir, "claude"), 0o755);
 }
 
 interface CommandOptions {
