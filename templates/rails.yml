@@ -7,6 +7,9 @@ version: 2
 
 ai:
   mode: blocking
+  max_changed_lines: 500
+  max_prompt_tokens: 12000
+  timeout_seconds: 120
   provider: claude
   providers:
     claude:

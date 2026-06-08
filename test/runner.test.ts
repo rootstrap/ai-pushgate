@@ -186,6 +186,36 @@ test("blocking local AI provider failures block the pre-push runner", async () =
   });
 });
 
+test("default local AI mode is blocking in the pre-push runner", async () => {
+  await withAiRepo(async (repoRoot) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot },
+    );
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(
+      result.stdout,
+      /BLOCK local AI provider claude failed: Claude Code CLI was not found on PATH/,
+    );
+    assert.equal(result.stderr, "");
+  });
+});
+
 test("advisory local AI provider failures do not block the pre-push runner", async () => {
   await withAiRepo(async (repoRoot) => {
     await writeFile(
@@ -214,6 +244,39 @@ test("advisory local AI provider failures do not block the pre-push runner", asy
       /WARN local AI provider claude failed: Claude Code CLI was not found on PATH/,
     );
     assert.match(result.stdout, /Continuing because ai.mode is advisory/);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("AI changed-line guardrail skips provider invocation visibly", async () => {
+  await withAiRepo(async (repoRoot, env) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  max_changed_lines: 1",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot, env },
+    );
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(
+      result.stdout,
+      /Skipping local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/,
+    );
+    assert.doesNotMatch(result.stdout, /Running local AI review with claude/);
     assert.equal(result.stderr, "");
   });
 });

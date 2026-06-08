@@ -67,6 +67,12 @@ export type ProviderConfig = Record<string, unknown>;
 export interface AiConfig {
   /** Local AI behavior after config defaults are applied. */
   mode: AiMode;
+  /** Maximum changed text lines the local AI phase may review. */
+  max_changed_lines: number;
+  /** Approximate rendered prompt token budget before local AI is skipped. */
+  max_prompt_tokens: number;
+  /** Maximum provider runtime before Pushgate treats local AI as timed out. */
+  timeout_seconds: number;
   /** Provider selected for active AI modes. */
   provider?: string;
   /** Provider-specific settings keyed by provider identifier. */
@@ -132,6 +138,9 @@ export interface RawBuiltInPoliciesConfig {
 /** Raw AI shape before default mode and provider diagnostics are applied. */
 export interface RawAiConfig {
   mode?: AiMode;
+  max_changed_lines?: number;
+  max_prompt_tokens?: number;
+  timeout_seconds?: number;
   provider?: string;
   providers?: Record<string, ProviderConfig>;
 }

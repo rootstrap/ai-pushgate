@@ -7,7 +7,6 @@ import type {
   LocalAiProviderResult,
 } from "../types.js";
 
-const CLAUDE_REVIEW_TIMEOUT_SECONDS = 120;
 const OUTPUT_CAPTURE_LIMIT = 128 * 1024;
 const OUTPUT_TAIL_LIMIT = 8 * 1024;
 
@@ -21,6 +20,7 @@ export const claudeProvider: LocalAiProviderAdapter = {
       options.payload.prompt,
       options.repoRoot,
       options.env,
+      options.timeoutSeconds,
     );
 
     if (commandResult.kind === "spawn-error") {
@@ -38,7 +38,7 @@ export const claudeProvider: LocalAiProviderAdapter = {
         kind: "provider-error",
         code: "timed_out",
         provider: "claude",
-        message: `Claude Code CLI timed out after ${String(CLAUDE_REVIEW_TIMEOUT_SECONDS)}s.`,
+        message: `Claude Code CLI timed out after ${String(options.timeoutSeconds)}s.`,
         output: commandResult.output,
       };
     }
@@ -140,6 +140,7 @@ function runClaudeCommand(
   prompt: string,
   repoRoot: string,
   env: NodeJS.ProcessEnv,
+  timeoutSeconds: number,
 ): Promise<
   | {
       code: number | null;
@@ -206,7 +207,7 @@ function runClaudeCommand(
       killTimer = setTimeout(() => {
         child.kill("SIGKILL");
       }, 1_000);
-    }, CLAUDE_REVIEW_TIMEOUT_SECONDS * 1_000);
+    }, timeoutSeconds * 1_000);
 
     child.stdout?.setEncoding("utf8");
     child.stderr?.setEncoding("utf8");

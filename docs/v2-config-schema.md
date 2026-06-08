@@ -37,6 +37,9 @@ policies:
 
 ai:
   mode: blocking
+  max_changed_lines: 500
+  max_prompt_tokens: 12000
+  timeout_seconds: 120
   provider: claude
   providers:
     claude:
@@ -70,9 +73,44 @@ The loader normalizes omitted optional values into one internal shape:
 | `tools[].fail_fast` | `true` |
 | `policies.diff_size.mode` | `blocking` |
 | `policies.forbidden_paths.mode` | `blocking` |
+| `ai.max_changed_lines` | `500` |
+| `ai.max_prompt_tokens` | `12000` |
+| `ai.timeout_seconds` | `120` |
 
 `blocking` and `advisory` AI modes must set `ai.provider` and define a matching
 `ai.providers.<provider>` block. `ai.mode: off` may omit provider config.
+
+## Local AI Modes And Guardrails
+
+Local AI supports three modes:
+
+```yaml
+ai:
+  mode: blocking   # blocking | advisory | off
+  max_changed_lines: 500
+  max_prompt_tokens: 12000
+  timeout_seconds: 120
+```
+
+`blocking` is the default. Blocking findings and provider failures stop the
+push. `advisory` renders the same findings and provider failures but allows the
+push to continue. `off` skips the local AI phase and does not require provider
+selection.
+
+`ai.max_changed_lines` counts added plus deleted text lines in the normalized
+changed-file list after `ignore_paths` filtering. Binary diffs do not
+contribute to this count. If the count exceeds the configured value, Pushgate
+prints a visible local-AI skip message and continues because deterministic
+checks have already run.
+
+`ai.max_prompt_tokens` is an approximate provider-neutral budget over the
+rendered prompt. Provider tokenizers differ, so Pushgate intentionally uses a
+local estimate instead of coupling the core schema to a provider-specific
+tokenizer. If the estimate exceeds the configured value, Pushgate prints a
+visible local-AI skip message and continues.
+
+`ai.timeout_seconds` is passed to the selected provider adapter. A timeout is a
+provider failure: it blocks in `blocking` mode and warns in `advisory` mode.
 
 ## Tool Commands
 

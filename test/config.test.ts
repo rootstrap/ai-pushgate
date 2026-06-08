@@ -45,6 +45,9 @@ test("parses a representative v2 config with nested provider settings", async ()
     },
   });
   assert.equal(config.ai.mode, "advisory");
+  assert.equal(config.ai.max_changed_lines, 750);
+  assert.equal(config.ai.max_prompt_tokens, 16_000);
+  assert.equal(config.ai.timeout_seconds, 90);
   assert.deepEqual(config.ai.providers.claude.transport, {
     auth: { source: "cli" },
     flags: ["quiet"],
@@ -65,6 +68,9 @@ test("normalizes defaults before later Pushgate layers consume config", async ()
     policies: {},
     ai: {
       mode: "blocking",
+      max_changed_lines: 500,
+      max_prompt_tokens: 12_000,
+      timeout_seconds: 120,
       provider: "claude",
       providers: { claude: {} },
     },
@@ -141,6 +147,36 @@ test("rejects missing tool keys, unknown core keys, and invalid AI modes", () =>
   assertValidationError(
     "version: 2\nai:\n  mode: warn\n",
     /\/ai\/mode must be equal to one of the allowed values/,
+  );
+});
+
+test("rejects invalid AI guardrail settings", () => {
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "  max_changed_lines: 0",
+    ].join("\n"),
+    /\/ai\/max_changed_lines must be >= 1/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "  max_prompt_tokens: 0",
+    ].join("\n"),
+    /\/ai\/max_prompt_tokens must be >= 1/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "  timeout_seconds: 0",
+    ].join("\n"),
+    /\/ai\/timeout_seconds must be >= 1/,
   );
 });
 
@@ -245,7 +281,13 @@ test("requires active AI modes to select a matching provider block", async () =>
 test("allows AI mode off without provider config", () => {
   const config = parseConfigYaml("version: 2\nai:\n  mode: off\n", "off.yml");
 
-  assert.deepEqual(config.ai, { mode: "off", providers: {} });
+  assert.deepEqual(config.ai, {
+    mode: "off",
+    max_changed_lines: 500,
+    max_prompt_tokens: 12_000,
+    timeout_seconds: 120,
+    providers: {},
+  });
 });
 
 test("reports legacy-only repos with migration guidance", async () => {

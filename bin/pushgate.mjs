@@ -14830,7 +14830,6 @@ function parseCountField(name, value) {
 }
 
 // src/ai/providers/claude.ts
-var CLAUDE_REVIEW_TIMEOUT_SECONDS = 120;
 var OUTPUT_CAPTURE_LIMIT = 128 * 1024;
 var OUTPUT_TAIL_LIMIT = 8 * 1024;
 var claudeProvider = {
@@ -14842,7 +14841,8 @@ var claudeProvider = {
       args,
       options.payload.prompt,
       options.repoRoot,
-      options.env
+      options.env,
+      options.timeoutSeconds
     );
     if (commandResult.kind === "spawn-error") {
       return {
@@ -14857,7 +14857,7 @@ var claudeProvider = {
         kind: "provider-error",
         code: "timed_out",
         provider: "claude",
-        message: `Claude Code CLI timed out after ${String(CLAUDE_REVIEW_TIMEOUT_SECONDS)}s.`,
+        message: `Claude Code CLI timed out after ${String(options.timeoutSeconds)}s.`,
         output: commandResult.output
       };
     }
@@ -14937,7 +14937,7 @@ function selectClaudeModel(providerConfig) {
   const model = providerConfig.model;
   return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
 }
-function runClaudeCommand(args, prompt, repoRoot, env) {
+function runClaudeCommand(args, prompt, repoRoot, env, timeoutSeconds) {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
@@ -14969,7 +14969,7 @@ function runClaudeCommand(args, prompt, repoRoot, env) {
       killTimer = setTimeout(() => {
         child.kill("SIGKILL");
       }, 1e3);
-    }, CLAUDE_REVIEW_TIMEOUT_SECONDS * 1e3);
+    }, timeoutSeconds * 1e3);
     child.stdout?.setEncoding("utf8");
     child.stderr?.setEncoding("utf8");
     child.stdout?.on("data", (data) => {
@@ -15054,12 +15054,30 @@ async function runLocalAiReview(options) {
     writeLine(stdout, "[pushgate] No changed files to review with local AI.");
     return { exitCode: 0 };
   }
+  const changedLineCount = countChangedLines(
+    options.changedFileResolution.files
+  );
+  if (changedLineCount > options.aiConfig.max_changed_lines) {
+    writeLine(
+      stdout,
+      `[pushgate] Skipping local AI because ${String(changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(options.aiConfig.max_changed_lines)}.`
+    );
+    return { exitCode: 0 };
+  }
   const payload = await buildLocalAiReviewPayload({
     changedFileResolution: options.changedFileResolution,
     env: options.env,
     repoRoot: options.repoRoot,
     reviewConfig: options.reviewConfig
   });
+  const estimatedPromptTokens = estimatePromptTokens(payload.prompt);
+  if (estimatedPromptTokens > options.aiConfig.max_prompt_tokens) {
+    writeLine(
+      stdout,
+      `[pushgate] Skipping local AI because the rendered prompt is approximately ${String(estimatedPromptTokens)} token(s), exceeding ai.max_prompt_tokens ${String(options.aiConfig.max_prompt_tokens)}.`
+    );
+    return { exitCode: 0 };
+  }
   writeLine(
     stdout,
     `[pushgate] Running local AI review with ${provider.id} on ${String(payload.changedFiles.length)} changed file(s).`
@@ -15076,7 +15094,8 @@ async function runLocalAiReview(options) {
       env: options.env ?? process.env,
       payload,
       providerConfig: options.aiConfig.providers[provider.id] ?? options.aiConfig.providers[options.aiConfig.provider ?? provider.id] ?? {},
-      repoRoot: options.repoRoot
+      repoRoot: options.repoRoot,
+      timeoutSeconds: options.aiConfig.timeout_seconds
     }),
     stdout
   );
@@ -15155,6 +15174,20 @@ function handleProviderResult(aiMode, result, stdout) {
 function writeLine(stream, line) {
   stream.write(`${line}
 `);
+}
+function countChangedLines(changedFiles) {
+  return changedFiles.reduce((total, file) => {
+    if (file.binary) {
+      return total;
+    }
+    return total + (file.additions ?? 0) + (file.deletions ?? 0);
+  }, 0);
+}
+function estimatePromptTokens(prompt) {
+  if (prompt.length === 0) {
+    return 0;
+  }
+  return Math.ceil(prompt.length / 4);
 }
 
 // src/config/index.ts
@@ -15340,6 +15373,24 @@ var pushgate_config_v2_schema_default = {
           enum: ["blocking", "advisory", "off"],
           default: "blocking"
         },
+        max_changed_lines: {
+          description: "Maximum total added plus deleted text lines before local AI review is skipped.",
+          type: "integer",
+          minimum: 1,
+          default: 500
+        },
+        max_prompt_tokens: {
+          description: "Approximate rendered prompt token budget before local AI review is skipped.",
+          type: "integer",
+          minimum: 1,
+          default: 12e3
+        },
+        timeout_seconds: {
+          description: "Maximum local AI provider runtime before the provider is treated as timed out.",
+          type: "integer",
+          minimum: 1,
+          default: 120
+        },
         provider: {
           type: "string",
           minLength: 1
@@ -15487,6 +15538,9 @@ function normalizeConfig(rawConfig) {
     policies: normalizePolicies(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
+      max_changed_lines: ai.max_changed_lines ?? 500,
+      max_prompt_tokens: ai.max_prompt_tokens ?? 12e3,
+      timeout_seconds: ai.timeout_seconds ?? 120,
       ...ai.provider ? { provider: ai.provider } : {},
       providers: cloneValue(ai.providers ?? {})
     },

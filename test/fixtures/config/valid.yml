@@ -32,6 +32,9 @@ policies:
 
 ai:
   mode: advisory
+  max_changed_lines: 750
+  max_prompt_tokens: 16000
+  timeout_seconds: 90
   provider: claude
   providers:
     claude:

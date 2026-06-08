@@ -205,6 +205,9 @@ function normalizeConfig(rawConfig: RawPushgateConfig): PushgateConfig {
     policies: normalizePolicies(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
+      max_changed_lines: ai.max_changed_lines ?? 500,
+      max_prompt_tokens: ai.max_prompt_tokens ?? 12_000,
+      timeout_seconds: ai.timeout_seconds ?? 120,
       ...(ai.provider ? { provider: ai.provider } : {}),
       providers: cloneValue(ai.providers ?? {}),
     },

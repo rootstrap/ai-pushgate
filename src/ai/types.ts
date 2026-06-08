@@ -68,6 +68,7 @@ export interface LocalAiProviderRunOptions {
   payload: LocalAiReviewPayload;
   providerConfig: ProviderConfig;
   repoRoot: string;
+  timeoutSeconds: number;
 }
 
 export interface LocalAiProviderAdapter {
