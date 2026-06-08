@@ -106,6 +106,9 @@ test("runs the Claude adapter through the provider interface with model selectio
     const result = await runLocalAiReview({
       aiConfig: {
         mode: "blocking",
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
         provider: "claude",
         providers: {
           claude: {
@@ -151,6 +154,128 @@ test("runs the Claude adapter through the provider interface with model selectio
       "--model",
       "claude-sonnet-4-20250514",
     ]);
+  });
+});
+
+test("skips local AI before provider invocation when changed-line guardrail is exceeded", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const output = captureOutput();
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        max_changed_lines: 1,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      stdout: output.stream,
+    });
+
+    assert.equal(result.exitCode, 0, output.text());
+    assert.match(output.text(), /Skipping local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/);
+    assert.doesNotMatch(output.text(), /provider claude failed/);
+  });
+});
+
+test("skips local AI after prompt rendering when prompt token guardrail is exceeded", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const output = captureOutput();
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        max_changed_lines: 500,
+        max_prompt_tokens: 1,
+        timeout_seconds: 120,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      stdout: output.stream,
+    });
+
+    assert.equal(result.exitCode, 0, output.text());
+    assert.match(output.text(), /Skipping local AI because the rendered prompt is approximately \d+ token\(s\), exceeding ai\.max_prompt_tokens 1/);
+    assert.doesNotMatch(output.text(), /provider claude failed/);
+  });
+});
+
+test("passes configured timeout seconds to the Claude adapter", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "sleep 2",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 1,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      stdout: output.stream,
+    });
+
+    assert.equal(result.exitCode, 1, output.text());
+    assert.match(output.text(), /Claude Code CLI timed out after 1s/);
   });
 });
 

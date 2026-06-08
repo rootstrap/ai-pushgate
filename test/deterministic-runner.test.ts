@@ -322,6 +322,9 @@ function configWithTools(tools: ToolConfig[]): PushgateConfig {
     policies: {},
     ai: {
       mode: "off",
+      max_changed_lines: 500,
+      max_prompt_tokens: 12_000,
+      timeout_seconds: 120,
       providers: {},
     },
     ignore_paths: [],

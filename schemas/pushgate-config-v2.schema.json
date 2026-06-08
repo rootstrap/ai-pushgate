@@ -173,6 +173,24 @@
           "enum": ["blocking", "advisory", "off"],
           "default": "blocking"
         },
+        "max_changed_lines": {
+          "description": "Maximum total added plus deleted text lines before local AI review is skipped.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 500
+        },
+        "max_prompt_tokens": {
+          "description": "Approximate rendered prompt token budget before local AI review is skipped.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 12000
+        },
+        "timeout_seconds": {
+          "description": "Maximum local AI provider runtime before the provider is treated as timed out.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 120
+        },
         "provider": {
           "type": "string",
           "minLength": 1

@@ -21,6 +21,11 @@ ai:
   # Supported modes: blocking, advisory, off.
   mode: blocking
 
+  # Guardrails skip local AI when review would be too large or slow.
+  max_changed_lines: 500
+  max_prompt_tokens: 12000
+  timeout_seconds: 120
+
   # Blocking and advisory modes select a provider and define its matching block.
   provider: claude
   providers:

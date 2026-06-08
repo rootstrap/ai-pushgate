@@ -59,12 +59,33 @@ export async function runLocalAiReview(options: {
     return { exitCode: 0 };
   }
 
+  const changedLineCount = countChangedLines(
+    options.changedFileResolution.files,
+  );
+
+  if (changedLineCount > options.aiConfig.max_changed_lines) {
+    writeLine(
+      stdout,
+      `[pushgate] Skipping local AI because ${String(changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(options.aiConfig.max_changed_lines)}.`,
+    );
+    return { exitCode: 0 };
+  }
+
   const payload = await buildLocalAiReviewPayload({
     changedFileResolution: options.changedFileResolution,
     env: options.env,
     repoRoot: options.repoRoot,
     reviewConfig: options.reviewConfig,
   });
+  const estimatedPromptTokens = estimatePromptTokens(payload.prompt);
+
+  if (estimatedPromptTokens > options.aiConfig.max_prompt_tokens) {
+    writeLine(
+      stdout,
+      `[pushgate] Skipping local AI because the rendered prompt is approximately ${String(estimatedPromptTokens)} token(s), exceeding ai.max_prompt_tokens ${String(options.aiConfig.max_prompt_tokens)}.`,
+    );
+    return { exitCode: 0 };
+  }
 
   writeLine(
     stdout,
@@ -88,6 +109,7 @@ export async function runLocalAiReview(options: {
         options.aiConfig.providers[options.aiConfig.provider ?? provider.id] ??
         {},
       repoRoot: options.repoRoot,
+      timeoutSeconds: options.aiConfig.timeout_seconds,
     }),
     stdout,
   );
@@ -187,4 +209,25 @@ function handleProviderResult(
 
 function writeLine(stream: NodeJS.WritableStream, line: string): void {
   stream.write(`${line}\n`);
+}
+
+function countChangedLines(
+  changedFiles: ChangedFileResolution["files"],
+): number {
+  return changedFiles.reduce((total, file) => {
+    if (file.binary) {
+      return total;
+    }
+
+    return total + (file.additions ?? 0) + (file.deletions ?? 0);
+  }, 0);
+}
+
+function estimatePromptTokens(prompt: string): number {
+  if (prompt.length === 0) {
+    return 0;
+  }
+
+  // Provider tokenizers vary, so keep this deliberately approximate and local.
+  return Math.ceil(prompt.length / 4);
 }
