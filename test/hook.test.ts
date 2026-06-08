@@ -148,6 +148,77 @@ test("blocks a real installed-hook push on deterministic command failure", async
   });
 });
 
+test("skip-all-checks bypasses config loading on a real installed-hook push", async () => {
+  await withHarness(async (harness) => {
+    await harness.installRealRunner();
+    await harness.installInstalledHook();
+    await harness.addBareOrigin();
+
+    const result = await harness.git([
+      "-c",
+      "pushgate.skip-all-checks=true",
+      "push",
+      "origin",
+      "feature",
+    ]);
+    const output = cleanHookOutput(result);
+
+    assert.equal(result.code, 0, output);
+    assert.match(
+      output,
+      /Skipping all local Pushgate checks because pushgate\.skip-all-checks=true/,
+    );
+  });
+});
+
+test("skip-ai-check keeps deterministic checks running on a real installed-hook push", async () => {
+  await withHarness(async (harness) => {
+    const markerPath = join(harness.artifactsDir, "tool-ran.txt");
+    const recordingTool = join(harness.binDir, "recording-tool");
+
+    await writeFile(
+      recordingTool,
+      `#!/usr/bin/env bash\nset -eu\nprintf 'ran\\n' > ${JSON.stringify(markerPath)}\n`,
+    );
+    await chmod(recordingTool, 0o755);
+    await writePushgateConfig(
+      harness,
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools:",
+        "  - name: record-tool",
+        '    command: ["recording-tool"]',
+        "    run: always",
+      ].join("\n"),
+    );
+    await harness.installRealRunner();
+    await harness.installInstalledHook();
+    await harness.addBareOrigin();
+
+    const result = await harness.git([
+      "-c",
+      "pushgate.skip-ai-check=true",
+      "push",
+      "origin",
+      "feature",
+    ]);
+    const output = cleanHookOutput(result);
+
+    assert.equal(result.code, 0, output);
+    assert.equal(await requiredArtifact(harness, "tool-ran.txt"), "ran\n");
+    assert.match(output, /PASS record-tool/);
+    assert.match(
+      output,
+      /Skipping local AI because pushgate\.skip-ai-check=true/,
+    );
+  });
+});
+
 async function withHarness(
   callback: (harness: HookHarness) => Promise<void>,
 ): Promise<void> {
