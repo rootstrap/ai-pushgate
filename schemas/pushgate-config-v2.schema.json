@@ -22,6 +22,9 @@
         "$ref": "#/definitions/tool"
       }
     },
+    "policies": {
+      "$ref": "#/definitions/policies"
+    },
     "ai": {
       "$ref": "#/definitions/ai"
     },
@@ -104,6 +107,60 @@
           "description": "Whether a blocking failure stops later deterministic command checks.",
           "type": "boolean",
           "default": true
+        }
+      }
+    },
+    "policies": {
+      "description": "Optional built-in deterministic policy checks.",
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "diff_size": {
+          "$ref": "#/definitions/diffSizePolicy"
+        },
+        "forbidden_paths": {
+          "$ref": "#/definitions/forbiddenPathsPolicy"
+        }
+      }
+    },
+    "policyMode": {
+      "description": "Whether a built-in policy violation blocks the push or only warns locally.",
+      "type": "string",
+      "enum": ["blocking", "warning"],
+      "default": "blocking"
+    },
+    "diffSizePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_changed_lines"],
+      "properties": {
+        "max_changed_lines": {
+          "description": "Maximum total added plus deleted text lines allowed in the changed diff.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "$ref": "#/definitions/policyMode"
+        }
+      }
+    },
+    "forbiddenPathsPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns"],
+      "properties": {
+        "patterns": {
+          "description": "Gitignore-like repo-relative path patterns that must not be pushed.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mode": {
+          "$ref": "#/definitions/policyMode"
         }
       }
     },

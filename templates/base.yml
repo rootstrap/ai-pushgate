@@ -83,6 +83,31 @@ review:
 tools: []
 
 # =============================================================================
+# Built-in deterministic policies
+# =============================================================================
+# Built-ins are opt-in local checks that do not require external tools.
+#
+# Policy defaults:
+#   mode: blocking       # blocking | warning
+#
+# Examples (uncomment and adapt as needed):
+#
+# policies:
+#   diff_size:
+#     max_changed_lines: 500
+#     mode: warning
+#
+#   forbidden_paths:
+#     patterns:
+#       - ".env"
+#       - ".env.*"
+#       - "secrets/**"
+#       - "*.pem"
+#     mode: blocking
+#
+policies: {}
+
+# =============================================================================
 # Ignore paths
 # =============================================================================
 # Files and patterns excluded from tool checks and AI review.

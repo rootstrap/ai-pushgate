@@ -20,6 +20,16 @@ tools:
     run: changed_files
     fail_fast: false
 
+policies:
+  diff_size:
+    max_changed_lines: 250
+    mode: warning
+  forbidden_paths:
+    patterns:
+      - ".env"
+      - "secrets/**"
+    mode: blocking
+
 ai:
   mode: advisory
   provider: claude

@@ -25,6 +25,16 @@ tools:
     run: changed_files
     fail_fast: true
 
+policies:
+  diff_size:
+    max_changed_lines: 500
+    mode: warning
+  forbidden_paths:
+    patterns:
+      - ".env"
+      - "secrets/**"
+    mode: blocking
+
 ai:
   mode: blocking
   provider: claude
@@ -37,9 +47,9 @@ ignore_paths:
   - "dist/**"
 ```
 
-The core surface is strict. Unknown top-level, `review`, `tools`, or `ai` keys
-are validation errors. `ai.providers.<provider>` is the extension point for
-provider-specific nested settings that later adapters consume.
+The core surface is strict. Unknown top-level, `review`, `tools`, `policies`,
+or `ai` keys are validation errors. `ai.providers.<provider>` is the extension
+point for provider-specific nested settings that later adapters consume.
 
 ## Defaults
 
@@ -51,12 +61,15 @@ The loader normalizes omitted optional values into one internal shape:
 | `review.context_lines` | `10` |
 | `review.max_lines_for_full_file` | `300` |
 | `tools` | `[]` |
+| `policies` | `{}` |
 | `ignore_paths` | `[]` |
 | `ai.mode` | `blocking` |
 | `tools[].timeout_seconds` | `60` |
 | `tools[].mode` | `blocking` |
 | `tools[].run` | `changed_files` |
 | `tools[].fail_fast` | `true` |
+| `policies.diff_size.mode` | `blocking` |
+| `policies.forbidden_paths.mode` | `blocking` |
 
 `blocking` and `advisory` AI modes must set `ai.provider` and define a matching
 `ai.providers.<provider>` block. `ai.mode: off` may omit provider config.
@@ -91,6 +104,36 @@ optional `extensions` filter. `run: always` runs the command regardless of the
 scoped file list; if the command includes `{changed_files}`, that token expands
 to zero or more argv entries. Warning-mode failures are reported but do not
 block the push. Blocking failures stop later tools when `fail_fast` is true.
+
+## Built-In Policies
+
+Built-in policies are optional deterministic checks that do not require external
+commands. They run before configured tool commands and share the same local
+`blocking` or `warning` behavior in terminal output and exit-code summaries.
+
+```yaml
+policies:
+  diff_size:
+    max_changed_lines: 500
+    mode: warning
+
+  forbidden_paths:
+    patterns:
+      - ".env"
+      - ".env.*"
+      - "secrets/**"
+      - "*.pem"
+    mode: blocking
+```
+
+`diff_size.max_changed_lines` counts added plus deleted text lines in the
+normalized changed-file list. Binary diffs do not contribute text-line counts.
+
+`forbidden_paths.patterns` uses gitignore-like rules against live changed paths
+after `ignore_paths` filtering. Deleted files are ignored by this policy so
+removing a forbidden file is not blocked. Matching added, modified, copied, or
+renamed target paths are reported with the matched pattern and either block or
+warn according to `mode`.
 
 ## Changed-File Policy
 

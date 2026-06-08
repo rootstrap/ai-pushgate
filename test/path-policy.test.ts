@@ -33,19 +33,42 @@ test("resolves filtered changed paths and preserves Git path metadata", async ()
     assert.match(resolution.targetCommit, /^[0-9a-f]{40}$/);
     assert.match(resolution.diffBase, /^[0-9a-f]{40}$/);
 
-    assert.equal(filesByPath.get("src/modified.ts")?.status, "modified");
-    assert.equal(filesByPath.get("src/deleted.ts")?.status, "deleted");
-    assert.deepEqual(filesByPath.get("src/rename-after.ts"), {
+    assert.deepEqual(filesByPath.get("src/modified.ts"), {
+      additions: 1,
       binary: false,
+      deletions: 1,
+      path: "src/modified.ts",
+      status: "modified",
+    });
+    assert.deepEqual(filesByPath.get("src/deleted.ts"), {
+      additions: 0,
+      binary: false,
+      deletions: 1,
+      path: "src/deleted.ts",
+      status: "deleted",
+    });
+    assert.deepEqual(filesByPath.get("src/rename-after.ts"), {
+      additions: 0,
+      binary: false,
+      deletions: 0,
       path: "src/rename-after.ts",
       previousPath: "src/rename-before.ts",
       status: "renamed",
     });
-    assert.equal(
-      filesByPath.get("src/file with spaces.ts")?.status,
-      "added",
-    );
-    assert.equal(filesByPath.get("assets/logo.bin")?.binary, true);
+    assert.deepEqual(filesByPath.get("src/file with spaces.ts"), {
+      additions: 1,
+      binary: false,
+      deletions: 0,
+      path: "src/file with spaces.ts",
+      status: "added",
+    });
+    assert.deepEqual(filesByPath.get("assets/logo.bin"), {
+      additions: null,
+      binary: true,
+      deletions: null,
+      path: "assets/logo.bin",
+      status: "added",
+    });
     assert.equal(filesByPath.has("packages/app/dependency.lock"), false);
     assert.equal(filesByPath.has("dist/generated.ts"), false);
 

@@ -15,6 +15,10 @@ import type {
 export type {
   AiConfig,
   AiMode,
+  BuiltInPoliciesConfig,
+  BuiltInPolicyMode,
+  DiffSizePolicyConfig,
+  ForbiddenPathsPolicyConfig,
   LoadedConfig,
   ProviderConfig,
   PushgateConfig,
@@ -198,12 +202,38 @@ function normalizeConfig(rawConfig: RawPushgateConfig): PushgateConfig {
       run: tool.run ?? "changed_files",
       fail_fast: tool.fail_fast ?? true,
     })),
+    policies: normalizePolicies(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
       ...(ai.provider ? { provider: ai.provider } : {}),
       providers: cloneValue(ai.providers ?? {}),
     },
     ignore_paths: [...(rawConfig.ignore_paths ?? [])],
+  };
+}
+
+function normalizePolicies(
+  rawConfig: RawPushgateConfig,
+): PushgateConfig["policies"] {
+  const policies = rawConfig.policies ?? {};
+
+  return {
+    ...(policies.diff_size
+      ? {
+          diff_size: {
+            max_changed_lines: policies.diff_size.max_changed_lines,
+            mode: policies.diff_size.mode ?? "blocking",
+          },
+        }
+      : {}),
+    ...(policies.forbidden_paths
+      ? {
+          forbidden_paths: {
+            patterns: [...policies.forbidden_paths.patterns],
+            mode: policies.forbidden_paths.mode ?? "blocking",
+          },
+        }
+      : {}),
   };
 }
 

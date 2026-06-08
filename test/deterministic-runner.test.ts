@@ -14,17 +14,23 @@ import {
 
 const changedFiles: ChangedFile[] = [
   {
+    additions: 1,
     binary: false,
+    deletions: 0,
     path: "src/file with spaces.ts",
     status: "added",
   },
   {
+    additions: 2,
     binary: false,
+    deletions: 1,
     path: "README.md",
     status: "modified",
   },
   {
+    additions: 0,
     binary: false,
+    deletions: 1,
     path: "src/deleted.ts",
     status: "deleted",
   },
@@ -242,6 +248,61 @@ test("missing commands are handled according to tool mode", async () => {
   });
 });
 
+test("runs built-in policies and makes warning versus blocking behavior explicit", async () => {
+  await withTempDir(async (repoRoot) => {
+    const output = captureOutput();
+    const summary = await runDeterministicChecks(
+      {
+        ...configWithTools([]),
+        policies: {
+          diff_size: {
+            max_changed_lines: 2,
+            mode: "warning",
+          },
+          forbidden_paths: {
+            patterns: ["src/**"],
+            mode: "blocking",
+          },
+        },
+      },
+      changedFiles,
+      { repoRoot, stdout: output.stream },
+    );
+
+    assert.equal(summary.exitCode, 1, output.text());
+    assert.equal(summary.results[0]?.status, "warning");
+    assert.equal(summary.results[1]?.status, "blocked");
+    assert.match(output.text(), /WARN policy:diff_size/);
+    assert.match(output.text(), /BLOCK policy:forbidden_paths/);
+    assert.match(output.text(), /src\/file with spaces\.ts \(src\/\*\*\)/);
+    assert.match(output.text(), /1 blocking failure\(s\), 1 warning\(s\)/);
+  });
+});
+
+test("warning-mode built-in policy failures do not block", async () => {
+  await withTempDir(async (repoRoot) => {
+    const output = captureOutput();
+    const summary = await runDeterministicChecks(
+      {
+        ...configWithTools([]),
+        policies: {
+          diff_size: {
+            max_changed_lines: 1,
+            mode: "warning",
+          },
+        },
+      },
+      changedFiles,
+      { repoRoot, stdout: output.stream },
+    );
+
+    assert.equal(summary.exitCode, 0, output.text());
+    assert.equal(summary.results[0]?.status, "warning");
+    assert.match(output.text(), /WARN policy:diff_size/);
+    assert.match(output.text(), /0 blocking failure\(s\), 1 warning\(s\)/);
+  });
+});
+
 test("changed-file token expansion keeps non-token args unchanged", () => {
   assert.deepEqual(expandChangedFilesToken(["tool", "--", "{changed_files}"], [
     "a.ts",
@@ -258,6 +319,7 @@ function configWithTools(tools: ToolConfig[]): PushgateConfig {
       max_lines_for_full_file: 300,
     },
     tools,
+    policies: {},
     ai: {
       mode: "off",
       providers: {},
