@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/rootstrap/ai-pushgate/compare/v3.0.0...v3.1.0) (2026-06-08)
+
+
+### Features
+
+* add local AI provider interface and Claude adapter ([#29](https://github.com/rootstrap/ai-pushgate/issues/29)) ([8d95e23](https://github.com/rootstrap/ai-pushgate/commit/8d95e23f62c62596cb95b3cceb09cd04946c87a6))
+
 ## [3.0.0](https://github.com/rootstrap/ai-pushgate/compare/v2.2.0...v3.0.0) (2026-06-08)
 
 
