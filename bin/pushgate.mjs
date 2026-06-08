@@ -14357,7 +14357,7 @@ var require_ignore = __commonJS({
 });
 
 // src/cli.ts
-import { spawn as spawn3 } from "node:child_process";
+import { spawn as spawn4 } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -15370,11 +15370,109 @@ function writeLine(stream, line) {
 `);
 }
 
+// src/skip-controls.ts
+import { spawn as spawn3 } from "node:child_process";
+var SKIP_ALL_CHECKS_CONFIG_KEY = "pushgate.skip-all-checks";
+var SKIP_AI_CHECK_CONFIG_KEY = "pushgate.skip-ai-check";
+var SkipControlError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = new.target.name;
+  }
+};
+function buildGitPushArgs(pushArgs, state) {
+  const gitArgs = [];
+  if (state.skipAllChecks) {
+    gitArgs.push("-c", `${SKIP_ALL_CHECKS_CONFIG_KEY}=true`);
+  } else if (state.skipAiCheck) {
+    gitArgs.push("-c", `${SKIP_AI_CHECK_CONFIG_KEY}=true`);
+  }
+  gitArgs.push("push", ...pushArgs);
+  return gitArgs;
+}
+async function resolveSkipControlState(repoRoot, env = process.env) {
+  const skipAllChecks = await readGitBooleanConfig(
+    repoRoot,
+    env,
+    SKIP_ALL_CHECKS_CONFIG_KEY
+  );
+  if (skipAllChecks) {
+    return {
+      skipAllChecks: true,
+      skipAiCheck: false
+    };
+  }
+  return {
+    skipAllChecks: false,
+    skipAiCheck: await readGitBooleanConfig(
+      repoRoot,
+      env,
+      SKIP_AI_CHECK_CONFIG_KEY
+    )
+  };
+}
+function readGitBooleanConfig(repoRoot, env, key) {
+  return new Promise((resolve, reject) => {
+    const child = spawn3("git", ["config", "--bool", "--get", key], {
+      cwd: repoRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stderr = "";
+    let stdout = "";
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (data) => {
+      stdout += data;
+    });
+    child.stderr?.on("data", (data) => {
+      stderr += data;
+    });
+    child.on("error", (error) => {
+      reject(
+        new SkipControlError(
+          `Failed to read Git config ${key}: ${error.message}`
+        )
+      );
+    });
+    child.on("close", (code) => {
+      const trimmedStdout = stdout.trim();
+      const trimmedStderr = stderr.trim();
+      if (code === 0) {
+        if (trimmedStdout === "true") {
+          resolve(true);
+          return;
+        }
+        if (trimmedStdout === "false") {
+          resolve(false);
+          return;
+        }
+        reject(
+          new SkipControlError(
+            `Git config ${key} returned ${JSON.stringify(trimmedStdout)} instead of a boolean value.`
+          )
+        );
+        return;
+      }
+      if (code === 1 && trimmedStderr === "") {
+        resolve(false);
+        return;
+      }
+      reject(
+        new SkipControlError(
+          `Could not read Git config ${key}. git config exited with ${String(code)}.${trimmedStderr ? ` ${trimmedStderr}` : ""}`
+        )
+      );
+    });
+  });
+}
+
 // src/cli.ts
 var HOOK_PROTOCOL = "1";
 var USAGE = `Usage:
   pushgate hook-protocol
-  pushgate pre-push [git-hook-args...]`;
+  pushgate pre-push [git-hook-args...]
+  pushgate push [--skip-all-checks] [--skip-ai-check] [git-push-args...]`;
 async function main(argv = process.argv.slice(2), io = {
   env: process.env,
   stderr: process.stderr,
@@ -15396,6 +15494,8 @@ async function main(argv = process.argv.slice(2), io = {
       return 0;
     case "pre-push":
       return runPrePush(io);
+    case "push":
+      return runPushCommand(args, io);
     default:
       writeUsageError(
         io.stderr,
@@ -15408,28 +15508,20 @@ async function runPrePush(io) {
   try {
     await drainStdin(io.stdin);
     const repoRoot = await resolveRepoRoot(io.env);
+    const skipControls = await resolveSkipControlState(repoRoot, io.env);
+    if (skipControls.skipAllChecks) {
+      io.stdout.write(
+        "[pushgate] Skipping all local Pushgate checks because pushgate.skip-all-checks=true.\n"
+      );
+      return 0;
+    }
     const loaded = await loadConfig(repoRoot);
     for (const warning of loaded.warnings) {
       io.stdout.write(`[pushgate] Warning: ${warning}
 `);
     }
-    if (loaded.config.tools.length === 0 && countBuiltInPolicies(loaded.config.policies) === 0) {
-      const summary2 = await runDeterministicChecks(loaded.config, [], {
-        env: io.env,
-        repoRoot,
-        stderr: io.stderr,
-        stdout: io.stdout
-      });
-      return summary2.exitCode;
-    }
-    const changedFiles = await resolveChangedFiles({
-      repoRoot,
-      targetBranch: loaded.config.review.target_branch,
-      ignorePaths: loaded.config.ignore_paths
-    });
-    const summary = await runDeterministicChecks(
+    const summary = await runDeterministicPhase(
       loaded.config,
-      changedFiles.files,
       {
         env: io.env,
         repoRoot,
@@ -15437,11 +15529,76 @@ async function runPrePush(io) {
         stdout: io.stdout
       }
     );
-    return summary.exitCode;
+    if (summary.exitCode !== 0) {
+      return summary.exitCode;
+    }
+    return runLocalAiPhase(loaded.config.ai.mode, skipControls, io.stdout);
   } catch (error) {
     writePushgateError(io.stderr, error);
     return 1;
   }
+}
+async function runPushCommand(args, io) {
+  try {
+    const parsed = parsePushCommandArgs(args);
+    return await new Promise((resolve, reject) => {
+      const child = spawn4(
+        "git",
+        buildGitPushArgs(parsed.gitPushArgs, {
+          skipAllChecks: parsed.skipAllChecks,
+          skipAiCheck: parsed.skipAiCheck
+        }),
+        {
+          env: io.env,
+          stdio: "inherit"
+        }
+      );
+      child.on("error", (error) => {
+        const spawnError = error;
+        reject(
+          new SkipControlError(
+            spawnError.code === "ENOENT" ? "Git is required for `pushgate push`, but it was not found on PATH." : `Failed to run git push: ${error.message}`
+          )
+        );
+      });
+      child.on("close", (code, signal) => {
+        if (code !== null) {
+          resolve(code);
+          return;
+        }
+        reject(
+          new SkipControlError(
+            `git push ended unexpectedly with signal ${signal ?? "unknown"}.`
+          )
+        );
+      });
+    });
+  } catch (error) {
+    writePushgateError(io.stderr, error);
+    return 1;
+  }
+}
+async function runDeterministicPhase(config, options) {
+  if (config.tools.length === 0 && countBuiltInPolicies(config.policies) === 0) {
+    return runDeterministicChecks(config, [], options);
+  }
+  const changedFiles = await resolveChangedFiles({
+    repoRoot: options.repoRoot,
+    targetBranch: config.review.target_branch,
+    ignorePaths: config.ignore_paths
+  });
+  return runDeterministicChecks(config, changedFiles.files, options);
+}
+function runLocalAiPhase(aiMode, skipControls, stdout) {
+  if (aiMode === "off") {
+    return 0;
+  }
+  if (skipControls.skipAiCheck) {
+    stdout.write(
+      "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n"
+    );
+  }
+  return 0;
 }
 function drainStdin(stdin) {
   return new Promise((resolve, reject) => {
@@ -15456,7 +15613,7 @@ function drainStdin(stdin) {
 }
 function resolveRepoRoot(env) {
   return new Promise((resolve, reject) => {
-    const child = spawn3("git", ["rev-parse", "--show-toplevel"], {
+    const child = spawn4("git", ["rev-parse", "--show-toplevel"], {
       env,
       stdio: ["ignore", "pipe", "pipe"]
     });
@@ -15485,7 +15642,7 @@ function resolveRepoRoot(env) {
   });
 }
 function writePushgateError(stderr, error) {
-  if (error instanceof ConfigError || error instanceof ChangedFilePolicyError) {
+  if (error instanceof ConfigError || error instanceof ChangedFilePolicyError || error instanceof SkipControlError) {
     stderr.write(`[pushgate] ${error.message}
 `);
     return;
@@ -15499,6 +15656,31 @@ function writeUsageError(stderr, message) {
 
 ${USAGE}
 `);
+}
+function parsePushCommandArgs(args) {
+  const gitPushArgs = [];
+  let parsePushgateFlags = true;
+  let skipAiCheck = false;
+  let skipAllChecks = false;
+  for (const arg of args) {
+    if (parsePushgateFlags && arg === "--skip-all-checks") {
+      skipAllChecks = true;
+      continue;
+    }
+    if (parsePushgateFlags && arg === "--skip-ai-check") {
+      skipAiCheck = true;
+      continue;
+    }
+    if (arg === "--") {
+      parsePushgateFlags = false;
+    }
+    gitPushArgs.push(arg);
+  }
+  return {
+    gitPushArgs,
+    skipAllChecks,
+    skipAiCheck: skipAllChecks ? false : skipAiCheck
+  };
 }
 if (isCliEntrypoint()) {
   void main().then((exitCode) => {

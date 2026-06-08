@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -67,6 +67,138 @@ test("runs built-in policies against resolved pre-push changed files", async () 
   });
 });
 
+test("skip-all-checks bypasses config loading and deterministic work", async () => {
+  await withGitRepo(async (repoRoot) => {
+    await checkedRun("git", ["config", "pushgate.skip-all-checks", "true"], {
+      cwd: repoRoot,
+    });
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot },
+    );
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(
+      result.stdout,
+      /Skipping all local Pushgate checks because pushgate\.skip-all-checks=true/,
+    );
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("skip-ai-check keeps deterministic work and prints visible AI skip output", async () => {
+  await withGitRepo(async (repoRoot) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+    await checkedRun("git", ["config", "pushgate.skip-ai-check", "true"], {
+      cwd: repoRoot,
+    });
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot },
+    );
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /No deterministic checks configured/);
+    assert.match(
+      result.stdout,
+      /Skipping local AI because pushgate\.skip-ai-check=true/,
+    );
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("push wrapper maps skip-all-checks to one-command Git config", async () => {
+  await withGitStub(async ({ argsPath, env, root }) => {
+    const result = await runRunner(
+      ["push", "--skip-all-checks", "origin", "feature"],
+      undefined,
+      { cwd: root, env },
+    );
+
+    assert.equal(result.code, 23, formatResult(result));
+    assert.deepEqual(await readArgLines(argsPath), [
+      "-c",
+      "pushgate.skip-all-checks=true",
+      "push",
+      "origin",
+      "feature",
+    ]);
+  });
+});
+
+test("push wrapper maps skip-ai-check to one-command Git config", async () => {
+  await withGitStub(async ({ argsPath, env, root }) => {
+    const result = await runRunner(
+      ["push", "--skip-ai-check", "origin", "feature"],
+      undefined,
+      { cwd: root, env },
+    );
+
+    assert.equal(result.code, 23, formatResult(result));
+    assert.deepEqual(await readArgLines(argsPath), [
+      "-c",
+      "pushgate.skip-ai-check=true",
+      "push",
+      "origin",
+      "feature",
+    ]);
+  });
+});
+
+test("push wrapper keeps skip-all precedence when both wrapper flags are present", async () => {
+  await withGitStub(async ({ argsPath, env, root }) => {
+    const result = await runRunner(
+      ["push", "--skip-ai-check", "--skip-all-checks", "origin", "feature"],
+      undefined,
+      { cwd: root, env },
+    );
+
+    assert.equal(result.code, 23, formatResult(result));
+    assert.deepEqual(await readArgLines(argsPath), [
+      "-c",
+      "pushgate.skip-all-checks=true",
+      "push",
+      "origin",
+      "feature",
+    ]);
+  });
+});
+
+test("push wrapper forwards Git args after -- without interpreting them as Pushgate flags", async () => {
+  await withGitStub(async ({ argsPath, env, root }) => {
+    const result = await runRunner(
+      ["push", "--", "--skip-ai-check", "origin", "feature"],
+      undefined,
+      { cwd: root, env },
+    );
+
+    assert.equal(result.code, 23, formatResult(result));
+    assert.deepEqual(await readArgLines(argsPath), [
+      "push",
+      "--",
+      "--skip-ai-check",
+      "origin",
+      "feature",
+    ]);
+  });
+});
+
 interface RunnerResult {
   code: number | null;
   stderr: string;
@@ -124,16 +256,24 @@ function runRunner(
 async function withRunnerRepo(
   callback: (repoRoot: string) => Promise<void>,
 ): Promise<void> {
+  await withGitRepo(async (repoRoot) => {
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      "version: 2\nai:\n  mode: off\ntools: []\n",
+    );
+    await callback(repoRoot);
+  });
+}
+
+async function withGitRepo(
+  callback: (repoRoot: string) => Promise<void>,
+): Promise<void> {
   const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-cli-"));
 
   try {
     await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
       cwd: repoRoot,
     });
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
-      "version: 2\nai:\n  mode: off\ntools: []\n",
-    );
     await callback(repoRoot);
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
@@ -240,6 +380,49 @@ async function checkedRun(
   if (result.code !== 0) {
     throw new Error(formatResult(result));
   }
+}
+
+async function withGitStub(
+  callback: (context: {
+    argsPath: string;
+    env: NodeJS.ProcessEnv;
+    root: string;
+  }) => Promise<void>,
+): Promise<void> {
+  const root = await mkdtemp(join(tmpdir(), "pushgate-git-stub-"));
+  const binDir = join(root, "bin");
+  const argsPath = join(root, "git-args.txt");
+
+  await mkdir(binDir, { recursive: true });
+  await writeFile(
+    join(binDir, "git"),
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      "printf '%s\\n' \"$@\" > \"$PUSHGATE_GIT_ARGS_OUT\"",
+      "exit \"${PUSHGATE_GIT_EXIT:-0}\"",
+    ].join("\n"),
+  );
+  await chmod(join(binDir, "git"), 0o755);
+
+  try {
+    await callback({
+      argsPath,
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+        PUSHGATE_GIT_ARGS_OUT: argsPath,
+        PUSHGATE_GIT_EXIT: "23",
+      },
+      root,
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+async function readArgLines(path: string): Promise<string[]> {
+  return (await readFile(path, "utf8")).trimEnd().split("\n");
 }
 
 function formatResult(result: RunnerResult): string {
