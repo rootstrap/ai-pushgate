@@ -2,13 +2,16 @@ import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { runLocalAiReview } from "./ai/index.js";
 import {
   ConfigError,
   loadConfig,
+  type PushgateConfig,
 } from "./config/index.js";
 import {
   ChangedFilePolicyError,
   resolveChangedFiles,
+  type ChangedFileResolution,
 } from "./path-policy/index.js";
 import { runDeterministicChecks } from "./runner/deterministic.js";
 import { countBuiltInPolicies } from "./runner/policies.js";
@@ -88,8 +91,17 @@ async function runPrePush(io: CliIO): Promise<number> {
       io.stdout.write(`[pushgate] Warning: ${warning}\n`);
     }
 
+    const changedFileResolution = await maybeResolveChangedFiles(
+      loaded.config,
+      {
+        repoRoot,
+        skipControls,
+      },
+    );
+
     const summary = await runDeterministicPhase(
       loaded.config,
+      changedFileResolution,
       {
         env: io.env,
         repoRoot,
@@ -102,7 +114,16 @@ async function runPrePush(io: CliIO): Promise<number> {
       return summary.exitCode;
     }
 
-    return runLocalAiPhase(loaded.config.ai.mode, skipControls, io.stdout);
+    return await runLocalAiPhase(
+      loaded.config,
+      changedFileResolution,
+      skipControls,
+      {
+        env: io.env,
+        repoRoot,
+        stdout: io.stdout,
+      },
+    );
   } catch (error) {
     writePushgateError(io.stderr, error);
     return 1;
@@ -160,7 +181,8 @@ async function runPushCommand(
 }
 
 async function runDeterministicPhase(
-  config: Awaited<ReturnType<typeof loadConfig>>["config"],
+  config: PushgateConfig,
+  changedFileResolution: ChangedFileResolution | null,
   options: {
     env: NodeJS.ProcessEnv;
     repoRoot: string;
@@ -175,31 +197,69 @@ async function runDeterministicPhase(
     return runDeterministicChecks(config, [], options);
   }
 
-  const changedFiles = await resolveChangedFiles({
-    repoRoot: options.repoRoot,
-    targetBranch: config.review.target_branch,
-    ignorePaths: config.ignore_paths,
-  });
-
-  return runDeterministicChecks(config, changedFiles.files, options);
+  return runDeterministicChecks(config, changedFileResolution?.files ?? [], options);
 }
 
-function runLocalAiPhase(
-  aiMode: Awaited<ReturnType<typeof loadConfig>>["config"]["ai"]["mode"],
+async function runLocalAiPhase(
+  config: PushgateConfig,
+  changedFileResolution: ChangedFileResolution | null,
   skipControls: SkipControlState,
-  stdout: NodeJS.WritableStream,
-): number {
-  if (aiMode === "off") {
+  options: {
+    env: NodeJS.ProcessEnv;
+    repoRoot: string;
+    stdout: NodeJS.WritableStream;
+  },
+): Promise<number> {
+  if (config.ai.mode === "off") {
     return 0;
   }
 
   if (skipControls.skipAiCheck) {
-    stdout.write(
+    options.stdout.write(
       "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n",
+    );
+    return 0;
+  }
+
+  if (changedFileResolution === null) {
+    throw new Error(
+      "Pushgate could not prepare changed files for the local AI phase.",
     );
   }
 
-  return 0;
+  return (
+    await runLocalAiReview({
+      aiConfig: config.ai,
+      changedFileResolution,
+      env: options.env,
+      repoRoot: options.repoRoot,
+      reviewConfig: config.review,
+      stdout: options.stdout,
+    })
+  ).exitCode;
+}
+
+async function maybeResolveChangedFiles(
+  config: PushgateConfig,
+  options: {
+    repoRoot: string;
+    skipControls: SkipControlState;
+  },
+): Promise<ChangedFileResolution | null> {
+  const deterministicCheckCount =
+    config.tools.length + countBuiltInPolicies(config.policies);
+  const shouldRunAi =
+    config.ai.mode !== "off" && !options.skipControls.skipAiCheck;
+
+  if (deterministicCheckCount === 0 && !shouldRunAi) {
+    return null;
+  }
+
+  return await resolveChangedFiles({
+    repoRoot: options.repoRoot,
+    targetBranch: config.review.target_branch,
+    ignorePaths: config.ignore_paths,
+  });
 }
 
 function drainStdin(stdin: NodeJS.ReadableStream): Promise<void> {
