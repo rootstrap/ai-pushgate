@@ -5,6 +5,11 @@ import {
   selectToolChangedFilePaths,
   type ChangedFile,
 } from "../path-policy/index.js";
+import {
+  countBuiltInPolicies,
+  runBuiltInPolicies,
+  type BuiltInPolicyResult,
+} from "./policies.js";
 
 export const CHANGED_FILES_TOKEN = "{changed_files}" as const;
 
@@ -48,16 +53,26 @@ export async function runDeterministicChecks(
   const repoRoot = options.repoRoot ?? process.cwd();
   const env = options.env ?? process.env;
   const results: ToolResult[] = [];
+  const policyCount = countBuiltInPolicies(config.policies);
+  const checkCount = policyCount + config.tools.length;
 
-  if (config.tools.length === 0) {
+  if (checkCount === 0) {
     writeLine(stdout, "[pushgate] No deterministic checks configured.");
     return { exitCode: 0, results };
   }
 
   writeLine(
     stdout,
-    `[pushgate] Running ${String(config.tools.length)} deterministic check(s).`,
+    `[pushgate] Running ${String(checkCount)} deterministic check(s).`,
   );
+
+  for (const policyResult of runBuiltInPolicies(
+    config.policies,
+    changedFiles,
+  )) {
+    results.push(policyResult);
+    writePolicyResult(stdout, policyResult);
+  }
 
   for (const tool of config.tools) {
     const selectedPaths = selectToolChangedFilePaths(
@@ -251,6 +266,23 @@ function writeFailure(
       writeLine(stdout, `[pushgate]   ${line}`);
     }
   }
+}
+
+function writePolicyResult(
+  stdout: NodeJS.WritableStream,
+  result: BuiltInPolicyResult,
+): void {
+  const labelByStatus = {
+    blocked: "BLOCK",
+    passed: "PASS",
+    warning: "WARN",
+  } as const;
+  const detail = result.detail ? `: ${result.detail}` : "";
+
+  writeLine(
+    stdout,
+    `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`,
+  );
 }
 
 function appendCapped(current: string, next: string): string {

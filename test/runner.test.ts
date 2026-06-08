@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -46,6 +46,25 @@ test("fails unsupported subcommands with usage output", async () => {
   assert.equal(result.code, 64, formatResult(result));
   assert.match(result.stderr, /Unsupported Pushgate command: review/);
   assert.match(result.stderr, /Usage:/);
+});
+
+test("runs built-in policies against resolved pre-push changed files", async () => {
+  await withPolicyRepo(async (repoRoot) => {
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot },
+    );
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /Running 2 deterministic check\(s\)/);
+    assert.match(result.stdout, /WARN policy:diff_size/);
+    assert.match(result.stdout, /3 changed line\(s\) exceed max_changed_lines 2/);
+    assert.match(result.stdout, /BLOCK policy:forbidden_paths/);
+    assert.match(result.stdout, /secrets\/token\.txt \(secrets\/\*\*\)/);
+    assert.match(result.stdout, /1 blocking failure\(s\), 1 warning\(s\)/);
+    assert.equal(result.stderr, "");
+  });
 });
 
 interface RunnerResult {
@@ -119,6 +138,72 @@ async function withRunnerRepo(
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
   }
+}
+
+async function withPolicyRepo(
+  callback: (repoRoot: string) => Promise<void>,
+): Promise<void> {
+  const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-policy-cli-"));
+
+  try {
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.email", "runner@example.test"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.name", "Pushgate Runner"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(
+      repoRoot,
+      ".pushgate.yml",
+      [
+        "version: 2",
+        "ai:",
+        "  mode: off",
+        "tools: []",
+        "policies:",
+        "  diff_size:",
+        "    max_changed_lines: 2",
+        "    mode: warning",
+        "  forbidden_paths:",
+        "    patterns:",
+        "      - secrets/**",
+        "    mode: blocking",
+        "",
+      ].join("\n"),
+    );
+    await writeRepoFile(repoRoot, "README.md", "base\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "baseline"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["switch", "--quiet", "-c", "feature"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "README.md", "base\nfeature\nmore\n");
+    await writeRepoFile(repoRoot, "secrets/token.txt", "secret\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
+      cwd: repoRoot,
+    });
+
+    await callback(repoRoot);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+}
+
+async function writeRepoFile(
+  repoRoot: string,
+  relativePath: string,
+  content: string,
+): Promise<void> {
+  const filePath = join(repoRoot, relativePath);
+
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content);
 }
 
 interface CommandOptions {

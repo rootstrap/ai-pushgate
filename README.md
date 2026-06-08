@@ -15,8 +15,8 @@ git push
                │
                ▼
 ┌─────────────────────────────────────┐
-│  Run configured tools               │
-│  (linters, type checkers, tests)    │
+│  Run configured deterministic checks │
+│  (built-in policies, tools)          │
 │  ✗ blocking failure → push blocked  │
 │  ! warning failure → push proceeds  │
 └──────────────┬──────────────────────┘
@@ -130,6 +130,20 @@ tools:
     command: ["bundle", "exec", "brakeman", "--no-pager", "--quiet"]
     run: always          # no {changed_files} -> runs on the whole project
 
+# Optional built-in policies that do not require external tools
+policies:
+  diff_size:
+    max_changed_lines: 500
+    mode: warning        # report large diffs without blocking
+
+  forbidden_paths:
+    patterns:
+      - ".env"
+      - ".env.*"
+      - "secrets/**"
+      - "*.pem"
+    mode: blocking       # block pushes that add or modify matching paths
+
 # Gitignore-like repo-relative paths excluded from tool checks and AI review
 ignore_paths:
   - "*.lock"
@@ -137,7 +151,7 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 ## Available templates
 
@@ -196,4 +210,4 @@ To add a new template:
 2. Add a row to the **Available templates** table in this README
 3. Open a pull request
 
-Templates should include sensible `ignore_paths` defaults and pre-configured `tools` for the common tools in that stack. The `base.yml` template is the reference for all available config options.
+Templates should include sensible `ignore_paths` defaults and pre-configured `tools` for the common tools in that stack. The `base.yml` template is the reference for all available config options, including opt-in built-in policies.

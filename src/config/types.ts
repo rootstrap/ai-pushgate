@@ -35,6 +35,31 @@ export interface ToolConfig {
   fail_fast: boolean;
 }
 
+/** Built-in deterministic policy failure behavior. */
+export type BuiltInPolicyMode = ToolMode;
+
+/** Built-in diff-size policy configuration. */
+export interface DiffSizePolicyConfig {
+  /** Maximum total added plus deleted text lines allowed in the changed diff. */
+  max_changed_lines: number;
+  /** Whether a policy violation blocks the push or only warns locally. */
+  mode: BuiltInPolicyMode;
+}
+
+/** Built-in forbidden-path policy configuration. */
+export interface ForbiddenPathsPolicyConfig {
+  /** Gitignore-like repo-relative path patterns that must not be pushed. */
+  patterns: string[];
+  /** Whether a policy violation blocks the push or only warns locally. */
+  mode: BuiltInPolicyMode;
+}
+
+/** Optional built-in deterministic policies. */
+export interface BuiltInPoliciesConfig {
+  diff_size?: DiffSizePolicyConfig;
+  forbidden_paths?: ForbiddenPathsPolicyConfig;
+}
+
 /** Provider-specific config extension block preserved for provider adapters. */
 export type ProviderConfig = Record<string, unknown>;
 
@@ -54,6 +79,7 @@ export interface PushgateConfig {
   version: 2;
   review: ReviewConfig;
   tools: ToolConfig[];
+  policies: BuiltInPoliciesConfig;
   ai: AiConfig;
   ignore_paths: string[];
 }
@@ -85,6 +111,24 @@ export interface RawToolConfig {
   fail_fast?: boolean;
 }
 
+/** Raw built-in diff-size policy shape before defaults are normalized. */
+export interface RawDiffSizePolicyConfig {
+  max_changed_lines: number;
+  mode?: BuiltInPolicyMode;
+}
+
+/** Raw built-in forbidden-path policy shape before defaults are normalized. */
+export interface RawForbiddenPathsPolicyConfig {
+  patterns: string[];
+  mode?: BuiltInPolicyMode;
+}
+
+/** Raw built-in policy config before optional policy modes are normalized. */
+export interface RawBuiltInPoliciesConfig {
+  diff_size?: RawDiffSizePolicyConfig;
+  forbidden_paths?: RawForbiddenPathsPolicyConfig;
+}
+
 /** Raw AI shape before default mode and provider diagnostics are applied. */
 export interface RawAiConfig {
   mode?: AiMode;
@@ -102,6 +146,7 @@ export interface RawPushgateConfig {
   version: 2;
   review?: RawReviewConfig;
   tools?: RawToolConfig[];
+  policies?: RawBuiltInPoliciesConfig;
   ai?: RawAiConfig;
   ignore_paths?: string[];
 }

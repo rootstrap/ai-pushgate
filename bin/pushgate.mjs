@@ -14393,6 +14393,9 @@ var pushgate_config_v2_schema_default = {
         $ref: "#/definitions/tool"
       }
     },
+    policies: {
+      $ref: "#/definitions/policies"
+    },
     ai: {
       $ref: "#/definitions/ai"
     },
@@ -14475,6 +14478,60 @@ var pushgate_config_v2_schema_default = {
           description: "Whether a blocking failure stops later deterministic command checks.",
           type: "boolean",
           default: true
+        }
+      }
+    },
+    policies: {
+      description: "Optional built-in deterministic policy checks.",
+      type: "object",
+      additionalProperties: false,
+      default: {},
+      properties: {
+        diff_size: {
+          $ref: "#/definitions/diffSizePolicy"
+        },
+        forbidden_paths: {
+          $ref: "#/definitions/forbiddenPathsPolicy"
+        }
+      }
+    },
+    policyMode: {
+      description: "Whether a built-in policy violation blocks the push or only warns locally.",
+      type: "string",
+      enum: ["blocking", "warning"],
+      default: "blocking"
+    },
+    diffSizePolicy: {
+      type: "object",
+      additionalProperties: false,
+      required: ["max_changed_lines"],
+      properties: {
+        max_changed_lines: {
+          description: "Maximum total added plus deleted text lines allowed in the changed diff.",
+          type: "integer",
+          minimum: 1
+        },
+        mode: {
+          $ref: "#/definitions/policyMode"
+        }
+      }
+    },
+    forbiddenPathsPolicy: {
+      type: "object",
+      additionalProperties: false,
+      required: ["patterns"],
+      properties: {
+        patterns: {
+          description: "Gitignore-like repo-relative path patterns that must not be pushed.",
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "string",
+            minLength: 1
+          }
+        },
+        mode: {
+          $ref: "#/definitions/policyMode"
         }
       }
     },
@@ -14631,12 +14688,30 @@ function normalizeConfig(rawConfig) {
       run: tool.run ?? "changed_files",
       fail_fast: tool.fail_fast ?? true
     })),
+    policies: normalizePolicies(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
       ...ai.provider ? { provider: ai.provider } : {},
       providers: cloneValue(ai.providers ?? {})
     },
     ignore_paths: [...rawConfig.ignore_paths ?? []]
+  };
+}
+function normalizePolicies(rawConfig) {
+  const policies = rawConfig.policies ?? {};
+  return {
+    ...policies.diff_size ? {
+      diff_size: {
+        max_changed_lines: policies.diff_size.max_changed_lines,
+        mode: policies.diff_size.mode ?? "blocking"
+      }
+    } : {},
+    ...policies.forbidden_paths ? {
+      forbidden_paths: {
+        patterns: [...policies.forbidden_paths.patterns],
+        mode: policies.forbidden_paths.mode ?? "blocking"
+      }
+    } : {}
   };
 }
 function validateProviderSelection(config) {
@@ -14770,9 +14845,9 @@ async function resolveChangedFiles(options) {
     runGitChecked(repoRoot, nameStatusArgs),
     runGitChecked(repoRoot, numstatArgs)
   ]);
-  const binaryPaths = parseBinaryPaths(numstatOutput, numstatArgs);
+  const diffStats = parseDiffStats(numstatOutput, numstatArgs);
   const files = filterIgnoredChangedFiles(
-    parseChangedFiles(nameStatusOutput, binaryPaths, nameStatusArgs),
+    parseChangedFiles(nameStatusOutput, diffStats, nameStatusArgs),
     options.ignorePaths ?? []
   );
   return {
@@ -14818,7 +14893,7 @@ async function runGitChecked(repoRoot, args) {
   }
   return result.stdout;
 }
-function parseChangedFiles(output, binaryPaths, gitArgs) {
+function parseChangedFiles(output, diffStats, gitArgs) {
   const fields = splitNullFields(output);
   const files = [];
   for (let index = 0; index < fields.length; ) {
@@ -14829,8 +14904,9 @@ function parseChangedFiles(output, binaryPaths, gitArgs) {
     if (needsPreviousPath) {
       const previousPath = requiredPath(fields, index, gitArgs);
       const path2 = requiredPath(fields, index + 1, gitArgs);
+      const stats2 = statsForPath(diffStats, path2);
       files.push({
-        binary: binaryPaths.has(path2),
+        ...stats2,
         path: path2,
         previousPath,
         status
@@ -14839,8 +14915,9 @@ function parseChangedFiles(output, binaryPaths, gitArgs) {
       continue;
     }
     const path = requiredPath(fields, index, gitArgs);
+    const stats = statsForPath(diffStats, path);
     files.push({
-      binary: binaryPaths.has(path),
+      ...stats,
       path,
       status
     });
@@ -14848,9 +14925,9 @@ function parseChangedFiles(output, binaryPaths, gitArgs) {
   }
   return files;
 }
-function parseBinaryPaths(output, gitArgs) {
+function parseDiffStats(output, gitArgs) {
   const fields = splitNullFields(output);
-  const binaryPaths = /* @__PURE__ */ new Set();
+  const diffStats = /* @__PURE__ */ new Map();
   for (let index = 0; index < fields.length; index += 1) {
     const summary = requiredField(fields, index, gitArgs, "numstat summary");
     const firstTab = summary.indexOf("	");
@@ -14866,11 +14943,44 @@ function parseBinaryPaths(output, gitArgs) {
       path = requiredPath(fields, index + 2, gitArgs);
       index += 2;
     }
-    if (addedLines === "-" && deletedLines === "-") {
-      binaryPaths.add(path);
-    }
+    diffStats.set(
+      path,
+      parseNumstatLineCounts(addedLines, deletedLines, gitArgs)
+    );
   }
-  return binaryPaths;
+  return diffStats;
+}
+function parseNumstatLineCounts(addedLines, deletedLines, gitArgs) {
+  if (addedLines === "-" && deletedLines === "-") {
+    return {
+      additions: null,
+      binary: true,
+      deletions: null
+    };
+  }
+  const additions = Number(addedLines);
+  const deletions = Number(deletedLines);
+  if (!isNonNegativeIntegerString(addedLines) || !isNonNegativeIntegerString(deletedLines) || !Number.isInteger(additions) || !Number.isInteger(deletions)) {
+    throw malformedGitOutput(
+      gitArgs,
+      `a numstat line count was not numeric: ${addedLines}/${deletedLines}`
+    );
+  }
+  return {
+    additions,
+    binary: false,
+    deletions
+  };
+}
+function isNonNegativeIntegerString(value) {
+  return /^\d+$/.test(value);
+}
+function statsForPath(diffStats, path) {
+  return diffStats.get(path) ?? {
+    additions: 0,
+    binary: false,
+    deletions: 0
+  };
 }
 function splitNullFields(output) {
   if (output.length === 0) {
@@ -14970,6 +15080,88 @@ function runGit(repoRoot, args) {
 
 // src/runner/deterministic.ts
 import { spawn as spawn2 } from "node:child_process";
+
+// src/runner/policies.ts
+var import_ignore2 = __toESM(require_ignore(), 1);
+var FORBIDDEN_PATH_DETAIL_LIMIT = 5;
+function countBuiltInPolicies(policies) {
+  return Number(Boolean(policies.diff_size)) + Number(Boolean(policies.forbidden_paths));
+}
+function runBuiltInPolicies(policies, changedFiles) {
+  const results = [];
+  if (policies.diff_size) {
+    results.push(runDiffSizePolicy(policies.diff_size, changedFiles));
+  }
+  if (policies.forbidden_paths) {
+    results.push(
+      runForbiddenPathsPolicy(policies.forbidden_paths, changedFiles)
+    );
+  }
+  return results;
+}
+function runDiffSizePolicy(policy, changedFiles) {
+  const changedLines = changedFiles.reduce((total, file) => {
+    return total + (file.additions ?? 0) + (file.deletions ?? 0);
+  }, 0);
+  if (changedLines <= policy.max_changed_lines) {
+    return {
+      name: "policy:diff_size",
+      status: "passed",
+      detail: `${String(changedLines)} changed line(s) within max_changed_lines ${String(policy.max_changed_lines)}`
+    };
+  }
+  return violationResult(
+    policy.mode,
+    "policy:diff_size",
+    [
+      `${String(changedLines)} changed line(s) exceed max_changed_lines`,
+      `${String(policy.max_changed_lines)}; split the push or raise`,
+      "policies.diff_size.max_changed_lines if this is intentional"
+    ].join(" ")
+  );
+}
+function runForbiddenPathsPolicy(policy, changedFiles) {
+  const matches = changedFiles.filter((file) => file.status !== "deleted").flatMap((file) => {
+    const pattern = firstMatchingPattern(policy.patterns, file.path);
+    return pattern ? [{ path: file.path, pattern }] : [];
+  });
+  if (matches.length === 0) {
+    return {
+      name: "policy:forbidden_paths",
+      status: "passed",
+      detail: "no changed live paths match forbidden patterns"
+    };
+  }
+  return violationResult(
+    policy.mode,
+    "policy:forbidden_paths",
+    [
+      `${String(matches.length)} changed path(s) match forbidden patterns:`,
+      `${formatForbiddenPathMatches(matches)}; remove them from the push`,
+      "or update policies.forbidden_paths.patterns if this is intentional"
+    ].join(" ")
+  );
+}
+function firstMatchingPattern(patterns, path) {
+  return patterns.find((pattern) => (0, import_ignore2.default)().add(pattern).ignores(path));
+}
+function formatForbiddenPathMatches(matches) {
+  const formatted = matches.slice(0, FORBIDDEN_PATH_DETAIL_LIMIT).map((match) => `${match.path} (${match.pattern})`);
+  const remaining = matches.length - formatted.length;
+  if (remaining > 0) {
+    formatted.push(`${String(remaining)} more`);
+  }
+  return formatted.join(", ");
+}
+function violationResult(mode, name, detail) {
+  return {
+    detail,
+    name,
+    status: mode === "warning" ? "warning" : "blocked"
+  };
+}
+
+// src/runner/deterministic.ts
 var CHANGED_FILES_TOKEN = "{changed_files}";
 var OUTPUT_CAPTURE_LIMIT = 64 * 1024;
 var OUTPUT_TAIL_LIMIT = 4 * 1024;
@@ -14979,14 +15171,23 @@ async function runDeterministicChecks(config, changedFiles, options = {}) {
   const repoRoot = options.repoRoot ?? process.cwd();
   const env = options.env ?? process.env;
   const results = [];
-  if (config.tools.length === 0) {
+  const policyCount = countBuiltInPolicies(config.policies);
+  const checkCount = policyCount + config.tools.length;
+  if (checkCount === 0) {
     writeLine(stdout, "[pushgate] No deterministic checks configured.");
     return { exitCode: 0, results };
   }
   writeLine(
     stdout,
-    `[pushgate] Running ${String(config.tools.length)} deterministic check(s).`
+    `[pushgate] Running ${String(checkCount)} deterministic check(s).`
   );
+  for (const policyResult of runBuiltInPolicies(
+    config.policies,
+    changedFiles
+  )) {
+    results.push(policyResult);
+    writePolicyResult(stdout, policyResult);
+  }
   for (const tool of config.tools) {
     const selectedPaths = selectToolChangedFilePaths(
       changedFiles,
@@ -15135,6 +15336,18 @@ function writeFailure(stdout, tool, result) {
     }
   }
 }
+function writePolicyResult(stdout, result) {
+  const labelByStatus = {
+    blocked: "BLOCK",
+    passed: "PASS",
+    warning: "WARN"
+  };
+  const detail = result.detail ? `: ${result.detail}` : "";
+  writeLine(
+    stdout,
+    `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
+  );
+}
 function appendCapped(current, next) {
   const combined = current + next;
   if (combined.length <= OUTPUT_CAPTURE_LIMIT) {
@@ -15200,7 +15413,7 @@ async function runPrePush(io) {
       io.stdout.write(`[pushgate] Warning: ${warning}
 `);
     }
-    if (loaded.config.tools.length === 0) {
+    if (loaded.config.tools.length === 0 && countBuiltInPolicies(loaded.config.policies) === 0) {
       const summary2 = await runDeterministicChecks(loaded.config, [], {
         env: io.env,
         repoRoot,

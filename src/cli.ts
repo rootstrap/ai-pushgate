@@ -11,6 +11,7 @@ import {
   resolveChangedFiles,
 } from "./path-policy/index.js";
 import { runDeterministicChecks } from "./runner/deterministic.js";
+import { countBuiltInPolicies } from "./runner/policies.js";
 
 const HOOK_PROTOCOL = "1";
 const USAGE = `Usage:
@@ -69,7 +70,10 @@ async function runPrePush(io: CliIO): Promise<number> {
       io.stdout.write(`[pushgate] Warning: ${warning}\n`);
     }
 
-    if (loaded.config.tools.length === 0) {
+    if (
+      loaded.config.tools.length === 0 &&
+      countBuiltInPolicies(loaded.config.policies) === 0
+    ) {
       const summary = await runDeterministicChecks(loaded.config, [], {
         env: io.env,
         repoRoot,

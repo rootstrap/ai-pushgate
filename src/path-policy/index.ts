@@ -21,6 +21,10 @@ export interface ChangedFile {
   previousPath?: string;
   /** Normalized status from Git's name-status record. */
   status: ChangedFileStatus;
+  /** Added text lines from Git numstat, or null when Git reports a binary diff. */
+  additions: number | null;
+  /** Deleted text lines from Git numstat, or null when Git reports a binary diff. */
+  deletions: number | null;
   /** Whether Git's numstat output identifies the diff as binary. */
   binary: boolean;
 }
@@ -51,6 +55,12 @@ interface GitRunResult {
   code: number | null;
   stderr: string;
   stdout: Buffer;
+}
+
+interface ChangedFileDiffStats {
+  additions: number | null;
+  deletions: number | null;
+  binary: boolean;
 }
 
 /** Base error shape for changed-file Git and policy resolution failures. */
@@ -154,9 +164,9 @@ export async function resolveChangedFiles(
     runGitChecked(repoRoot, nameStatusArgs),
     runGitChecked(repoRoot, numstatArgs),
   ]);
-  const binaryPaths = parseBinaryPaths(numstatOutput, numstatArgs);
+  const diffStats = parseDiffStats(numstatOutput, numstatArgs);
   const files = filterIgnoredChangedFiles(
-    parseChangedFiles(nameStatusOutput, binaryPaths, nameStatusArgs),
+    parseChangedFiles(nameStatusOutput, diffStats, nameStatusArgs),
     options.ignorePaths ?? [],
   );
 
@@ -246,7 +256,7 @@ async function runGitChecked(
 
 function parseChangedFiles(
   output: Buffer,
-  binaryPaths: ReadonlySet<string>,
+  diffStats: ReadonlyMap<string, ChangedFileDiffStats>,
   gitArgs: readonly string[],
 ): ChangedFile[] {
   const fields = splitNullFields(output);
@@ -262,9 +272,10 @@ function parseChangedFiles(
     if (needsPreviousPath) {
       const previousPath = requiredPath(fields, index, gitArgs);
       const path = requiredPath(fields, index + 1, gitArgs);
+      const stats = statsForPath(diffStats, path);
 
       files.push({
-        binary: binaryPaths.has(path),
+        ...stats,
         path,
         previousPath,
         status,
@@ -274,9 +285,10 @@ function parseChangedFiles(
     }
 
     const path = requiredPath(fields, index, gitArgs);
+    const stats = statsForPath(diffStats, path);
 
     files.push({
-      binary: binaryPaths.has(path),
+      ...stats,
       path,
       status,
     });
@@ -286,12 +298,12 @@ function parseChangedFiles(
   return files;
 }
 
-function parseBinaryPaths(
+function parseDiffStats(
   output: Buffer,
   gitArgs: readonly string[],
-): Set<string> {
+): Map<string, ChangedFileDiffStats> {
   const fields = splitNullFields(output);
-  const binaryPaths = new Set<string>();
+  const diffStats = new Map<string, ChangedFileDiffStats>();
 
   for (let index = 0; index < fields.length; index += 1) {
     const summary = requiredField(fields, index, gitArgs, "numstat summary");
@@ -314,12 +326,65 @@ function parseBinaryPaths(
       index += 2;
     }
 
-    if (addedLines === "-" && deletedLines === "-") {
-      binaryPaths.add(path);
-    }
+    diffStats.set(
+      path,
+      parseNumstatLineCounts(addedLines, deletedLines, gitArgs),
+    );
   }
 
-  return binaryPaths;
+  return diffStats;
+}
+
+function parseNumstatLineCounts(
+  addedLines: string,
+  deletedLines: string,
+  gitArgs: readonly string[],
+): ChangedFileDiffStats {
+  if (addedLines === "-" && deletedLines === "-") {
+    return {
+      additions: null,
+      binary: true,
+      deletions: null,
+    };
+  }
+
+  const additions = Number(addedLines);
+  const deletions = Number(deletedLines);
+
+  if (
+    !isNonNegativeIntegerString(addedLines) ||
+    !isNonNegativeIntegerString(deletedLines) ||
+    !Number.isInteger(additions) ||
+    !Number.isInteger(deletions)
+  ) {
+    throw malformedGitOutput(
+      gitArgs,
+      `a numstat line count was not numeric: ${addedLines}/${deletedLines}`,
+    );
+  }
+
+  return {
+    additions,
+    binary: false,
+    deletions,
+  };
+}
+
+function isNonNegativeIntegerString(value: string): boolean {
+  return /^\d+$/.test(value);
+}
+
+function statsForPath(
+  diffStats: ReadonlyMap<string, ChangedFileDiffStats>,
+  path: string,
+): ChangedFileDiffStats {
+  return (
+    diffStats.get(path) ?? {
+      additions: 0,
+      binary: false,
+      deletions: 0,
+    }
+  );
 }
 
 function splitNullFields(output: Buffer): string[] {

@@ -34,6 +34,16 @@ test("parses a representative v2 config with nested provider settings", async ()
   assert.equal(config.tools[0].mode, "warning");
   assert.equal(config.tools[0].run, "changed_files");
   assert.equal(config.tools[0].fail_fast, false);
+  assert.deepEqual(config.policies, {
+    diff_size: {
+      max_changed_lines: 250,
+      mode: "warning",
+    },
+    forbidden_paths: {
+      patterns: [".env", "secrets/**"],
+      mode: "blocking",
+    },
+  });
   assert.equal(config.ai.mode, "advisory");
   assert.deepEqual(config.ai.providers.claude.transport, {
     auth: { source: "cli" },
@@ -52,6 +62,7 @@ test("normalizes defaults before later Pushgate layers consume config", async ()
       max_lines_for_full_file: 300,
     },
     tools: [],
+    policies: {},
     ai: {
       mode: "blocking",
       provider: "claude",
@@ -81,6 +92,35 @@ test("normalizes deterministic tool execution defaults", () => {
     mode: "blocking",
     run: "changed_files",
     fail_fast: true,
+  });
+});
+
+test("normalizes built-in policy defaults", () => {
+  const config = parseConfigYaml(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "policies:",
+      "  diff_size:",
+      "    max_changed_lines: 200",
+      "  forbidden_paths:",
+      "    patterns:",
+      "      - .env",
+      "      - secrets/**",
+    ].join("\n"),
+    "policy-defaults.yml",
+  );
+
+  assert.deepEqual(config.policies, {
+    diff_size: {
+      max_changed_lines: 200,
+      mode: "blocking",
+    },
+    forbidden_paths: {
+      patterns: [".env", "secrets/**"],
+      mode: "blocking",
+    },
   });
 });
 
@@ -151,6 +191,43 @@ test("rejects invalid deterministic tool execution settings", () => {
       "    run: staged",
     ].join("\n"),
     /\/tools\/0\/run must be equal to one of the allowed values/,
+  );
+});
+
+test("rejects invalid built-in policy settings", () => {
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "policies:",
+      "  diff_size:",
+      "    max_changed_lines: 0",
+    ].join("\n"),
+    /\/policies\/diff_size\/max_changed_lines must be >= 1/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "policies:",
+      "  forbidden_paths:",
+      "    patterns: []",
+    ].join("\n"),
+    /\/policies\/forbidden_paths\/patterns must NOT have fewer than 1 items/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "policies:",
+      "  forbidden_paths:",
+      "    patterns: [secrets/**]",
+      "    mode: advisory",
+    ].join("\n"),
+    /\/policies\/forbidden_paths\/mode must be equal to one of the allowed values/,
   );
 });
 
