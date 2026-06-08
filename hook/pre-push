@@ -6,7 +6,7 @@
 
 set -u
 
-HOOK_VERSION="2.2.0" # x-release-please-version
+HOOK_VERSION="3.0.0" # x-release-please-version
 HOOK_PROTOCOL="1"
 PUSHGATE_HOME="${HOME:-}/.pushgate"
 PUSHGATE_RUNNER="${PUSHGATE_HOME}/bin/pushgate"
