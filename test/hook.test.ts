@@ -233,10 +233,7 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
         "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
         "cat > \"$PUSHGATE_CLAUDE_PROMPT_OUT\"",
         "cat <<'EOF'",
-        "SUMMARY",
-        "blocking_count: 0",
-        "warning_count: 0",
-        "verdict: PASS",
+        "{\"schema_version\":1,\"findings\":[]}",
         "EOF",
       ].join("\n"),
     );
@@ -271,6 +268,7 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
     assert.match(output, /Running local AI review with claude/);
     assert.match(output, /Local AI review passed with no findings/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /=== DIFF ===/);
+    assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /"schema_version": 1/);
     assert.deepEqual(await artifactLines(harness, "claude-args.txt"), [
       "-p",
       "Review the provided Pushgate review input exactly as instructed.",

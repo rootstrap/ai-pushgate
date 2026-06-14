@@ -59,32 +59,42 @@ Warning categories:
 
 ## Response Format
 
-Respond using only the format below. Do not add prose outside it.
+Respond with one JSON object only. Do not add prose, markdown fences, or any
+text before or after the JSON.
 
-For each finding:
+Use this exact shape:
 
-\`\`\`text
-FINDING
-category: <exact category string from the list above>
-severity: <blocking|warning>
-file: <filename>
-line: <line number or range, or "N/A">
-message: <clear description of the issue>
-suggestion: <concrete actionable fix>
+\`\`\`json
+{
+  "schema_version": 1,
+  "findings": [
+    {
+      "category": "logic_errors",
+      "severity": "blocking",
+      "confidence": "high",
+      "file": "src/example.ts",
+      "line": "12-14",
+      "message": "Explain the issue clearly.",
+      "suggestion": "Describe the concrete fix."
+    }
+  ]
+}
 \`\`\`
 
-At the end, always include:
+Return \`findings: []\` when there are no issues worth reporting.
 
-\`\`\`text
-SUMMARY
-blocking_count: <number>
-warning_count: <number>
-verdict: <PASS|BLOCK>
-\`\`\`
+Each finding must include:
 
-\`verdict\` must be \`BLOCK\` if \`blocking_count\` is greater than zero. Otherwise
-it must be \`PASS\`. If there are no findings, return the summary block with zero
-counts and \`PASS\`.
+- \`category\`: one exact category string from the list above
+- \`severity\`: \`blocking\` for blocking categories, \`warning\` for warning categories
+- \`confidence\`: \`low\`, \`medium\`, or \`high\`
+- \`file\`: repo-relative path
+- \`line\`: line number, line range, or \`"N/A"\`
+- \`message\`: clear description of the issue
+- \`suggestion\`: concrete actionable fix
+
+Pushgate adds provider and source metadata during normalization, so do not add
+extra fields beyond the documented JSON shape.
 
 ## Review Input
 

@@ -4031,7 +4031,7 @@ var require_core = __commonJS({
         uriResolver
       };
     }
-    var Ajv2 = class {
+    var Ajv3 = class {
       constructor(opts = {}) {
         this.schemas = {};
         this.refs = {};
@@ -4350,7 +4350,7 @@ var require_core = __commonJS({
           }
         }
       }
-      _addSchema(schema, meta, baseId, validateSchema2 = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
+      _addSchema(schema, meta, baseId, validateSchema3 = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
         let id;
         const { schemaId } = this.opts;
         if (typeof schema == "object") {
@@ -4373,7 +4373,7 @@ var require_core = __commonJS({
             this._checkUnique(baseId);
           this.refs[baseId] = sch;
         }
-        if (validateSchema2)
+        if (validateSchema3)
           this.validateSchema(schema, true);
         return sch;
       }
@@ -4401,9 +4401,9 @@ var require_core = __commonJS({
         }
       }
     };
-    Ajv2.ValidationError = validation_error_1.default;
-    Ajv2.MissingRefError = ref_error_1.default;
-    exports.default = Ajv2;
+    Ajv3.ValidationError = validation_error_1.default;
+    Ajv3.MissingRefError = ref_error_1.default;
+    exports.default = Ajv3;
     function checkOptions(checkOpts, options, msg, log = "error") {
       for (const key in checkOpts) {
         const opt = key;
@@ -6514,7 +6514,7 @@ var require_ajv = __commonJS({
     var draft7MetaSchema = require_json_schema_draft_07();
     var META_SUPPORT_DATA = ["/properties"];
     var META_SCHEMA_ID = "http://json-schema.org/draft-07/schema";
-    var Ajv2 = class extends core_1.default {
+    var Ajv3 = class extends core_1.default {
       _addVocabularies() {
         super._addVocabularies();
         draft7_1.default.forEach((v) => this.addVocabulary(v));
@@ -6533,11 +6533,11 @@ var require_ajv = __commonJS({
         return this.opts.defaultMeta = super.defaultMeta() || (this.getSchema(META_SCHEMA_ID) ? META_SCHEMA_ID : void 0);
       }
     };
-    exports.Ajv = Ajv2;
-    module.exports = exports = Ajv2;
-    module.exports.Ajv = Ajv2;
+    exports.Ajv = Ajv3;
+    module.exports = exports = Ajv3;
+    module.exports.Ajv = Ajv3;
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.default = Ajv2;
+    exports.default = Ajv3;
     var validate_1 = require_validate();
     Object.defineProperty(exports, "KeywordCxt", { enumerable: true, get: function() {
       return validate_1.KeywordCxt;
@@ -14410,32 +14410,42 @@ Warning categories:
 
 ## Response Format
 
-Respond using only the format below. Do not add prose outside it.
+Respond with one JSON object only. Do not add prose, markdown fences, or any
+text before or after the JSON.
 
-For each finding:
+Use this exact shape:
 
-\`\`\`text
-FINDING
-category: <exact category string from the list above>
-severity: <blocking|warning>
-file: <filename>
-line: <line number or range, or "N/A">
-message: <clear description of the issue>
-suggestion: <concrete actionable fix>
+\`\`\`json
+{
+  "schema_version": 1,
+  "findings": [
+    {
+      "category": "logic_errors",
+      "severity": "blocking",
+      "confidence": "high",
+      "file": "src/example.ts",
+      "line": "12-14",
+      "message": "Explain the issue clearly.",
+      "suggestion": "Describe the concrete fix."
+    }
+  ]
+}
 \`\`\`
 
-At the end, always include:
+Return \`findings: []\` when there are no issues worth reporting.
 
-\`\`\`text
-SUMMARY
-blocking_count: <number>
-warning_count: <number>
-verdict: <PASS|BLOCK>
-\`\`\`
+Each finding must include:
 
-\`verdict\` must be \`BLOCK\` if \`blocking_count\` is greater than zero. Otherwise
-it must be \`PASS\`. If there are no findings, return the summary block with zero
-counts and \`PASS\`.
+- \`category\`: one exact category string from the list above
+- \`severity\`: \`blocking\` for blocking categories, \`warning\` for warning categories
+- \`confidence\`: \`low\`, \`medium\`, or \`high\`
+- \`file\`: repo-relative path
+- \`line\`: line number, line range, or \`"N/A"\`
+- \`message\`: clear description of the issue
+- \`suggestion\`: concrete actionable fix
+
+Pushgate adds provider and source metadata during normalization, so do not add
+extra fields beyond the documented JSON shape.
 
 ## Review Input
 
@@ -14621,8 +14631,96 @@ function countTextLines(text) {
 import { spawn as spawn2 } from "node:child_process";
 
 // src/ai/review-output.ts
-var FINDING_MARKER = "FINDING";
-var SUMMARY_MARKER = "SUMMARY";
+var import_ajv = __toESM(require_ajv(), 1);
+
+// schemas/ai-review-output-v1.schema.json
+var ai_review_output_v1_schema_default = {
+  $schema: "http://json-schema.org/draft-07/schema#",
+  $id: "https://rootstrap.github.io/ai-pushgate/schemas/ai-review-output-v1.schema.json",
+  title: "Pushgate AI Review Output v1",
+  type: "object",
+  additionalProperties: false,
+  required: ["schema_version", "findings"],
+  properties: {
+    schema_version: {
+      type: "integer",
+      const: 1
+    },
+    findings: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "category",
+          "confidence",
+          "severity",
+          "file",
+          "line",
+          "message",
+          "suggestion"
+        ],
+        properties: {
+          category: {
+            type: "string",
+            enum: [
+              "security",
+              "logic_errors",
+              "test_coverage",
+              "performance",
+              "naming_and_readability"
+            ]
+          },
+          confidence: {
+            type: "string",
+            enum: ["low", "medium", "high"]
+          },
+          severity: {
+            type: "string",
+            enum: ["blocking", "warning"]
+          },
+          file: {
+            type: "string",
+            minLength: 1
+          },
+          line: {
+            type: "string",
+            minLength: 1
+          },
+          message: {
+            type: "string",
+            minLength: 1
+          },
+          suggestion: {
+            type: "string",
+            minLength: 1
+          }
+        }
+      }
+    }
+  }
+};
+
+// src/ai/types.ts
+var AI_BLOCKING_CATEGORIES = [
+  "security",
+  "logic_errors"
+];
+var AI_WARNING_CATEGORIES = [
+  "test_coverage",
+  "performance",
+  "naming_and_readability"
+];
+var AI_FINDING_CATEGORIES = [
+  ...AI_BLOCKING_CATEGORIES,
+  ...AI_WARNING_CATEGORIES
+];
+
+// src/ai/review-output.ts
+var ajv = new import_ajv.Ajv({ allErrors: true, strict: true });
+var validateSchema = ajv.compile(ai_review_output_v1_schema_default);
+var BLOCKING_CATEGORY_SET = new Set(AI_BLOCKING_CATEGORIES);
+var WARNING_CATEGORY_SET = new Set(AI_WARNING_CATEGORIES);
 var AiReviewOutputError = class extends Error {
   diagnostics;
   constructor(message, diagnostics = []) {
@@ -14631,202 +14729,208 @@ var AiReviewOutputError = class extends Error {
     this.diagnostics = diagnostics;
   }
 };
-function parseAiReviewOutput(rawOutput) {
-  const findings = [];
-  const lines = rawOutput.replace(/\r/g, "").split("\n");
-  let currentFinding = null;
-  let inSummary = false;
-  let parsedSummary = null;
-  const flushFinding = () => {
-    if (currentFinding === null) {
-      return;
-    }
-    findings.push(validateFinding(currentFinding));
-    currentFinding = null;
-  };
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (line === "") {
-      continue;
-    }
-    if (line === FINDING_MARKER) {
-      if (inSummary) {
-        throw new AiReviewOutputError(
-          "Provider output is invalid: FINDING cannot appear after SUMMARY."
-        );
-      }
-      flushFinding();
-      currentFinding = {};
-      continue;
-    }
-    if (line === SUMMARY_MARKER) {
-      if (parsedSummary !== null) {
-        throw new AiReviewOutputError(
-          "Provider output is invalid: SUMMARY appeared more than once."
-        );
-      }
-      flushFinding();
-      inSummary = true;
-      parsedSummary = {};
-      continue;
-    }
-    const separatorIndex = line.indexOf(":");
-    if (separatorIndex <= 0) {
-      throw new AiReviewOutputError(
-        `Provider output is invalid: expected key:value line, received ${JSON.stringify(line)}.`
-      );
-    }
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    if (value.length === 0) {
-      throw new AiReviewOutputError(
-        `Provider output is invalid: ${key} had an empty value.`
-      );
-    }
-    if (currentFinding !== null) {
-      assignFindingField(currentFinding, key, value);
-      continue;
-    }
-    if (inSummary && parsedSummary !== null) {
-      assignSummaryField(parsedSummary, key, value);
-      continue;
-    }
+function parseAiReviewOutput(rawOutput, source) {
+  const trimmedOutput = rawOutput.replace(/\r/g, "").trim();
+  if (trimmedOutput.length === 0) {
     throw new AiReviewOutputError(
-      `Provider output is invalid: ${JSON.stringify(line)} appeared outside a finding or summary block.`
+      "Provider output is invalid.",
+      ["The provider response was empty after trimming whitespace."]
     );
   }
-  flushFinding();
-  if (parsedSummary === null) {
-    throw new AiReviewOutputError(
-      "Provider output is invalid: missing SUMMARY block."
+  const diagnostics = [];
+  for (const candidate of buildCandidates(trimmedOutput)) {
+    const rawReview = parseCandidate(candidate, diagnostics);
+    if (rawReview === null) {
+      continue;
+    }
+    const semanticDiagnostics = validateFindingSemantics(rawReview.findings);
+    if (semanticDiagnostics.length > 0) {
+      diagnostics.push(
+        `${candidate.source}: ${semanticDiagnostics.join(" ")}`
+      );
+      continue;
+    }
+    const findings = rawReview.findings.map(
+      (finding) => normalizeFinding(finding, source)
     );
+    return {
+      findings,
+      normalizationNotes: candidate.notes,
+      summary: summarizeFindings(findings)
+    };
   }
-  const summary = validateSummary(parsedSummary, findings);
-  return {
-    findings,
-    summary
-  };
-}
-function assignFindingField(finding, key, value) {
-  switch (key) {
-    case "category":
-      finding.category = value;
-      return;
-    case "severity":
-      finding.severity = value;
-      return;
-    case "file":
-      finding.file = value;
-      return;
-    case "line":
-      finding.line = value;
-      return;
-    case "message":
-      finding.message = value;
-      return;
-    case "suggestion":
-      finding.suggestion = value;
-      return;
-    default:
-      throw new AiReviewOutputError(
-        `Provider output is invalid: unexpected finding field ${JSON.stringify(key)}.`
-      );
-  }
-}
-function assignSummaryField(summary, key, value) {
-  switch (key) {
-    case "blocking_count":
-      summary.blocking_count = value;
-      return;
-    case "warning_count":
-      summary.warning_count = value;
-      return;
-    case "verdict":
-      summary.verdict = value;
-      return;
-    default:
-      throw new AiReviewOutputError(
-        `Provider output is invalid: unexpected summary field ${JSON.stringify(key)}.`
-      );
-  }
-}
-function validateFinding(finding) {
-  const missing = [
-    "category",
-    "severity",
-    "file",
-    "line",
-    "message",
-    "suggestion"
-  ].filter(
-    (field) => !finding[field] || String(finding[field]).trim().length === 0
+  throw new AiReviewOutputError(
+    "Provider output is invalid.",
+    diagnostics.length > 0 ? dedupeDiagnostics(diagnostics) : ["The provider response did not contain a valid Pushgate review JSON object."]
   );
-  if (missing.length > 0) {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: finding is missing ${missing.join(", ")}.`
+}
+function parseCandidate(candidate, diagnostics) {
+  let parsed;
+  try {
+    parsed = JSON.parse(candidate.value);
+  } catch (error) {
+    diagnostics.push(
+      `${candidate.source}: failed to parse JSON (${formatUnknownError(error)}).`
     );
+    return null;
   }
-  if (finding.severity !== "blocking" && finding.severity !== "warning") {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: severity must be "blocking" or "warning", received ${JSON.stringify(finding.severity)}.`
-    );
+  const directReview = validateParsedReview(parsed);
+  if (directReview !== null) {
+    return directReview;
   }
+  const unwrapped = unwrapSingleNestedObject(parsed);
+  if (unwrapped !== null) {
+    const wrappedReview = validateParsedReview(unwrapped.value);
+    if (wrappedReview !== null) {
+      candidate.notes.push(
+        `Normalized provider output from a top-level ${JSON.stringify(unwrapped.key)} wrapper.`
+      );
+      return wrappedReview;
+    }
+  }
+  diagnostics.push(
+    `${candidate.source}: ${formatSchemaDiagnostics(validateSchema.errors ?? [])}`
+  );
+  return null;
+}
+function validateParsedReview(parsed) {
+  if (!validateSchema(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+function buildCandidates(output) {
+  const seen = /* @__PURE__ */ new Set();
+  const candidates = [];
+  const addCandidate = (value, source, notes = []) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue.length === 0 || seen.has(trimmedValue)) {
+      return;
+    }
+    seen.add(trimmedValue);
+    candidates.push({
+      notes,
+      source,
+      value: trimmedValue
+    });
+  };
+  addCandidate(output, "provider response");
+  for (const fencedJson of extractFencedJsonBlocks(output)) {
+    addCandidate(fencedJson, "fenced JSON block", [
+      "Extracted the review JSON from a fenced code block."
+    ]);
+  }
+  const objectSlice = extractJsonObjectSlice(output);
+  if (objectSlice !== null) {
+    addCandidate(objectSlice, "embedded JSON object", [
+      "Extracted the review JSON from surrounding provider prose."
+    ]);
+  }
+  return candidates;
+}
+function extractFencedJsonBlocks(output) {
+  const matches = output.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
+  return [...matches].map((match) => match[1] ?? "");
+}
+function extractJsonObjectSlice(output) {
+  const firstBrace = output.indexOf("{");
+  const lastBrace = output.lastIndexOf("}");
+  if (firstBrace < 0 || lastBrace <= firstBrace) {
+    return null;
+  }
+  const sliced = output.slice(firstBrace, lastBrace + 1);
+  return sliced === output ? null : sliced;
+}
+function unwrapSingleNestedObject(value) {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+  const entries = Object.entries(value);
+  if (entries.length !== 1) {
+    return null;
+  }
+  const [key, nestedValue] = entries[0];
+  return isPlainObject(nestedValue) ? { key, value: nestedValue } : null;
+}
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function validateFindingSemantics(findings) {
+  const diagnostics = [];
+  for (const finding of findings) {
+    if (BLOCKING_CATEGORY_SET.has(finding.category) && finding.severity !== "blocking") {
+      diagnostics.push(
+        `Finding ${JSON.stringify(finding.category)} must use severity "blocking".`
+      );
+    }
+    if (WARNING_CATEGORY_SET.has(finding.category) && finding.severity !== "warning") {
+      diagnostics.push(
+        `Finding ${JSON.stringify(finding.category)} must use severity "warning".`
+      );
+    }
+  }
+  return diagnostics;
+}
+function normalizeFinding(finding, source) {
   return {
     category: finding.category,
+    confidence: finding.confidence,
     severity: finding.severity,
     file: finding.file,
     line: finding.line,
     message: finding.message,
+    source: {
+      provider: source.provider,
+      ...source.model ? { model: source.model } : {}
+    },
     suggestion: finding.suggestion
   };
 }
-function validateSummary(summary, findings) {
-  const blockingCount = parseCountField("blocking_count", summary.blocking_count);
-  const warningCount = parseCountField("warning_count", summary.warning_count);
-  if (summary.verdict !== "PASS" && summary.verdict !== "BLOCK") {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: verdict must be "PASS" or "BLOCK", received ${JSON.stringify(summary.verdict)}.`
-    );
-  }
-  const actualBlockingCount = findings.filter(
+function summarizeFindings(findings) {
+  const blockingCount = findings.filter(
     (finding) => finding.severity === "blocking"
   ).length;
-  const actualWarningCount = findings.filter(
+  const warningCount = findings.filter(
     (finding) => finding.severity === "warning"
   ).length;
-  if (blockingCount !== actualBlockingCount) {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: blocking_count ${String(blockingCount)} did not match ${String(actualBlockingCount)} parsed blocking finding(s).`
-    );
-  }
-  if (warningCount !== actualWarningCount) {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: warning_count ${String(warningCount)} did not match ${String(actualWarningCount)} parsed warning finding(s).`
-    );
-  }
-  if (summary.verdict === "BLOCK" !== actualBlockingCount > 0) {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: verdict ${summary.verdict} did not match parsed blocking findings.`
-    );
-  }
   return {
     blockingCount,
     warningCount,
-    verdict: summary.verdict
+    verdict: blockingCount > 0 ? "BLOCK" : "PASS"
   };
 }
-function parseCountField(name, value) {
-  if (!value) {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: missing ${name} in SUMMARY.`
-    );
+function formatSchemaDiagnostics(errors) {
+  if (errors.length === 0) {
+    return "The JSON object did not match the Pushgate review schema.";
   }
-  if (!/^\d+$/.test(value)) {
-    throw new AiReviewOutputError(
-      `Provider output is invalid: ${name} must be an integer, received ${JSON.stringify(value)}.`
-    );
+  return errors.map(formatSchemaError).join(" ");
+}
+function formatSchemaError(error) {
+  const path = error.instancePath || "/";
+  switch (error.keyword) {
+    case "additionalProperties": {
+      const property = String(error.params.additionalProperty);
+      return `${path} includes unsupported property ${JSON.stringify(property)}.`;
+    }
+    case "const":
+      return `${path} must equal 1 for schema_version.`;
+    case "enum":
+      return `${path} must be one of the allowed values.`;
+    case "minLength":
+      return `${path} must not be empty.`;
+    case "required":
+      return `${path} is missing required property ${JSON.stringify(String(error.params.missingProperty))}.`;
+    case "type":
+      return `${path} must be ${String(error.params.type)}.`;
+    default:
+      return `${path}: ${error.message ?? "failed validation"}.`;
   }
-  return Number.parseInt(value, 10);
+}
+function formatUnknownError(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+function dedupeDiagnostics(diagnostics) {
+  return [...new Set(diagnostics)];
 }
 
 // src/ai/providers/claude.ts
@@ -14890,16 +14994,20 @@ var claudeProvider = {
       };
     }
     try {
-      const parsed = parseAiReviewOutput(rawOutput);
+      const parsed = parseAiReviewOutput(rawOutput, {
+        provider: "claude",
+        ...model ? { model } : {}
+      });
       return {
         kind: "review",
         provider: "claude",
         findings: parsed.findings,
+        normalizationNotes: parsed.normalizationNotes,
         rawOutput,
         summary: parsed.summary
       };
     } catch (error) {
-      const detail = error instanceof AiReviewOutputError ? error.message : String(error);
+      const detail = error instanceof AiReviewOutputError ? error.diagnostics.join("\n") || error.message : String(error);
       return {
         kind: "provider-error",
         code: "invalid_output",
@@ -15116,7 +15224,9 @@ function handleProviderResult(aiMode, result, stdout) {
       `[pushgate] ${label} local AI provider ${result.provider} failed: ${result.message}`
     );
     if (result.detail) {
-      writeLine(stdout, `[pushgate] Detail: ${result.detail}`);
+      for (const line of result.detail.split("\n")) {
+        writeLine(stdout, `[pushgate] Detail: ${line}`);
+      }
     }
     if (result.output) {
       writeLine(stdout, "[pushgate] Provider output:");
@@ -15136,6 +15246,9 @@ function handleProviderResult(aiMode, result, stdout) {
       "[pushgate] Local AI is blocking in this repository. Fix the provider issue or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push."
     );
     return { exitCode: 1 };
+  }
+  for (const note of result.normalizationNotes) {
+    writeLine(stdout, `[pushgate] Note: ${note}`);
   }
   if (result.findings.length === 0) {
     writeLine(stdout, "[pushgate] Local AI review passed with no findings.");
@@ -15191,7 +15304,7 @@ function estimatePromptTokens(prompt) {
 }
 
 // src/config/index.ts
-var import_ajv = __toESM(require_ajv(), 1);
+var import_ajv2 = __toESM(require_ajv(), 1);
 var import_yaml = __toESM(require_dist(), 1);
 import { access, readFile as readFile2 } from "node:fs/promises";
 import { constants } from "node:fs";
@@ -15418,8 +15531,8 @@ var pushgate_config_v2_schema_default = {
 // src/config/index.ts
 var CONFIG_FILENAME = ".pushgate.yml";
 var LEGACY_CONFIG_FILENAME = ".push-review.yml";
-var ajv = new import_ajv.Ajv({ allErrors: true, strict: true });
-var validateSchema = ajv.compile(pushgate_config_v2_schema_default);
+var ajv2 = new import_ajv2.Ajv({ allErrors: true, strict: true });
+var validateSchema2 = ajv2.compile(pushgate_config_v2_schema_default);
 var ConfigError = class extends Error {
   /** Stable machine-readable error code for caller-specific rendering. */
   code;
@@ -15479,10 +15592,10 @@ function parseConfigYaml(source, sourcePath = CONFIG_FILENAME) {
     );
   }
   const rawConfig = document.toJS();
-  if (!validateSchema(rawConfig)) {
+  if (!validateSchema2(rawConfig)) {
     throw new ConfigValidationError(
       sourcePath,
-      (validateSchema.errors ?? []).map(formatSchemaError)
+      (validateSchema2.errors ?? []).map(formatSchemaError2)
     );
   }
   const config = normalizeConfig(rawConfig);
@@ -15580,7 +15693,7 @@ function validateProviderSelection(config) {
   }
   return [];
 }
-function formatSchemaError(error) {
+function formatSchemaError2(error) {
   const path = error.instancePath || ".";
   if (error.keyword === "required") {
     return `${path} is missing required key "${error.params.missingProperty}".`;

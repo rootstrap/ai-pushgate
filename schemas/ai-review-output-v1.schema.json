@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rootstrap.github.io/ai-pushgate/schemas/ai-review-output-v1.schema.json",
+  "title": "Pushgate AI Review Output v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "findings"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "confidence",
+          "severity",
+          "file",
+          "line",
+          "message",
+          "suggestion"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "security",
+              "logic_errors",
+              "test_coverage",
+              "performance",
+              "naming_and_readability"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["blocking", "warning"]
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "suggestion": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

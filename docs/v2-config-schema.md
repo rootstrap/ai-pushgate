@@ -199,7 +199,13 @@ Legacy `.push-review.yml` stored reviewer `focus`, `blocking_categories`, and
 mix those AI instructions into `review`; the built-in defaults live with
 `src/ai/prompts/review-prompt.md` instead.
 
-The blocking and warning category vocabulary must stay aligned with the later
+The built-in prompt instructs providers to return one JSON object using
+Pushgate's normalized review-output contract. Findings carry strict category,
+severity, confidence, file, line, message, and suggestion fields; Pushgate
+attaches provider source metadata during normalization before rendering the
+result in the terminal.
+
+The blocking and warning category vocabulary must stay aligned with that
 structured AI findings layer. If Pushgate supports project-specific prompt or
 category overrides later, that contract should be explicit in the AI schema
 rather than hidden in provider-specific config.

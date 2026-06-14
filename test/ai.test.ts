@@ -14,34 +14,69 @@ import {
 import { resolveChangedFiles } from "../src/path-policy/index.js";
 
 test("parses structured AI review output into findings and summary", () => {
-  const parsed = parseAiReviewOutput([
-    "FINDING",
-    "category: logic_errors",
-    "severity: blocking",
-    "file: src/changed.ts",
-    "line: 3-4",
-    "message: Conditional branch returns the wrong value.",
-    "suggestion: Return the updated flag when the branch is taken.",
-    "",
-    "FINDING",
-    "category: test_coverage",
-    "severity: warning",
-    "file: test/changed.test.ts",
-    "line: N/A",
-    "message: The new branch is not covered by a regression test.",
-    "suggestion: Add a focused test for the branch.",
-    "",
-    "SUMMARY",
-    "blocking_count: 1",
-    "warning_count: 1",
-    "verdict: BLOCK",
-  ].join("\n"));
+  const parsed = parseAiReviewOutput(
+    JSON.stringify({
+      schema_version: 1,
+      findings: [
+        {
+          category: "logic_errors",
+          confidence: "high",
+          severity: "blocking",
+          file: "src/changed.ts",
+          line: "3-4",
+          message: "Conditional branch returns the wrong value.",
+          suggestion: "Return the updated flag when the branch is taken.",
+        },
+        {
+          category: "test_coverage",
+          confidence: "medium",
+          severity: "warning",
+          file: "test/changed.test.ts",
+          line: "N/A",
+          message: "The new branch is not covered by a regression test.",
+          suggestion: "Add a focused test for the branch.",
+        },
+      ],
+    }),
+    {
+      model: "claude-sonnet-4-20250514",
+      provider: "claude",
+    },
+  );
 
   assert.equal(parsed.findings.length, 2);
+  assert.equal(parsed.findings[0]?.category, "logic_errors");
+  assert.equal(parsed.findings[0]?.confidence, "high");
   assert.equal(parsed.findings[0]?.severity, "blocking");
+  assert.equal(parsed.findings[0]?.source.provider, "claude");
+  assert.equal(parsed.findings[0]?.source.model, "claude-sonnet-4-20250514");
+  assert.deepEqual(parsed.normalizationNotes, []);
   assert.equal(parsed.summary.blockingCount, 1);
   assert.equal(parsed.summary.warningCount, 1);
   assert.equal(parsed.summary.verdict, "BLOCK");
+});
+
+test("repairs fenced JSON output before validation", () => {
+  const parsed = parseAiReviewOutput(
+    [
+      "Here is the review result:",
+      "```json",
+      JSON.stringify({
+        schema_version: 1,
+        findings: [],
+      }),
+      "```",
+    ].join("\n"),
+    {
+      provider: "claude",
+    },
+  );
+
+  assert.equal(parsed.findings.length, 0);
+  assert.equal(parsed.summary.verdict, "PASS");
+  assert.deepEqual(parsed.normalizationNotes, [
+    "Extracted the review JSON from a fenced code block.",
+  ]);
 });
 
 test("builds a shared AI review payload with diff and full-file context", async () => {
@@ -64,10 +99,13 @@ test("builds a shared AI review payload with diff and full-file context", async 
 
     assert.match(payload.prompt, /## Changed Files/);
     assert.match(payload.prompt, /=== DIFF ===/);
+    assert.match(payload.prompt, /"schema_version": 1/);
+    assert.match(payload.prompt, /"confidence": "high"/);
     assert.match(payload.prompt, /src\/changed\.ts/);
     assert.match(payload.prompt, /### FILE: src\/changed\.ts/);
     assert.match(payload.prompt, /export const changed = true/);
     assert.doesNotMatch(payload.prompt, /### FILE: src\/deleted\.ts/);
+    assert.doesNotMatch(payload.prompt, /FINDING/);
     assert.ok(payload.diffLineCount > 0);
     assert.ok(payload.fullFiles.length > 0);
   });
@@ -89,10 +127,7 @@ test("runs the Claude adapter through the provider interface with model selectio
         "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
         "cat > \"$PUSHGATE_CLAUDE_PROMPT_OUT\"",
         "cat <<'EOF'",
-        "SUMMARY",
-        "blocking_count: 0",
-        "warning_count: 0",
-        "verdict: PASS",
+        "{\"schema_version\":1,\"findings\":[]}",
         "EOF",
       ].join("\n"),
     );
@@ -136,6 +171,7 @@ test("runs the Claude adapter through the provider interface with model selectio
     assert.match(output.text(), /Running local AI review with claude/);
     assert.match(output.text(), /Local AI review passed with no findings/);
     assert.match(await readFile(promptPath, "utf8"), /=== DIFF ===/);
+    assert.match(await readFile(promptPath, "utf8"), /"schema_version": 1/);
     assert.deepEqual(await readArgLines(argsPath), [
       "-p",
       "Review the provided Pushgate review input exactly as instructed.",
