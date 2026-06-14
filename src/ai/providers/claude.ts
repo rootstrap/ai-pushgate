@@ -77,18 +77,24 @@ export const claudeProvider: LocalAiProviderAdapter = {
     }
 
     try {
-      const parsed = parseAiReviewOutput(rawOutput);
+      const parsed = parseAiReviewOutput(rawOutput, {
+        provider: "claude",
+        ...(model ? { model } : {}),
+      });
 
       return {
         kind: "review",
         provider: "claude",
         findings: parsed.findings,
+        normalizationNotes: parsed.normalizationNotes,
         rawOutput,
         summary: parsed.summary,
       };
     } catch (error) {
       const detail =
-        error instanceof AiReviewOutputError ? error.message : String(error);
+        error instanceof AiReviewOutputError
+          ? error.diagnostics.join("\n") || error.message
+          : String(error);
 
       return {
         kind: "provider-error",

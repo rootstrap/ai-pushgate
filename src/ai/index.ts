@@ -15,7 +15,10 @@ export {
 export { AiReviewOutputError, parseAiReviewOutput } from "./review-output.js";
 export type {
   AiFinding,
+  AiFindingCategory,
+  AiFindingConfidence,
   AiFindingSeverity,
+  AiFindingSource,
   AiReviewSummary,
   LocalAiFullFileContext,
   LocalAiProviderAdapter,
@@ -24,6 +27,15 @@ export type {
   LocalAiProviderResult,
   LocalAiProviderReview,
   LocalAiReviewPayload,
+  RawAiFinding,
+  RawAiReviewOutput,
+} from "./types.js";
+export {
+  AI_BLOCKING_CATEGORIES,
+  AI_FINDING_CATEGORIES,
+  AI_FINDING_CONFIDENCE_LEVELS,
+  AI_REVIEW_OUTPUT_SCHEMA_VERSION,
+  AI_WARNING_CATEGORIES,
 } from "./types.js";
 
 export interface LocalAiRunSummary {
@@ -138,7 +150,9 @@ function handleProviderResult(
     );
 
     if (result.detail) {
-      writeLine(stdout, `[pushgate] Detail: ${result.detail}`);
+      for (const line of result.detail.split("\n")) {
+        writeLine(stdout, `[pushgate] Detail: ${line}`);
+      }
     }
 
     if (result.output) {
@@ -162,6 +176,10 @@ function handleProviderResult(
       "[pushgate] Local AI is blocking in this repository. Fix the provider issue or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push.",
     );
     return { exitCode: 1 };
+  }
+
+  for (const note of result.normalizationNotes) {
+    writeLine(stdout, `[pushgate] Note: ${note}`);
   }
 
   if (result.findings.length === 0) {

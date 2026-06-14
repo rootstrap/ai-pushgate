@@ -24,7 +24,7 @@ git push
                ▼
 ┌─────────────────────────────────────┐
 │  AI review via Claude Code CLI      │
-│  (diff sent, findings returned)     │
+│  (diff sent, normalized findings)   │
 │  BLOCK → push blocked               │
 │  PASS  → push proceeds              │
 └─────────────────────────────────────┘
@@ -156,7 +156,7 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters now return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 ## Available templates
 
