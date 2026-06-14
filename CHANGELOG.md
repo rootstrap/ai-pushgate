@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/rootstrap/ai-pushgate/compare/v3.1.0...v3.2.0) (2026-06-14)
+
+
+### Features
+
+* normalize structured AI review output ([#32](https://github.com/rootstrap/ai-pushgate/issues/32)) ([4c2d05f](https://github.com/rootstrap/ai-pushgate/commit/4c2d05fd0751b4490be3c92b2ba50cd8787d92df))
+
 ## [3.1.0](https://github.com/rootstrap/ai-pushgate/compare/v3.0.0...v3.1.0) (2026-06-08)
 
 
