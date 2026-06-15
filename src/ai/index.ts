@@ -2,6 +2,7 @@ import type { AiConfig, ReviewConfig } from "../config/index.js";
 import type { ChangedFileResolution } from "../path-policy/index.js";
 import { buildLocalAiReviewPayload } from "./review-prompt.js";
 import { claudeProvider } from "./providers/claude.js";
+import { copilotProvider } from "./providers/copilot.js";
 import type {
   LocalAiProviderAdapter,
   LocalAiProviderResult,
@@ -131,6 +132,8 @@ function resolveProvider(providerId?: string): LocalAiProviderAdapter | null {
   switch (providerId) {
     case "claude":
       return claudeProvider;
+    case "copilot":
+      return copilotProvider;
     default:
       return null;
   }

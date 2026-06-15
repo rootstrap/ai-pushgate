@@ -32,8 +32,10 @@ ai:
     # Provider-specific settings are kept below the provider name.
     claude:
       model: claude-sonnet-4-20250514
+    # To use the standalone GitHub Copilot CLI, set provider: copilot and
+    # uncomment this block. Omit model to let Copilot choose its default.
     # copilot:
-    #   model: gpt-5
+    #   model: auto
 
 review:
   # Branch to diff against when collecting changes.

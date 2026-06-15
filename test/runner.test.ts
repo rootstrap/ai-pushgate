@@ -154,6 +154,41 @@ test("blocking local AI findings block the pre-push runner", async () => {
   });
 });
 
+test("Copilot local AI findings flow through the pre-push runner", async () => {
+  await withAiRepo(async (repoRoot, env) => {
+    await installCopilotStub(join(repoRoot, "bin"));
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: copilot",
+        "  providers:",
+        "    copilot:",
+        "      model: auto",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot, env },
+    );
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /Running local AI review with copilot/);
+    assert.match(result.stdout, /WARN AI performance at src\/changed\.ts:2/);
+    assert.match(
+      result.stdout,
+      /Local AI review finished: 0 blocking finding\(s\), 1 warning\(s\)/,
+    );
+    assert.equal(result.stderr, "");
+  });
+});
+
 test("blocking local AI provider failures block the pre-push runner", async () => {
   await withAiRepo(async (repoRoot) => {
     await writeFile(
@@ -570,6 +605,21 @@ async function installClaudeStub(binDir: string): Promise<void> {
     ].join("\n"),
   );
   await chmod(join(binDir, "claude"), 0o755);
+}
+
+async function installCopilotStub(binDir: string): Promise<void> {
+  await writeFile(
+    join(binDir, "copilot"),
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      "cat > /dev/null",
+      "cat <<'EOF'",
+      "{\"schema_version\":1,\"findings\":[{\"category\":\"performance\",\"confidence\":\"medium\",\"severity\":\"warning\",\"file\":\"src/changed.ts\",\"line\":\"2\",\"message\":\"The changed branch repeats avoidable work.\",\"suggestion\":\"Cache the computed result before returning.\"}]}",
+      "EOF",
+    ].join("\n"),
+  );
+  await chmod(join(binDir, "copilot"), 0o755);
 }
 
 interface CommandOptions {

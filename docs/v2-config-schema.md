@@ -44,6 +44,8 @@ ai:
   providers:
     claude:
       model: claude-sonnet-4-20250514
+    copilot:
+      model: auto
 
 ignore_paths:
   - "*.lock"
@@ -79,6 +81,12 @@ The loader normalizes omitted optional values into one internal shape:
 
 `blocking` and `advisory` AI modes must set `ai.provider` and define a matching
 `ai.providers.<provider>` block. `ai.mode: off` may omit provider config.
+
+The built-in provider IDs are `claude` and `copilot`. `claude` invokes Claude
+Code CLI. `copilot` invokes the standalone GitHub Copilot CLI through its
+programmatic prompt path, using the shared Pushgate prompt and normalized JSON
+review-output contract. `ai.providers.<provider>.model` is optional for both
+providers; when omitted, the provider CLI chooses its default model.
 
 ## Local AI Modes And Guardrails
 
