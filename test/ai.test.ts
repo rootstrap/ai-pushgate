@@ -11,6 +11,8 @@ import {
   parseAiReviewOutput,
   runLocalAiReview,
 } from "../src/ai/index.js";
+import type { LocalAiReviewPayload } from "../src/ai/index.js";
+import { copilotProvider } from "../src/ai/providers/copilot.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
 
 test("parses structured AI review output into findings and summary", () => {
@@ -190,6 +192,225 @@ test("runs the Claude adapter through the provider interface with model selectio
       "--model",
       "claude-sonnet-4-20250514",
     ]);
+  });
+});
+
+test("runs the Copilot adapter with non-interactive stdin prompt and model selection", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const argsPath = join(repoRoot, "copilot-args.txt");
+    const promptPath = join(repoRoot, "copilot-prompt.txt");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "printf '%s\\n' \"$@\" > \"$PUSHGATE_COPILOT_ARGS_OUT\"",
+        "cat > \"$PUSHGATE_COPILOT_PROMPT_OUT\"",
+        "cat <<'EOF'",
+        "{\"schema_version\":1,\"findings\":[{\"category\":\"performance\",\"confidence\":\"medium\",\"severity\":\"warning\",\"file\":\"src/changed.ts\",\"line\":\"2\",\"message\":\"The loop repeats work that can be cached.\",\"suggestion\":\"Cache the computed value before entering the loop.\"}]}",
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+        PUSHGATE_COPILOT_ARGS_OUT: argsPath,
+        PUSHGATE_COPILOT_PROMPT_OUT: promptPath,
+      },
+      payload: minimalReviewPayload("Review this Pushgate payload.\n"),
+      providerConfig: {
+        model: "gpt-5.4",
+      },
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Copilot review result, got ${result.kind}.`);
+    }
+
+    assert.equal(result.provider, "copilot");
+    assert.equal(result.findings.length, 1);
+    assert.equal(result.findings[0]?.source.provider, "copilot");
+    assert.equal(result.findings[0]?.source.model, "gpt-5.4");
+    assert.equal(result.summary.warningCount, 1);
+    assert.equal(await readFile(promptPath, "utf8"), "Review this Pushgate payload.\n");
+    assert.deepEqual(await readArgLines(argsPath), [
+      "-s",
+      "--no-ask-user",
+      "--stream=off",
+      "--output-format=text",
+      "--no-color",
+      "--no-custom-instructions",
+      "--no-remote",
+      "--disable-builtin-mcps",
+      "--available-tools=view,grep,glob",
+      "--allow-tool=read",
+      "--deny-tool=shell",
+      "--deny-tool=write",
+      "--deny-tool=url",
+      "--model=gpt-5.4",
+    ]);
+  });
+});
+
+test("maps Copilot auth-like failures through advisory mode", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "echo 'Authentication required. Run copilot login or set COPILOT_GITHUB_TOKEN.' >&2",
+        "exit 1",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "advisory",
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "copilot",
+        providers: {
+          copilot: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      stdout: output.stream,
+    });
+
+    assert.equal(result.exitCode, 0, output.text());
+    assert.match(output.text(), /WARN local AI provider copilot failed/);
+    assert.match(output.text(), /not authenticated or cannot access Copilot/);
+    assert.match(output.text(), /Continuing because ai\.mode is advisory/);
+  });
+});
+
+test("reports missing Copilot CLI as a provider failure", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const emptyBinDir = join(repoRoot, "empty-bin");
+
+    await mkdir(emptyBinDir, { recursive: true });
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: emptyBinDir,
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Copilot provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "missing_binary");
+    assert.match(result.message, /GitHub Copilot CLI was not found on PATH/);
+  });
+});
+
+test("reports malformed Copilot output through the normalized parser", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "echo 'Here is a review, but not JSON.'",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Copilot provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "invalid_output");
+    assert.match(result.message, /malformed review output/);
+    assert.match(result.detail ?? "", /failed to parse JSON/);
+  });
+});
+
+test("passes configured timeout seconds to the Copilot adapter", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "sleep 2",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 1,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Copilot provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "timed_out");
+    assert.match(result.message, /timed out after 1s/);
   });
 });
 
@@ -432,5 +653,17 @@ function captureOutput(): {
     text() {
       return output;
     },
+  };
+}
+
+function minimalReviewPayload(
+  prompt: string = "Review this Pushgate payload.\n",
+): LocalAiReviewPayload {
+  return {
+    changedFiles: [],
+    diff: "",
+    diffLineCount: 0,
+    fullFiles: [],
+    prompt,
   };
 }

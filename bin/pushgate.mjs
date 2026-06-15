@@ -14357,7 +14357,7 @@ var require_ignore = __commonJS({
 });
 
 // src/cli.ts
-import { spawn as spawn6 } from "node:child_process";
+import { spawn as spawn7 } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -15142,6 +15142,218 @@ function formatCombinedOutput(stdout, stderr) {
   return combined.slice(-OUTPUT_TAIL_LIMIT);
 }
 
+// src/ai/providers/copilot.ts
+import { spawn as spawn3 } from "node:child_process";
+var OUTPUT_CAPTURE_LIMIT2 = 128 * 1024;
+var OUTPUT_TAIL_LIMIT2 = 8 * 1024;
+var copilotProvider = {
+  id: "copilot",
+  async runReview(options) {
+    const model = selectCopilotModel(options.providerConfig);
+    const args = buildCopilotArgs(model);
+    const commandResult = await runCopilotCommand(
+      args,
+      options.payload.prompt,
+      options.repoRoot,
+      options.env,
+      options.timeoutSeconds
+    );
+    if (commandResult.kind === "spawn-error") {
+      return {
+        kind: "provider-error",
+        code: "missing_binary",
+        provider: "copilot",
+        message: "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review."
+      };
+    }
+    if (commandResult.kind === "timeout") {
+      return {
+        kind: "provider-error",
+        code: "timed_out",
+        provider: "copilot",
+        message: `GitHub Copilot CLI timed out after ${String(options.timeoutSeconds)}s.`,
+        output: commandResult.output
+      };
+    }
+    if (commandResult.code !== 0) {
+      const output = commandResult.output ?? "";
+      if (isCopilotAuthFailure(output)) {
+        return {
+          kind: "provider-error",
+          code: "not_authenticated",
+          provider: "copilot",
+          message: "GitHub Copilot CLI is not authenticated or cannot access Copilot. Run `copilot login`, configure `COPILOT_GITHUB_TOKEN`, or verify your Copilot CLI organization policy.",
+          output: commandResult.output
+        };
+      }
+      return {
+        kind: "provider-error",
+        code: "command_failed",
+        provider: "copilot",
+        message: `GitHub Copilot CLI exited with code ${String(commandResult.code)}.`,
+        output: commandResult.output
+      };
+    }
+    const rawOutput = commandResult.stdout.trim();
+    if (rawOutput.length === 0) {
+      return {
+        kind: "provider-error",
+        code: "empty_output",
+        provider: "copilot",
+        message: "GitHub Copilot CLI returned an empty review response.",
+        output: commandResult.output
+      };
+    }
+    try {
+      const parsed = parseAiReviewOutput(rawOutput, {
+        provider: "copilot",
+        ...model ? { model } : {}
+      });
+      return {
+        kind: "review",
+        provider: "copilot",
+        findings: parsed.findings,
+        normalizationNotes: parsed.normalizationNotes,
+        rawOutput,
+        summary: parsed.summary
+      };
+    } catch (error) {
+      const detail = error instanceof AiReviewOutputError ? error.diagnostics.join("\n") || error.message : String(error);
+      return {
+        kind: "provider-error",
+        code: "invalid_output",
+        provider: "copilot",
+        message: "GitHub Copilot CLI returned malformed review output.",
+        detail,
+        output: commandResult.output
+      };
+    }
+  }
+};
+function buildCopilotArgs(model) {
+  const args = [
+    "-s",
+    "--no-ask-user",
+    "--stream=off",
+    "--output-format=text",
+    "--no-color",
+    "--no-custom-instructions",
+    "--no-remote",
+    "--disable-builtin-mcps",
+    "--available-tools=view,grep,glob",
+    "--allow-tool=read",
+    "--deny-tool=shell",
+    "--deny-tool=write",
+    "--deny-tool=url"
+  ];
+  if (model) {
+    args.push(`--model=${model}`);
+  }
+  return args;
+}
+function selectCopilotModel(providerConfig) {
+  const model = providerConfig.model;
+  return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
+}
+function runCopilotCommand(args, prompt, repoRoot, env, timeoutSeconds) {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    let timedOut = false;
+    let killTimer;
+    let timeoutTimer;
+    const child = spawn3("copilot", args, {
+      cwd: repoRoot,
+      env,
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    const finish = (result) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+      }
+      if (killTimer) {
+        clearTimeout(killTimer);
+      }
+      resolve(result);
+    };
+    timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+      killTimer = setTimeout(() => {
+        child.kill("SIGKILL");
+      }, 1e3);
+    }, timeoutSeconds * 1e3);
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (data) => {
+      stdout = appendCapped2(stdout, data);
+    });
+    child.stderr?.on("data", (data) => {
+      stderr = appendCapped2(stderr, data);
+    });
+    child.on("error", () => {
+      finish({ kind: "spawn-error" });
+    });
+    child.on("close", (code) => {
+      if (timedOut) {
+        finish({
+          kind: "timeout",
+          output: formatCombinedOutput2(stdout, stderr)
+        });
+        return;
+      }
+      finish({
+        code,
+        kind: "completed",
+        output: formatCombinedOutput2(stdout, stderr),
+        stdout
+      });
+    });
+    child.stdin?.on("error", () => {
+    });
+    child.stdin?.end(prompt);
+  });
+}
+function isCopilotAuthFailure(output) {
+  return [
+    /not authenticated/i,
+    /authentication required/i,
+    /must authenticate/i,
+    /please authenticate/i,
+    /not logged in/i,
+    /copilot login/i,
+    /\/login/i,
+    /COPILOT_GITHUB_TOKEN/,
+    /\bGH_TOKEN\b/,
+    /\bGITHUB_TOKEN\b/,
+    /copilot.*subscription/i,
+    /copilot.*policy.*enabled/i,
+    /access.*copilot/i
+  ].some((pattern) => pattern.test(output));
+}
+function appendCapped2(current, next) {
+  const combined = current + next;
+  if (combined.length <= OUTPUT_CAPTURE_LIMIT2) {
+    return combined;
+  }
+  return combined.slice(-OUTPUT_CAPTURE_LIMIT2);
+}
+function formatCombinedOutput2(stdout, stderr) {
+  const combined = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
+  if (combined.length === 0) {
+    return void 0;
+  }
+  if (combined.length <= OUTPUT_TAIL_LIMIT2) {
+    return combined;
+  }
+  return combined.slice(-OUTPUT_TAIL_LIMIT2);
+}
+
 // src/ai/index.ts
 async function runLocalAiReview(options) {
   const stdout = options.stdout ?? process.stdout;
@@ -15212,6 +15424,8 @@ function resolveProvider(providerId) {
   switch (providerId) {
     case "claude":
       return claudeProvider;
+    case "copilot":
+      return copilotProvider;
     default:
       return null;
   }
@@ -15728,7 +15942,7 @@ async function exists(path) {
 
 // src/path-policy/index.ts
 var import_ignore = __toESM(require_ignore(), 1);
-import { spawn as spawn3 } from "node:child_process";
+import { spawn as spawn4 } from "node:child_process";
 var ChangedFilePolicyError = class extends Error {
   /** Stable machine-readable error code for callers to render. */
   code;
@@ -16010,7 +16224,7 @@ function gitResultDetail(result) {
 }
 function runGit(repoRoot, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn3("git", [...args], {
+    const child = spawn4("git", [...args], {
       cwd: repoRoot,
       stdio: ["ignore", "pipe", "pipe"]
     });
@@ -16042,7 +16256,7 @@ function runGit(repoRoot, args) {
 }
 
 // src/runner/deterministic.ts
-import { spawn as spawn4 } from "node:child_process";
+import { spawn as spawn5 } from "node:child_process";
 
 // src/runner/policies.ts
 var import_ignore2 = __toESM(require_ignore(), 1);
@@ -16126,8 +16340,8 @@ function violationResult(mode, name, detail) {
 
 // src/runner/deterministic.ts
 var CHANGED_FILES_TOKEN = "{changed_files}";
-var OUTPUT_CAPTURE_LIMIT2 = 64 * 1024;
-var OUTPUT_TAIL_LIMIT2 = 4 * 1024;
+var OUTPUT_CAPTURE_LIMIT3 = 64 * 1024;
+var OUTPUT_TAIL_LIMIT3 = 4 * 1024;
 var TIMEOUT_KILL_GRACE_MS = 1e3;
 async function runDeterministicChecks(config, changedFiles, options = {}) {
   const stdout = options.stdout ?? process.stdout;
@@ -16224,7 +16438,7 @@ async function runToolCommand(tool, command, repoRoot, env) {
     let settled = false;
     let killTimer;
     let timeoutTimer;
-    const child = spawn4(executable, args, {
+    const child = spawn5(executable, args, {
       cwd: repoRoot,
       env,
       shell: false,
@@ -16253,10 +16467,10 @@ async function runToolCommand(tool, command, repoRoot, env) {
     child.stdout?.setEncoding("utf8");
     child.stderr?.setEncoding("utf8");
     child.stdout?.on("data", (data) => {
-      stdout = appendCapped2(stdout, data);
+      stdout = appendCapped3(stdout, data);
     });
     child.stderr?.on("data", (data) => {
-      stderr = appendCapped2(stderr, data);
+      stderr = appendCapped3(stderr, data);
     });
     child.on("error", (error) => {
       finish({
@@ -16311,22 +16525,22 @@ function writePolicyResult(stdout, result) {
     `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
   );
 }
-function appendCapped2(current, next) {
+function appendCapped3(current, next) {
   const combined = current + next;
-  if (combined.length <= OUTPUT_CAPTURE_LIMIT2) {
+  if (combined.length <= OUTPUT_CAPTURE_LIMIT3) {
     return combined;
   }
-  return combined.slice(-OUTPUT_CAPTURE_LIMIT2);
+  return combined.slice(-OUTPUT_CAPTURE_LIMIT3);
 }
 function formatOutputTail(stdout, stderr) {
   const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
   if (!output) {
     return void 0;
   }
-  if (output.length <= OUTPUT_TAIL_LIMIT2) {
+  if (output.length <= OUTPUT_TAIL_LIMIT3) {
     return output;
   }
-  return output.slice(-OUTPUT_TAIL_LIMIT2);
+  return output.slice(-OUTPUT_TAIL_LIMIT3);
 }
 function writeLine2(stream, line) {
   stream.write(`${line}
@@ -16334,7 +16548,7 @@ function writeLine2(stream, line) {
 }
 
 // src/skip-controls.ts
-import { spawn as spawn5 } from "node:child_process";
+import { spawn as spawn6 } from "node:child_process";
 var SKIP_ALL_CHECKS_CONFIG_KEY = "pushgate.skip-all-checks";
 var SKIP_AI_CHECK_CONFIG_KEY = "pushgate.skip-ai-check";
 var SkipControlError = class extends Error {
@@ -16376,7 +16590,7 @@ async function resolveSkipControlState(repoRoot, env = process.env) {
 }
 function readGitBooleanConfig(repoRoot, env, key) {
   return new Promise((resolve, reject) => {
-    const child = spawn5("git", ["config", "--bool", "--get", key], {
+    const child = spawn6("git", ["config", "--bool", "--get", key], {
       cwd: repoRoot,
       env,
       stdio: ["ignore", "pipe", "pipe"]
@@ -16522,7 +16736,7 @@ async function runPushCommand(args, io) {
   try {
     const parsed = parsePushCommandArgs(args);
     return await new Promise((resolve, reject) => {
-      const child = spawn6(
+      const child = spawn7(
         "git",
         buildGitPushArgs(parsed.gitPushArgs, {
           skipAllChecks: parsed.skipAllChecks,
@@ -16613,7 +16827,7 @@ function drainStdin(stdin) {
 }
 function resolveRepoRoot(env) {
   return new Promise((resolve, reject) => {
-    const child = spawn6("git", ["rev-parse", "--show-toplevel"], {
+    const child = spawn7("git", ["rev-parse", "--show-toplevel"], {
       env,
       stdio: ["ignore", "pipe", "pipe"]
     });

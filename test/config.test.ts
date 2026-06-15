@@ -278,6 +278,26 @@ test("requires active AI modes to select a matching provider block", async () =>
   );
 });
 
+test("allows Copilot provider selection through the provider extension block", () => {
+  const config = parseConfigYaml(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: blocking",
+      "  provider: copilot",
+      "  providers:",
+      "    copilot:",
+      "      model: auto",
+    ].join("\n"),
+    "copilot-provider.yml",
+  );
+
+  assert.equal(config.ai.provider, "copilot");
+  assert.deepEqual(config.ai.providers.copilot, {
+    model: "auto",
+  });
+});
+
 test("allows AI mode off without provider config", () => {
   const config = parseConfigYaml("version: 2\nai:\n  mode: off\n", "off.yml");
 

@@ -23,8 +23,8 @@ git push
                │ all pass
                ▼
 ┌─────────────────────────────────────┐
-│  AI review via Claude Code CLI      │
-│  (diff sent, normalized findings)   │
+│  AI review via selected provider    │
+│  (Claude or GitHub Copilot CLI)     │
 │  BLOCK → push blocked               │
 │  PASS  → push proceeds              │
 └─────────────────────────────────────┘
@@ -36,12 +36,12 @@ Local deterministic checks can block a push. Local AI supports `blocking`, `advi
 
 `.pushgate.yml` is the primary project config. `.push-review.yml` belongs to migration compatibility rather than the public config contract.
 
-The current M1 runner boundary is intentionally thin: the installer wires the
-hook to the managed `pushgate` command, the command accepts Git pre-push
-context, and policy execution now flows through the changed-file layer,
-deterministic checks, and a provider-backed local AI phase. The first adapter
-keeps Claude-specific invocation behind the runner's provider boundary so later
-providers can reuse the same seam.
+The current runner boundary is intentionally thin: the installer wires the hook
+to the managed `pushgate` command, the command accepts Git pre-push context,
+and policy execution now flows through the changed-file layer, deterministic
+checks, and a provider-backed local AI phase. Claude and GitHub Copilot
+invocation stay behind the runner's provider boundary so future providers can
+reuse the same seam.
 
 ## Install
 
@@ -79,12 +79,19 @@ The installer:
 
 **Node.js** is required by the installer-managed `pushgate` command.
 
-**AI providers** depend on the configured mode. For example, Claude feedback requires Claude Code CLI:
+**AI providers** depend on the configured mode.
+
+Claude feedback requires Claude Code CLI:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 claude auth login
 ```
+
+GitHub Copilot feedback requires the standalone GitHub Copilot CLI. Authenticate
+interactively with `copilot login` or configure one of the supported token
+environment variables, such as `COPILOT_GITHUB_TOKEN`, for non-interactive
+environments.
 
 **Configured tool runtimes** depend on the tools you configure:
 
@@ -113,6 +120,9 @@ ai:
     claude:
       # Provider-specific settings live below the selected provider block.
       model: claude-sonnet-4-20250514
+    # To use GitHub Copilot CLI instead, set provider: copilot above:
+    # copilot:
+    #   model: auto
 
 review:
   target_branch: main       # local ref for git diff <target_branch>...HEAD
@@ -156,7 +166,7 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters now return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters now return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. Pushgate currently supports `claude` and `copilot` provider IDs. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 ## Available templates
 
