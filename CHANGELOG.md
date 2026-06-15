@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/rootstrap/ai-pushgate/compare/v3.2.0...v3.3.0) (2026-06-15)
+
+
+### Features
+
+* add GitHub Copilot AI provider ([#34](https://github.com/rootstrap/ai-pushgate/issues/34)) ([9c33155](https://github.com/rootstrap/ai-pushgate/commit/9c33155c1ebe6819cd674c62e064f8233c510000))
+
 ## [3.2.0](https://github.com/rootstrap/ai-pushgate/compare/v3.1.0...v3.2.0) (2026-06-14)
 
 
