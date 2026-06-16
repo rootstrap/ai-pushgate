@@ -1,0 +1,258 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 6,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "templates/base.yml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 132,
+      "nonEmptyLines": 122,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "ai",
+          "level": 1,
+          "line": 20
+        },
+        {
+          "heading": "review",
+          "level": 1,
+          "line": 40
+        },
+        {
+          "heading": "tools",
+          "level": 1,
+          "line": 90
+        },
+        {
+          "heading": "policies",
+          "level": 1,
+          "line": 115
+        },
+        {
+          "heading": "ignore_paths",
+          "level": 1,
+          "line": 121
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 6
+      }
+    },
+    {
+      "path": "templates/nextjs.yml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 51,
+      "nonEmptyLines": 43,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "ai",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "review",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "tools",
+          "level": 1,
+          "line": 23
+        },
+        {
+          "heading": "ignore_paths",
+          "level": 1,
+          "line": 41
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    },
+    {
+      "path": "templates/node.yml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 44,
+      "nonEmptyLines": 37,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "ai",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "review",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "tools",
+          "level": 1,
+          "line": 23
+        },
+        {
+          "heading": "ignore_paths",
+          "level": 1,
+          "line": 37
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    },
+    {
+      "path": "templates/rails.yml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 50,
+      "nonEmptyLines": 42,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "ai",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "review",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "tools",
+          "level": 1,
+          "line": 23
+        },
+        {
+          "heading": "ignore_paths",
+          "level": 1,
+          "line": 41
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    },
+    {
+      "path": "templates/ruby.yml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 42,
+      "nonEmptyLines": 35,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "ai",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "review",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "tools",
+          "level": 1,
+          "line": 23
+        },
+        {
+          "heading": "ignore_paths",
+          "level": 1,
+          "line": 36
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    },
+    {
+      "path": "templates/typescript.yml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 48,
+      "nonEmptyLines": 40,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "ai",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "review",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "tools",
+          "level": 1,
+          "line": 23
+        },
+        {
+          "heading": "ignore_paths",
+          "level": 1,
+          "line": 40
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    }
+  ]
+}

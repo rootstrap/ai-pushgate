@@ -1,0 +1,3 @@
+Loaded 60 files (26 code).
+Info: compute-batches: merged 11 small batches (13 files) into 1 misc batches — singletons and orphans consolidated
+Wrote 9 batches (sizes: max=13, min=2) to /Users/danielbrosio/aux-projects/pps/ai-pushgate/.understand-anything/intermediate/batches.json

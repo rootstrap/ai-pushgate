@@ -1,0 +1,1966 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 8,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "src/cli.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 390,
+      "nonEmptyLines": 343,
+      "functions": [
+        {
+          "name": "main",
+          "startLine": 38,
+          "endLine": 72,
+          "params": [
+            "argv",
+            "io"
+          ]
+        },
+        {
+          "name": "runPrePush",
+          "startLine": 74,
+          "endLine": 131,
+          "params": [
+            "io"
+          ]
+        },
+        {
+          "name": "runPushCommand",
+          "startLine": 133,
+          "endLine": 181,
+          "params": [
+            "args",
+            "io"
+          ]
+        },
+        {
+          "name": "runDeterministicPhase",
+          "startLine": 183,
+          "endLine": 201,
+          "params": [
+            "config",
+            "changedFileResolution",
+            "options"
+          ]
+        },
+        {
+          "name": "runLocalAiPhase",
+          "startLine": 203,
+          "endLine": 240,
+          "params": [
+            "config",
+            "changedFileResolution",
+            "skipControls",
+            "options"
+          ]
+        },
+        {
+          "name": "maybeResolveChangedFiles",
+          "startLine": 242,
+          "endLine": 263,
+          "params": [
+            "config",
+            "options"
+          ]
+        },
+        {
+          "name": "drainStdin",
+          "startLine": 265,
+          "endLine": 276,
+          "params": [
+            "stdin"
+          ]
+        },
+        {
+          "name": "resolveRepoRoot",
+          "startLine": 278,
+          "endLine": 309,
+          "params": [
+            "env"
+          ]
+        },
+        {
+          "name": "writePushgateError",
+          "startLine": 311,
+          "endLine": 327,
+          "params": [
+            "stderr",
+            "error"
+          ]
+        },
+        {
+          "name": "writeUsageError",
+          "startLine": 329,
+          "endLine": 334,
+          "params": [
+            "stderr",
+            "message"
+          ]
+        },
+        {
+          "name": "parsePushCommandArgs",
+          "startLine": 336,
+          "endLine": 369,
+          "params": [
+            "args"
+          ]
+        },
+        {
+          "name": "isCliEntrypoint",
+          "startLine": 377,
+          "endLine": 390,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "main",
+          "line": 38,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "main",
+          "callee": "process.argv.slice",
+          "lineNumber": 39
+        },
+        {
+          "caller": "main",
+          "callee": "writeUsageError",
+          "lineNumber": 52
+        },
+        {
+          "caller": "main",
+          "callee": "args.join",
+          "lineNumber": 54
+        },
+        {
+          "caller": "main",
+          "callee": "io.stdout.write",
+          "lineNumber": 59
+        },
+        {
+          "caller": "main",
+          "callee": "runPrePush",
+          "lineNumber": 62
+        },
+        {
+          "caller": "main",
+          "callee": "runPushCommand",
+          "lineNumber": 64
+        },
+        {
+          "caller": "main",
+          "callee": "writeUsageError",
+          "lineNumber": 66
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "drainStdin",
+          "lineNumber": 76
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "resolveRepoRoot",
+          "lineNumber": 78
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "resolveSkipControlState",
+          "lineNumber": 79
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "io.stdout.write",
+          "lineNumber": 82
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "loadConfig",
+          "lineNumber": 88
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "io.stdout.write",
+          "lineNumber": 91
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "maybeResolveChangedFiles",
+          "lineNumber": 94
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "runDeterministicPhase",
+          "lineNumber": 102
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "runLocalAiPhase",
+          "lineNumber": 117
+        },
+        {
+          "caller": "runPrePush",
+          "callee": "writePushgateError",
+          "lineNumber": 128
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "parsePushCommandArgs",
+          "lineNumber": 138
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "spawn",
+          "lineNumber": 141
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "buildGitPushArgs",
+          "lineNumber": 143
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "child.on",
+          "lineNumber": 153
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "reject",
+          "lineNumber": 156
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "child.on",
+          "lineNumber": 164
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "resolve",
+          "lineNumber": 166
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "reject",
+          "lineNumber": 170
+        },
+        {
+          "caller": "runPushCommand",
+          "callee": "writePushgateError",
+          "lineNumber": 178
+        },
+        {
+          "caller": "runDeterministicPhase",
+          "callee": "countBuiltInPolicies",
+          "lineNumber": 195
+        },
+        {
+          "caller": "runDeterministicPhase",
+          "callee": "runDeterministicChecks",
+          "lineNumber": 197
+        },
+        {
+          "caller": "runDeterministicPhase",
+          "callee": "runDeterministicChecks",
+          "lineNumber": 200
+        },
+        {
+          "caller": "runLocalAiPhase",
+          "callee": "options.stdout.write",
+          "lineNumber": 218
+        },
+        {
+          "caller": "runLocalAiPhase",
+          "callee": "runLocalAiReview",
+          "lineNumber": 231
+        },
+        {
+          "caller": "maybeResolveChangedFiles",
+          "callee": "countBuiltInPolicies",
+          "lineNumber": 250
+        },
+        {
+          "caller": "maybeResolveChangedFiles",
+          "callee": "resolveChangedFiles",
+          "lineNumber": 258
+        },
+        {
+          "caller": "drainStdin",
+          "callee": "resolve",
+          "lineNumber": 268
+        },
+        {
+          "caller": "drainStdin",
+          "callee": "stdin.on",
+          "lineNumber": 272
+        },
+        {
+          "caller": "drainStdin",
+          "callee": "stdin.on",
+          "lineNumber": 273
+        },
+        {
+          "caller": "drainStdin",
+          "callee": "stdin.resume",
+          "lineNumber": 274
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "spawn",
+          "lineNumber": 280
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 287
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 288
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "child.stdout?.on",
+          "lineNumber": 289
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "child.stderr?.on",
+          "lineNumber": 292
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "child.on",
+          "lineNumber": 295
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "child.on",
+          "lineNumber": 296
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "resolve",
+          "lineNumber": 298
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "stdout.trim",
+          "lineNumber": 298
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "reject",
+          "lineNumber": 302
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "String",
+          "lineNumber": 304
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "stderr.trim",
+          "lineNumber": 304
+        },
+        {
+          "caller": "resolveRepoRoot",
+          "callee": "stderr.trim",
+          "lineNumber": 304
+        },
+        {
+          "caller": "writePushgateError",
+          "callee": "stderr.write",
+          "lineNumber": 320
+        },
+        {
+          "caller": "writePushgateError",
+          "callee": "String",
+          "lineNumber": 324
+        },
+        {
+          "caller": "writePushgateError",
+          "callee": "stderr.write",
+          "lineNumber": 326
+        },
+        {
+          "caller": "writeUsageError",
+          "callee": "stderr.write",
+          "lineNumber": 333
+        },
+        {
+          "caller": "parsePushCommandArgs",
+          "callee": "gitPushArgs.push",
+          "lineNumber": 361
+        },
+        {
+          "caller": "isCliEntrypoint",
+          "callee": "realpathSync",
+          "lineNumber": 384
+        },
+        {
+          "caller": "isCliEntrypoint",
+          "callee": "fileURLToPath",
+          "lineNumber": 384
+        },
+        {
+          "caller": "isCliEntrypoint",
+          "callee": "realpathSync",
+          "lineNumber": 385
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 12,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/config/index.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 302,
+      "nonEmptyLines": 259,
+      "functions": [
+        {
+          "name": "parseConfigYaml",
+          "startLine": 113,
+          "endLine": 143,
+          "params": [
+            "source",
+            "sourcePath"
+          ]
+        },
+        {
+          "name": "loadConfig",
+          "startLine": 152,
+          "endLine": 183,
+          "params": [
+            "repoRoot"
+          ]
+        },
+        {
+          "name": "normalizeConfig",
+          "startLine": 185,
+          "endLine": 216,
+          "params": [
+            "rawConfig"
+          ]
+        },
+        {
+          "name": "normalizePolicies",
+          "startLine": 218,
+          "endLine": 241,
+          "params": [
+            "rawConfig"
+          ]
+        },
+        {
+          "name": "validateProviderSelection",
+          "startLine": 243,
+          "endLine": 261,
+          "params": [
+            "config"
+          ]
+        },
+        {
+          "name": "formatSchemaError",
+          "startLine": 263,
+          "endLine": 279,
+          "params": [
+            "error"
+          ]
+        },
+        {
+          "name": "cloneValue",
+          "startLine": 281,
+          "endLine": 293,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "exists",
+          "startLine": 295,
+          "endLine": 302,
+          "params": [
+            "path"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "ConfigError",
+          "startLine": 39,
+          "endLine": 51,
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "code",
+            "diagnostics"
+          ]
+        },
+        {
+          "name": "ConfigValidationError",
+          "startLine": 54,
+          "endLine": 68,
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "sourcePath"
+          ]
+        },
+        {
+          "name": "MissingConfigError",
+          "startLine": 71,
+          "endLine": 82,
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "configPath"
+          ]
+        },
+        {
+          "name": "LegacyConfigError",
+          "startLine": 90,
+          "endLine": 104,
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "legacyPath",
+            "configPath"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AiConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "AiMode",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "BuiltInPoliciesConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "BuiltInPolicyMode",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "DiffSizePolicyConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "ForbiddenPathsPolicyConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "LoadedConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "ProviderConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "PushgateConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "ReviewConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "ToolConfig",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "ToolMode",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "ToolRunMode",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "CONFIG_FILENAME",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "LEGACY_CONFIG_FILENAME",
+          "line": 32,
+          "isDefault": false
+        },
+        {
+          "name": "ConfigError",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "ConfigValidationError",
+          "line": 54,
+          "isDefault": false
+        },
+        {
+          "name": "MissingConfigError",
+          "line": 71,
+          "isDefault": false
+        },
+        {
+          "name": "LegacyConfigError",
+          "line": 90,
+          "isDefault": false
+        },
+        {
+          "name": "parseConfigYaml",
+          "line": 113,
+          "isDefault": false
+        },
+        {
+          "name": "loadConfig",
+          "line": 152,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "constructor",
+          "callee": "super",
+          "lineNumber": 46
+        },
+        {
+          "caller": "constructor",
+          "callee": "super",
+          "lineNumber": 59
+        },
+        {
+          "caller": "constructor",
+          "callee": "diagnostics\n        .map((diagnostic) => `- ${diagnostic}`)\n        .join",
+          "lineNumber": 60
+        },
+        {
+          "caller": "constructor",
+          "callee": "diagnostics\n        .map",
+          "lineNumber": 60
+        },
+        {
+          "caller": "constructor",
+          "callee": "super",
+          "lineNumber": 76
+        },
+        {
+          "caller": "constructor",
+          "callee": "super",
+          "lineNumber": 97
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "parseDocument",
+          "lineNumber": 117
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "document.errors.map",
+          "lineNumber": 122
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "document.toJS",
+          "lineNumber": 126
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "validateSchema",
+          "lineNumber": 128
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "(validateSchema.errors ?? []).map",
+          "lineNumber": 131
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "normalizeConfig",
+          "lineNumber": 135
+        },
+        {
+          "caller": "parseConfigYaml",
+          "callee": "validateProviderSelection",
+          "lineNumber": 136
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "process.cwd",
+          "lineNumber": 153
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "join",
+          "lineNumber": 155
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "join",
+          "lineNumber": 156
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "Promise.all",
+          "lineNumber": 157
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "exists",
+          "lineNumber": 158
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "exists",
+          "lineNumber": 159
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "warnings.push",
+          "lineNumber": 173
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "parseConfigYaml",
+          "lineNumber": 179
+        },
+        {
+          "caller": "loadConfig",
+          "callee": "readFile",
+          "lineNumber": 179
+        },
+        {
+          "caller": "normalizeConfig",
+          "callee": "(rawConfig.tools ?? []).map",
+          "lineNumber": 196
+        },
+        {
+          "caller": "normalizeConfig",
+          "callee": "normalizePolicies",
+          "lineNumber": 205
+        },
+        {
+          "caller": "normalizeConfig",
+          "callee": "cloneValue",
+          "lineNumber": 212
+        },
+        {
+          "caller": "validateProviderSelection",
+          "callee": "Object.hasOwn",
+          "lineNumber": 254
+        },
+        {
+          "caller": "formatSchemaError",
+          "callee": "JSON.stringify",
+          "lineNumber": 275
+        },
+        {
+          "caller": "cloneValue",
+          "callee": "Array.isArray",
+          "lineNumber": 282
+        },
+        {
+          "caller": "cloneValue",
+          "callee": "value.map",
+          "lineNumber": 283
+        },
+        {
+          "caller": "cloneValue",
+          "callee": "Object.fromEntries",
+          "lineNumber": 287
+        },
+        {
+          "caller": "cloneValue",
+          "callee": "Object.entries(value).map",
+          "lineNumber": 288
+        },
+        {
+          "caller": "cloneValue",
+          "callee": "Object.entries",
+          "lineNumber": 288
+        },
+        {
+          "caller": "cloneValue",
+          "callee": "cloneValue",
+          "lineNumber": 288
+        },
+        {
+          "caller": "exists",
+          "callee": "access",
+          "lineNumber": 297
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 21,
+        "functionCount": 8,
+        "classCount": 4
+      }
+    },
+    {
+      "path": "src/config/types.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 161,
+      "nonEmptyLines": 142,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/runner/deterministic.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 314,
+      "nonEmptyLines": 264,
+      "functions": [
+        {
+          "name": "runDeterministicChecks",
+          "startLine": 47,
+          "endLine": 143,
+          "params": [
+            "config",
+            "changedFiles",
+            "options"
+          ]
+        },
+        {
+          "name": "expandChangedFilesToken",
+          "startLine": 145,
+          "endLine": 152,
+          "params": [
+            "command",
+            "changedFilePaths"
+          ]
+        },
+        {
+          "name": "runToolCommand",
+          "startLine": 154,
+          "endLine": 248,
+          "params": [
+            "tool",
+            "command",
+            "repoRoot",
+            "env"
+          ]
+        },
+        {
+          "name": "writeFailure",
+          "startLine": 250,
+          "endLine": 269,
+          "params": [
+            "stdout",
+            "tool",
+            "result"
+          ]
+        },
+        {
+          "name": "writePolicyResult",
+          "startLine": 271,
+          "endLine": 286,
+          "params": [
+            "stdout",
+            "result"
+          ]
+        },
+        {
+          "name": "appendCapped",
+          "startLine": 288,
+          "endLine": 296,
+          "params": [
+            "current",
+            "next"
+          ]
+        },
+        {
+          "name": "formatOutputTail",
+          "startLine": 298,
+          "endLine": 310,
+          "params": [
+            "stdout",
+            "stderr"
+          ]
+        },
+        {
+          "name": "writeLine",
+          "startLine": 312,
+          "endLine": 314,
+          "params": [
+            "stream",
+            "line"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "CHANGED_FILES_TOKEN",
+          "line": 14,
+          "isDefault": false
+        },
+        {
+          "name": "runDeterministicChecks",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "expandChangedFilesToken",
+          "line": 145,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "process.cwd",
+          "lineNumber": 53
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "countBuiltInPolicies",
+          "lineNumber": 56
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 60
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 64
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "String",
+          "lineNumber": 66
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "runBuiltInPolicies",
+          "lineNumber": 69
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "results.push",
+          "lineNumber": 73
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writePolicyResult",
+          "lineNumber": 74
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "selectToolChangedFilePaths",
+          "lineNumber": 78
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "results.push",
+          "lineNumber": 90
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 91
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "expandChangedFilesToken",
+          "lineNumber": 95
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "runToolCommand",
+          "lineNumber": 96
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "results.push",
+          "lineNumber": 99
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 100
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "results.push",
+          "lineNumber": 113
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeFailure",
+          "lineNumber": 114
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 117
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "results.filter",
+          "lineNumber": 125
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "results.filter",
+          "lineNumber": 127
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 130
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "String",
+          "lineNumber": 132
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "String",
+          "lineNumber": 132
+        },
+        {
+          "caller": "runDeterministicChecks",
+          "callee": "writeLine",
+          "lineNumber": 136
+        },
+        {
+          "caller": "expandChangedFilesToken",
+          "callee": "command.flatMap",
+          "lineNumber": 149
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "spawn",
+          "lineNumber": 176
+        },
+        {
+          "caller": "finish",
+          "callee": "clearTimeout",
+          "lineNumber": 190
+        },
+        {
+          "caller": "finish",
+          "callee": "clearTimeout",
+          "lineNumber": 194
+        },
+        {
+          "caller": "finish",
+          "callee": "resolve",
+          "lineNumber": 197
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "setTimeout",
+          "lineNumber": 200
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.kill",
+          "lineNumber": 202
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "setTimeout",
+          "lineNumber": 203
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.kill",
+          "lineNumber": 204
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 208
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 209
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.stdout?.on",
+          "lineNumber": 210
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "appendCapped",
+          "lineNumber": 211
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.stderr?.on",
+          "lineNumber": 213
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "appendCapped",
+          "lineNumber": 214
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.on",
+          "lineNumber": 216
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "finish",
+          "lineNumber": 217
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "formatOutputTail",
+          "lineNumber": 220
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "child.on",
+          "lineNumber": 223
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "finish",
+          "lineNumber": 225
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "String",
+          "lineNumber": 227
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "formatOutputTail",
+          "lineNumber": 228
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "finish",
+          "lineNumber": 234
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "finish",
+          "lineNumber": 238
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "String",
+          "lineNumber": 243
+        },
+        {
+          "caller": "runToolCommand",
+          "callee": "formatOutputTail",
+          "lineNumber": 244
+        },
+        {
+          "caller": "writeFailure",
+          "callee": "writeLine",
+          "lineNumber": 257
+        },
+        {
+          "caller": "writeFailure",
+          "callee": "writeLine",
+          "lineNumber": 263
+        },
+        {
+          "caller": "writeFailure",
+          "callee": "result.outputTail.split",
+          "lineNumber": 265
+        },
+        {
+          "caller": "writeFailure",
+          "callee": "writeLine",
+          "lineNumber": 266
+        },
+        {
+          "caller": "writePolicyResult",
+          "callee": "writeLine",
+          "lineNumber": 282
+        },
+        {
+          "caller": "appendCapped",
+          "callee": "combined.slice",
+          "lineNumber": 295
+        },
+        {
+          "caller": "formatOutputTail",
+          "callee": "[stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join",
+          "lineNumber": 299
+        },
+        {
+          "caller": "formatOutputTail",
+          "callee": "[stdout.trimEnd(), stderr.trimEnd()].filter",
+          "lineNumber": 299
+        },
+        {
+          "caller": "formatOutputTail",
+          "callee": "stdout.trimEnd",
+          "lineNumber": 299
+        },
+        {
+          "caller": "formatOutputTail",
+          "callee": "stderr.trimEnd",
+          "lineNumber": 299
+        },
+        {
+          "caller": "formatOutputTail",
+          "callee": "output.slice",
+          "lineNumber": 309
+        },
+        {
+          "caller": "writeLine",
+          "callee": "stream.write",
+          "lineNumber": 313
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 3,
+        "functionCount": 8,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/runner/policies.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 144,
+      "nonEmptyLines": 122,
+      "functions": [
+        {
+          "name": "countBuiltInPolicies",
+          "startLine": 26,
+          "endLine": 33,
+          "params": [
+            "policies"
+          ]
+        },
+        {
+          "name": "runBuiltInPolicies",
+          "startLine": 35,
+          "endLine": 52,
+          "params": [
+            "policies",
+            "changedFiles"
+          ]
+        },
+        {
+          "name": "runDiffSizePolicy",
+          "startLine": 54,
+          "endLine": 79,
+          "params": [
+            "policy",
+            "changedFiles"
+          ]
+        },
+        {
+          "name": "runForbiddenPathsPolicy",
+          "startLine": 81,
+          "endLine": 110,
+          "params": [
+            "policy",
+            "changedFiles"
+          ]
+        },
+        {
+          "name": "firstMatchingPattern",
+          "startLine": 112,
+          "endLine": 117,
+          "params": [
+            "patterns",
+            "path"
+          ]
+        },
+        {
+          "name": "formatForbiddenPathMatches",
+          "startLine": 119,
+          "endLine": 132,
+          "params": [
+            "matches"
+          ]
+        },
+        {
+          "name": "violationResult",
+          "startLine": 134,
+          "endLine": 144,
+          "params": [
+            "mode",
+            "name",
+            "detail"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "countBuiltInPolicies",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "runBuiltInPolicies",
+          "line": 35,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "countBuiltInPolicies",
+          "callee": "Number",
+          "lineNumber": 30
+        },
+        {
+          "caller": "countBuiltInPolicies",
+          "callee": "Boolean",
+          "lineNumber": 30
+        },
+        {
+          "caller": "countBuiltInPolicies",
+          "callee": "Number",
+          "lineNumber": 31
+        },
+        {
+          "caller": "countBuiltInPolicies",
+          "callee": "Boolean",
+          "lineNumber": 31
+        },
+        {
+          "caller": "runBuiltInPolicies",
+          "callee": "results.push",
+          "lineNumber": 42
+        },
+        {
+          "caller": "runBuiltInPolicies",
+          "callee": "runDiffSizePolicy",
+          "lineNumber": 42
+        },
+        {
+          "caller": "runBuiltInPolicies",
+          "callee": "results.push",
+          "lineNumber": 46
+        },
+        {
+          "caller": "runBuiltInPolicies",
+          "callee": "runForbiddenPathsPolicy",
+          "lineNumber": 47
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "changedFiles.reduce",
+          "lineNumber": 58
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "String",
+          "lineNumber": 66
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "String",
+          "lineNumber": 66
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "violationResult",
+          "lineNumber": 70
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "[\n      `${String(changedLines)} changed line(s) exceed max_changed_lines`,\n      `${String(policy.max_changed_lines)}; split the push or raise`,\n      \"policies.diff_size.max_changed_lines if this is intentional\",\n    ].join",
+          "lineNumber": 73
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "String",
+          "lineNumber": 74
+        },
+        {
+          "caller": "runDiffSizePolicy",
+          "callee": "String",
+          "lineNumber": 75
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "changedFiles\n    .filter((file) => file.status !== \"deleted\")\n    .flatMap",
+          "lineNumber": 85
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "changedFiles\n    .filter",
+          "lineNumber": 85
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "firstMatchingPattern",
+          "lineNumber": 88
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "violationResult",
+          "lineNumber": 101
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "[\n      `${String(matches.length)} changed path(s) match forbidden patterns:`,\n      `${formatForbiddenPathMatches(matches)}; remove them from the push`,\n      \"or update policies.forbidden_paths.patterns if this is intentional\",\n    ].join",
+          "lineNumber": 104
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "String",
+          "lineNumber": 105
+        },
+        {
+          "caller": "runForbiddenPathsPolicy",
+          "callee": "formatForbiddenPathMatches",
+          "lineNumber": 106
+        },
+        {
+          "caller": "firstMatchingPattern",
+          "callee": "patterns.find",
+          "lineNumber": 116
+        },
+        {
+          "caller": "firstMatchingPattern",
+          "callee": "ignore().add(pattern).ignores",
+          "lineNumber": 116
+        },
+        {
+          "caller": "firstMatchingPattern",
+          "callee": "ignore().add",
+          "lineNumber": 116
+        },
+        {
+          "caller": "firstMatchingPattern",
+          "callee": "ignore",
+          "lineNumber": 116
+        },
+        {
+          "caller": "formatForbiddenPathMatches",
+          "callee": "matches\n    .slice(0, FORBIDDEN_PATH_DETAIL_LIMIT)\n    .map",
+          "lineNumber": 122
+        },
+        {
+          "caller": "formatForbiddenPathMatches",
+          "callee": "matches\n    .slice",
+          "lineNumber": 122
+        },
+        {
+          "caller": "formatForbiddenPathMatches",
+          "callee": "formatted.push",
+          "lineNumber": 128
+        },
+        {
+          "caller": "formatForbiddenPathMatches",
+          "callee": "String",
+          "lineNumber": 128
+        },
+        {
+          "caller": "formatForbiddenPathMatches",
+          "callee": "formatted.join",
+          "lineNumber": 131
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 2,
+        "functionCount": 7,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/skip-controls.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 127,
+      "nonEmptyLines": 110,
+      "functions": [
+        {
+          "name": "buildGitPushArgs",
+          "startLine": 19,
+          "endLine": 34,
+          "params": [
+            "pushArgs",
+            "state"
+          ]
+        },
+        {
+          "name": "resolveSkipControlState",
+          "startLine": 36,
+          "endLine": 61,
+          "params": [
+            "repoRoot",
+            "env"
+          ]
+        },
+        {
+          "name": "readGitBooleanConfig",
+          "startLine": 63,
+          "endLine": 127,
+          "params": [
+            "repoRoot",
+            "env",
+            "key"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "SkipControlError",
+          "startLine": 12,
+          "endLine": 17,
+          "methods": [
+            "constructor"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "SKIP_ALL_CHECKS_CONFIG_KEY",
+          "line": 3,
+          "isDefault": false
+        },
+        {
+          "name": "SKIP_AI_CHECK_CONFIG_KEY",
+          "line": 5,
+          "isDefault": false
+        },
+        {
+          "name": "SkipControlError",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "buildGitPushArgs",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "resolveSkipControlState",
+          "line": 36,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "constructor",
+          "callee": "super",
+          "lineNumber": 14
+        },
+        {
+          "caller": "buildGitPushArgs",
+          "callee": "gitArgs.push",
+          "lineNumber": 26
+        },
+        {
+          "caller": "buildGitPushArgs",
+          "callee": "gitArgs.push",
+          "lineNumber": 28
+        },
+        {
+          "caller": "buildGitPushArgs",
+          "callee": "gitArgs.push",
+          "lineNumber": 31
+        },
+        {
+          "caller": "resolveSkipControlState",
+          "callee": "readGitBooleanConfig",
+          "lineNumber": 40
+        },
+        {
+          "caller": "resolveSkipControlState",
+          "callee": "readGitBooleanConfig",
+          "lineNumber": 55
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "spawn",
+          "lineNumber": 69
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 77
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 78
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "child.stdout?.on",
+          "lineNumber": 79
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "child.stderr?.on",
+          "lineNumber": 82
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "child.on",
+          "lineNumber": 85
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "reject",
+          "lineNumber": 86
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "child.on",
+          "lineNumber": 92
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "stdout.trim",
+          "lineNumber": 93
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "stderr.trim",
+          "lineNumber": 94
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "resolve",
+          "lineNumber": 98
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "resolve",
+          "lineNumber": 103
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "reject",
+          "lineNumber": 107
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "JSON.stringify",
+          "lineNumber": 109
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "resolve",
+          "lineNumber": 116
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "reject",
+          "lineNumber": 120
+        },
+        {
+          "caller": "readGitBooleanConfig",
+          "callee": "String",
+          "lineNumber": 122
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 3,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "test/config.test.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 413,
+      "nonEmptyLines": 381,
+      "functions": [
+        {
+          "name": "parseFixture",
+          "startLine": 371,
+          "endLine": 376,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "assertFixtureValidationError",
+          "startLine": 378,
+          "endLine": 386,
+          "params": [
+            "name",
+            "messagePattern"
+          ]
+        },
+        {
+          "name": "assertValidationError",
+          "startLine": 388,
+          "endLine": 397,
+          "params": [
+            "yaml",
+            "messagePattern"
+          ]
+        },
+        {
+          "name": "withTempRepo",
+          "startLine": 399,
+          "endLine": 413,
+          "params": [
+            "files",
+            "callback"
+          ]
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "parseFixture",
+          "callee": "parseConfigYaml",
+          "lineNumber": 372
+        },
+        {
+          "caller": "parseFixture",
+          "callee": "readFile",
+          "lineNumber": 373
+        },
+        {
+          "caller": "assertFixtureValidationError",
+          "callee": "assertValidationError",
+          "lineNumber": 382
+        },
+        {
+          "caller": "assertFixtureValidationError",
+          "callee": "readFile",
+          "lineNumber": 383
+        },
+        {
+          "caller": "assertValidationError",
+          "callee": "assert.throws",
+          "lineNumber": 389
+        },
+        {
+          "caller": "assertValidationError",
+          "callee": "parseConfigYaml",
+          "lineNumber": 390
+        },
+        {
+          "caller": "assertValidationError",
+          "callee": "assert.ok",
+          "lineNumber": 392
+        },
+        {
+          "caller": "assertValidationError",
+          "callee": "assert.match",
+          "lineNumber": 393
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "mkdtemp",
+          "lineNumber": 403
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "join",
+          "lineNumber": 403
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "tmpdir",
+          "lineNumber": 403
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "Promise.all",
+          "lineNumber": 406
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "files.map",
+          "lineNumber": 407
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "writeFile",
+          "lineNumber": 407
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "join",
+          "lineNumber": 407
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "callback",
+          "lineNumber": 409
+        },
+        {
+          "caller": "withTempRepo",
+          "callee": "rm",
+          "lineNumber": 411
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "test/deterministic-runner.test.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 391,
+      "nonEmptyLines": 354,
+      "functions": [
+        {
+          "name": "configWithTools",
+          "startLine": 313,
+          "endLine": 332,
+          "params": [
+            "tools"
+          ]
+        },
+        {
+          "name": "tool",
+          "startLine": 334,
+          "endLine": 344,
+          "params": [
+            "overrides"
+          ]
+        },
+        {
+          "name": "withTempDir",
+          "startLine": 346,
+          "endLine": 356,
+          "params": [
+            "callback"
+          ]
+        },
+        {
+          "name": "writeArgRecorder",
+          "startLine": 358,
+          "endLine": 371,
+          "params": [
+            "repoRoot"
+          ]
+        },
+        {
+          "name": "captureOutput",
+          "startLine": 373,
+          "endLine": 391,
+          "params": []
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "withTempDir",
+          "callee": "mkdtemp",
+          "lineNumber": 349
+        },
+        {
+          "caller": "withTempDir",
+          "callee": "join",
+          "lineNumber": 349
+        },
+        {
+          "caller": "withTempDir",
+          "callee": "tmpdir",
+          "lineNumber": 349
+        },
+        {
+          "caller": "withTempDir",
+          "callee": "callback",
+          "lineNumber": 352
+        },
+        {
+          "caller": "withTempDir",
+          "callee": "rm",
+          "lineNumber": 354
+        },
+        {
+          "caller": "writeArgRecorder",
+          "callee": "join",
+          "lineNumber": 359
+        },
+        {
+          "caller": "writeArgRecorder",
+          "callee": "mkdir",
+          "lineNumber": 361
+        },
+        {
+          "caller": "writeArgRecorder",
+          "callee": "dirname",
+          "lineNumber": 361
+        },
+        {
+          "caller": "writeArgRecorder",
+          "callee": "writeFile",
+          "lineNumber": 362
+        },
+        {
+          "caller": "writeArgRecorder",
+          "callee": "[\n      \"import { writeFileSync } from 'node:fs';\",\n      \"writeFileSync(process.env.PUSHGATE_ARGS_OUT, JSON.stringify(process.argv.slice(2)));\",\n    ].join",
+          "lineNumber": 364
+        },
+        {
+          "caller": "writeArgRecorder",
+          "callee": "chmod",
+          "lineNumber": 369
+        },
+        {
+          "caller": "write",
+          "callee": "chunk.toString",
+          "lineNumber": 380
+        },
+        {
+          "caller": "write",
+          "callee": "callback",
+          "lineNumber": 381
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 0,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,1164 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/ai/review-prompt.ts",
+      "type": "file",
+      "name": "review-prompt.ts",
+      "filePath": "src/ai/review-prompt.ts",
+      "summary": "Builds the local AI review payload from changed files, Git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "full-file-context"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "function",
+      "name": "buildLocalAiReviewPayload",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        104,
+        149
+      ],
+      "summary": "Builds local ai review payload data for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "function",
+      "name": "renderLocalAiPrompt",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        151,
+        171
+      ],
+      "summary": "Helper named renderLocalAiPrompt that supports builds the local ai review payload from changed files, git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:collectReviewDiff",
+      "type": "function",
+      "name": "collectReviewDiff",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        173,
+        220
+      ],
+      "summary": "Collects review diff for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:collectFullFiles",
+      "type": "function",
+      "name": "collectFullFiles",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        222,
+        280
+      ],
+      "summary": "Collects full files for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:describeChangedFile",
+      "type": "function",
+      "name": "describeChangedFile",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        292,
+        308
+      ],
+      "summary": "Helper named describeChangedFile that supports builds the local ai review payload from changed files, git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "function",
+      "name": "formatFullFiles",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        310,
+        320
+      ],
+      "summary": "Formats full files values for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:countTextLines",
+      "type": "function",
+      "name": "countTextLines",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        322,
+        334
+      ],
+      "summary": "Counts text lines for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/path-policy/index.ts",
+      "summary": "Resolves changed files from the configured Git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "policy"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "function",
+      "name": "resolveChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        136,
+        179
+      ],
+      "summary": "Resolves changed files for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "function",
+      "name": "filterIgnoredChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        182,
+        193
+      ],
+      "summary": "Helper named filterIgnoredChangedFiles that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "function",
+      "name": "selectToolChangedFilePaths",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        201,
+        209
+      ],
+      "summary": "Helper named selectToolChangedFilePaths that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "type": "function",
+      "name": "resolveTargetCommit",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        211,
+        227
+      ],
+      "summary": "Resolves target commit for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveDiffBase",
+      "type": "function",
+      "name": "resolveDiffBase",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        229,
+        242
+      ],
+      "summary": "Resolves diff base for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:runGitChecked",
+      "type": "function",
+      "name": "runGitChecked",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        244,
+        255
+      ],
+      "summary": "Runs the git checked path within index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:parseChangedFiles",
+      "type": "function",
+      "name": "parseChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        257,
+        299
+      ],
+      "summary": "Parses changed files input for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:parseDiffStats",
+      "type": "function",
+      "name": "parseDiffStats",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        301,
+        336
+      ],
+      "summary": "Parses diff stats input for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:parseNumstatLineCounts",
+      "type": "function",
+      "name": "parseNumstatLineCounts",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        338,
+        371
+      ],
+      "summary": "Parses numstat line counts input for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:statsForPath",
+      "type": "function",
+      "name": "statsForPath",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        377,
+        388
+      ],
+      "summary": "Helper named statsForPath that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "function",
+      "name": "splitNullFields",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        390,
+        402
+      ],
+      "summary": "Helper named splitNullFields that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:normalizeGitStatus",
+      "type": "function",
+      "name": "normalizeGitStatus",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        404,
+        423
+      ],
+      "summary": "Helper named normalizeGitStatus that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:matchesExtension",
+      "type": "function",
+      "name": "matchesExtension",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        425,
+        434
+      ],
+      "summary": "Helper named matchesExtension that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:requiredPath",
+      "type": "function",
+      "name": "requiredPath",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        436,
+        448
+      ],
+      "summary": "Helper named requiredPath that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:requiredField",
+      "type": "function",
+      "name": "requiredField",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        450,
+        463
+      ],
+      "summary": "Helper named requiredField that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:runGit",
+      "type": "function",
+      "name": "runGit",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        489,
+        523
+      ],
+      "summary": "Runs the git path within index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:ChangedFilePolicyError",
+      "type": "class",
+      "name": "ChangedFilePolicyError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        67,
+        79
+      ],
+      "summary": "Typed error used by index.ts to report changed file policy failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:MissingTargetRefError",
+      "type": "class",
+      "name": "MissingTargetRefError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        82,
+        92
+      ],
+      "summary": "Typed error used by index.ts to report missing target ref failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:MissingDiffBaseError",
+      "type": "class",
+      "name": "MissingDiffBaseError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        95,
+        112
+      ],
+      "summary": "Typed error used by index.ts to report missing diff base failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:GitChangedFilesError",
+      "type": "class",
+      "name": "GitChangedFilesError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        115,
+        128
+      ],
+      "summary": "Typed error used by index.ts to report git changed files failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/path-policy.test.ts",
+      "type": "file",
+      "name": "path-policy.test.ts",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Changed-file resolution test suite covering Git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "filtering"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:withFeatureRepo",
+      "type": "function",
+      "name": "withFeatureRepo",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        136,
+        175
+      ],
+      "summary": "Helper named withFeatureRepo that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:withTempDir",
+      "type": "function",
+      "name": "withTempDir",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        177,
+        188
+      ],
+      "summary": "Helper named withTempDir that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        205,
+        214
+      ],
+      "summary": "Writes repo file output for path-policy.test.ts.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:checkedGit",
+      "type": "function",
+      "name": "checkedGit",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        222,
+        234
+      ],
+      "summary": "Helper named checkedGit that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:runGit",
+      "type": "function",
+      "name": "runGit",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        236,
+        263
+      ],
+      "summary": "Runs the git path within path-policy.test.ts.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:collectReviewDiff",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:collectFullFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:describeChangedFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:countTextLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveDiffBase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:runGitChecked",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:parseChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:parseDiffStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:parseNumstatLineCounts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:statsForPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:normalizeGitStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:matchesExtension",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:requiredPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:ChangedFilePolicyError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:ChangedFilePolicyError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingTargetRefError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingTargetRefError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingDiffBaseError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingDiffBaseError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:GitChangedFilesError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:GitChangedFilesError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:withFeatureRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:withTempDir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:checkedGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:runGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:collectReviewDiff",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:countTextLines",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:collectFullFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "target": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:resolveDiffBase",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:runGitChecked",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:parseDiffStats",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:parseChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "target": "function:src/path-policy/index.ts:matchesExtension",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveDiffBase",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:runGitChecked",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:normalizeGitStatus",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:requiredPath",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:statsForPath",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:requiredPath",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:parseNumstatLineCounts",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:requiredPath",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "file:test/path-policy.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:test/path-policy.test.ts:withFeatureRepo",
+      "target": "function:test/path-policy.test.ts:withTempDir",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/path-policy.test.ts:withFeatureRepo",
+      "target": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/path-policy.test.ts:withFeatureRepo",
+      "target": "function:test/path-policy.test.ts:checkedGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/path-policy.test.ts:checkedGit",
+      "target": "function:test/path-policy.test.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

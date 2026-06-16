@@ -1,0 +1,4092 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "66b295724c059ef1073a21baadfb2f8c674fe378",
+  "generatedAt": "2026-06-15T15:43:48.874Z",
+  "files": {
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "filePath": ".github/PULL_REQUEST_TEMPLATE.md",
+      "contentHash": "70a80123f704fb9488bdab3678702b82dac9423964674a212a200bae984429b2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/ci.yml": {
+      "filePath": ".github/workflows/ci.yml",
+      "contentHash": "5b4f523854f309c306034da0186139b123017480bc1917116cde3c9a7fa721fa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 97,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/release-please.yml": {
+      "filePath": ".github/workflows/release-please.yml",
+      "contentHash": "37acab2f210027d04e11e61ca31dec6a03d7639242b2d55cd7cf8de86053dc70",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
+    ".nvmrc": {
+      "filePath": ".nvmrc",
+      "contentHash": "4f0bb84e57e115d0915c19f152acf3fd54edab60995b5d17607f624477f8d0b7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": false
+    },
+    ".release-please-manifest.json": {
+      "filePath": ".release-please-manifest.json",
+      "contentHash": "ab4dc634d05b9c6d5740944f9d3526f657a543f654db7d740a2ae13783313527",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "bin/pushgate.mjs": {
+      "filePath": "bin/pushgate.mjs",
+      "contentHash": "01f349da7cc8c8b88bda6f1b64efdf4accf3d6f86f65dd76da64d607e2b03dbb",
+      "functions": [
+        {
+          "name": "__commonJS",
+          "params": [
+            "cb",
+            "mod"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "__copyProps",
+          "params": [
+            "to",
+            "from",
+            "except",
+            "desc"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "__toESM",
+          "params": [
+            "mod",
+            "isNodeMode",
+            "target"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "buildLocalAiReviewPayload",
+          "params": [
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 35
+        },
+        {
+          "name": "renderLocalAiPrompt",
+          "params": [
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "collectReviewDiff",
+          "params": [
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "collectFullFiles",
+          "params": [
+            "repoRoot",
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 49
+        },
+        {
+          "name": "formatChangedFiles",
+          "params": [
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "describeChangedFile",
+          "params": [
+            "file"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "formatFullFiles",
+          "params": [
+            "fullFiles"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "countTextLines",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "parseAiReviewOutput",
+          "params": [
+            "rawOutput",
+            "source"
+          ],
+          "exported": false,
+          "lineCount": 35
+        },
+        {
+          "name": "parseCandidate",
+          "params": [
+            "candidate",
+            "diagnostics"
+          ],
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "validateParsedReview",
+          "params": [
+            "parsed"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "buildCandidates",
+          "params": [
+            "output"
+          ],
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "extractFencedJsonBlocks",
+          "params": [
+            "output"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "extractJsonObjectSlice",
+          "params": [
+            "output"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "unwrapSingleNestedObject",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "isPlainObject",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "validateFindingSemantics",
+          "params": [
+            "findings"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "normalizeFinding",
+          "params": [
+            "finding",
+            "source"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "summarizeFindings",
+          "params": [
+            "findings"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "formatSchemaDiagnostics",
+          "params": [
+            "errors"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "formatSchemaError",
+          "params": [
+            "error"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "formatUnknownError",
+          "params": [
+            "error"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "dedupeDiagnostics",
+          "params": [
+            "diagnostics"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "buildClaudeArgs",
+          "params": [
+            "repoRoot",
+            "model"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "selectClaudeModel",
+          "params": [
+            "providerConfig"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "runClaudeCommand",
+          "params": [
+            "args",
+            "prompt",
+            "repoRoot",
+            "env",
+            "timeoutSeconds"
+          ],
+          "exported": false,
+          "lineCount": 64
+        },
+        {
+          "name": "isClaudeUnauthenticated",
+          "params": [
+            "repoRoot",
+            "env"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "appendCapped",
+          "params": [
+            "current",
+            "next"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "formatCombinedOutput",
+          "params": [
+            "stdout",
+            "stderr"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "buildCopilotArgs",
+          "params": [
+            "model"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "selectCopilotModel",
+          "params": [
+            "providerConfig"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "runCopilotCommand",
+          "params": [
+            "args",
+            "prompt",
+            "repoRoot",
+            "env",
+            "timeoutSeconds"
+          ],
+          "exported": false,
+          "lineCount": 64
+        },
+        {
+          "name": "isCopilotAuthFailure",
+          "params": [
+            "output"
+          ],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "appendCapped2",
+          "params": [
+            "current",
+            "next"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "formatCombinedOutput2",
+          "params": [
+            "stdout",
+            "stderr"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "runLocalAiReview",
+          "params": [
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 65
+        },
+        {
+          "name": "resolveProvider",
+          "params": [
+            "providerId"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "handleProviderResult",
+          "params": [
+            "aiMode",
+            "result",
+            "stdout"
+          ],
+          "exported": false,
+          "lineCount": 68
+        },
+        {
+          "name": "writeLine",
+          "params": [
+            "stream",
+            "line"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "countChangedLines",
+          "params": [
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "estimatePromptTokens",
+          "params": [
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "parseConfigYaml",
+          "params": [
+            "source"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "loadConfig",
+          "params": [],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "normalizeConfig",
+          "params": [
+            "rawConfig"
+          ],
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "normalizePolicies",
+          "params": [
+            "rawConfig"
+          ],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "validateProviderSelection",
+          "params": [
+            "config"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "formatSchemaError2",
+          "params": [
+            "error"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "cloneValue",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "exists",
+          "params": [
+            "path"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "resolveChangedFiles",
+          "params": [
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 41
+        },
+        {
+          "name": "filterIgnoredChangedFiles",
+          "params": [
+            "files",
+            "ignorePaths"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "selectToolChangedFilePaths",
+          "params": [
+            "files",
+            "extensions"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "resolveTargetCommit",
+          "params": [
+            "repoRoot",
+            "targetRef"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "resolveDiffBase",
+          "params": [
+            "repoRoot",
+            "targetRef",
+            "targetCommit"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "runGitChecked",
+          "params": [
+            "repoRoot",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "parseChangedFiles",
+          "params": [
+            "output",
+            "diffStats",
+            "gitArgs"
+          ],
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "parseDiffStats",
+          "params": [
+            "output",
+            "gitArgs"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "parseNumstatLineCounts",
+          "params": [
+            "addedLines",
+            "deletedLines",
+            "gitArgs"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "isNonNegativeIntegerString",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "statsForPath",
+          "params": [
+            "diffStats",
+            "path"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "splitNullFields",
+          "params": [
+            "output"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "normalizeGitStatus",
+          "params": [
+            "rawStatus"
+          ],
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "matchesExtension",
+          "params": [
+            "path",
+            "extensions"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "requiredPath",
+          "params": [
+            "fields",
+            "index",
+            "gitArgs"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "requiredField",
+          "params": [
+            "fields",
+            "index",
+            "gitArgs",
+            "label"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "malformedGitOutput",
+          "params": [
+            "gitArgs",
+            "detail"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "gitFailure",
+          "params": [
+            "gitArgs",
+            "result"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "gitResultDetail",
+          "params": [
+            "result"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "runGit",
+          "params": [
+            "repoRoot",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "countBuiltInPolicies",
+          "params": [
+            "policies"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "runBuiltInPolicies",
+          "params": [
+            "policies",
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "runDiffSizePolicy",
+          "params": [
+            "policy",
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "runForbiddenPathsPolicy",
+          "params": [
+            "policy",
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "firstMatchingPattern",
+          "params": [
+            "patterns",
+            "path"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "formatForbiddenPathMatches",
+          "params": [
+            "matches"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "violationResult",
+          "params": [
+            "mode",
+            "name",
+            "detail"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "runDeterministicChecks",
+          "params": [
+            "config",
+            "changedFiles"
+          ],
+          "exported": false,
+          "lineCount": 75
+        },
+        {
+          "name": "expandChangedFilesToken",
+          "params": [
+            "command",
+            "changedFilePaths"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "runToolCommand",
+          "params": [
+            "tool",
+            "command",
+            "repoRoot",
+            "env"
+          ],
+          "exported": false,
+          "lineCount": 77
+        },
+        {
+          "name": "writeFailure",
+          "params": [
+            "stdout",
+            "tool",
+            "result"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "writePolicyResult",
+          "params": [
+            "stdout",
+            "result"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "appendCapped3",
+          "params": [
+            "current",
+            "next"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "formatOutputTail",
+          "params": [
+            "stdout",
+            "stderr"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "writeLine2",
+          "params": [
+            "stream",
+            "line"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "buildGitPushArgs",
+          "params": [
+            "pushArgs",
+            "state"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "resolveSkipControlState",
+          "params": [
+            "repoRoot"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "readGitBooleanConfig",
+          "params": [
+            "repoRoot",
+            "env",
+            "key"
+          ],
+          "exported": false,
+          "lineCount": 55
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "runPrePush",
+          "params": [
+            "io"
+          ],
+          "exported": false,
+          "lineCount": 51
+        },
+        {
+          "name": "runPushCommand",
+          "params": [
+            "args",
+            "io"
+          ],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "runDeterministicPhase",
+          "params": [
+            "config",
+            "changedFileResolution",
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "runLocalAiPhase",
+          "params": [
+            "config",
+            "changedFileResolution",
+            "skipControls",
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "maybeResolveChangedFiles",
+          "params": [
+            "config",
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "drainStdin",
+          "params": [
+            "stdin"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "resolveRepoRoot",
+          "params": [
+            "env"
+          ],
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "writePushgateError",
+          "params": [
+            "stderr",
+            "error"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "writeUsageError",
+          "params": [
+            "stderr",
+            "message"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "parsePushCommandArgs",
+          "params": [
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "isCliEntrypoint",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:module",
+          "specifiers": [
+            "__pushgateCreateRequire"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn7"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "realpathSync"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "readFile"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "join"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn2"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn3"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "access",
+            "readFile2"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "constants"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "join2"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn4"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn5"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn6"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 16917,
+      "hasStructuralAnalysis": true
+    },
+    "CHANGELOG.md": {
+      "filePath": "CHANGELOG.md",
+      "contentHash": "d0d3628fa4f72a0f3cff21b1f653171e5e822baf7b533b4e115ddc93db44e1e4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 88,
+      "hasStructuralAnalysis": true
+    },
+    "CONTRIBUTING.md": {
+      "filePath": "CONTRIBUTING.md",
+      "contentHash": "8f8101051f9648dc14244af86eb203c8f50a8435ea2c9d930be230c6227da556",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 140,
+      "hasStructuralAnalysis": true
+    },
+    "docs/issue-10-local-ai-provider-interface-plan.md": {
+      "filePath": "docs/issue-10-local-ai-provider-interface-plan.md",
+      "contentHash": "3708c23ae3edcd4f3be74fc8a28c4e0e898c51502e19d8c71ce84e61d686f683",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 239,
+      "hasStructuralAnalysis": true
+    },
+    "docs/issue-12-structured-ai-review-output-plan.md": {
+      "filePath": "docs/issue-12-structured-ai-review-output-plan.md",
+      "contentHash": "f3ad60453726e64e4adf80e7de6a19420ed7ebc094c6abf8c55079dcb780187b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 237,
+      "hasStructuralAnalysis": true
+    },
+    "docs/issue-18-local-skip-controls-plan.md": {
+      "filePath": "docs/issue-18-local-skip-controls-plan.md",
+      "contentHash": "81d702fcb5834ed0c75ab885edf3b41c269e43428938fff4d07bb37ea741c9d0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 212,
+      "hasStructuralAnalysis": true
+    },
+    "docs/issue-19-github-copilot-provider-adapter-plan.md": {
+      "filePath": "docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "contentHash": "9f58043aa5567c4f23dbda6499396777bb23e86401022037a5693bb51359952a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 281,
+      "hasStructuralAnalysis": true
+    },
+    "docs/issue-2-config-schema-plan.md": {
+      "filePath": "docs/issue-2-config-schema-plan.md",
+      "contentHash": "2891e5f1724a73a963551dbf3289349953cfc0c476b18f78a6f5deb29529f2f2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 217,
+      "hasStructuralAnalysis": true
+    },
+    "docs/issue-3-hook-runner-test-harness-plan.md": {
+      "filePath": "docs/issue-3-hook-runner-test-harness-plan.md",
+      "contentHash": "678adb32ef07f4a0ed361234ee61707e2daef7e984af380a9b40b0f031f49837",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 216,
+      "hasStructuralAnalysis": true
+    },
+    "docs/product-contract-plan.md": {
+      "filePath": "docs/product-contract-plan.md",
+      "contentHash": "be95d4b65e2341295be4ec16f953e7072465726ce235cbf2a4a50efc48afc7a7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 148,
+      "hasStructuralAnalysis": true
+    },
+    "docs/v2-config-schema.md": {
+      "filePath": "docs/v2-config-schema.md",
+      "contentHash": "29998211d1f58b645a83421d5edf9d54217bbb1655f6836112860d8e59f7109f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 227,
+      "hasStructuralAnalysis": true
+    },
+    "hook/pre-push": {
+      "filePath": "hook/pre-push",
+      "contentHash": "206164be91ef77eb2d9602648f306d6781f58c2c0eef57b89bd311b47c679d2b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 68,
+      "hasStructuralAnalysis": false
+    },
+    "install.sh": {
+      "filePath": "install.sh",
+      "contentHash": "eb4877882c7420790f3996ebb000f16ada196b3075efa362276f3ce34ac0ad0b",
+      "functions": [
+        {
+          "name": "info",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "success",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "warn",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "error",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "divider",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 160,
+      "hasStructuralAnalysis": true
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "0199402ad9a94726b7a340a1926a202c5efc1f700c257eddd386c1fad85e80eb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 39,
+      "hasStructuralAnalysis": true
+    },
+    "pnpm-workspace.yaml": {
+      "filePath": "pnpm-workspace.yaml",
+      "contentHash": "ac02d96368617c760f093cfe61fdec64b6244007ab3553e0d6621f706f54a353",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "5ec4001681395a664e7e833f521747bed8e23e6c0b60b1c3f8fa731b73ef796f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 229,
+      "hasStructuralAnalysis": true
+    },
+    "release-please-config.json": {
+      "filePath": "release-please-config.json",
+      "contentHash": "5166e63a38ac3ac22bd526ef3fabf57e22a586180d6b93fdf0d215a35923f97c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "schemas/ai-review-output-v1.schema.json": {
+      "filePath": "schemas/ai-review-output-v1.schema.json",
+      "contentHash": "c15d06429b033ddc9052e7eace25299ec238dc10cfe0c4217d68e43cd06b2fd5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "schemas/pushgate-config-v2.schema.json": {
+      "filePath": "schemas/pushgate-config-v2.schema.json",
+      "contentHash": "ef7ef2c91569892590de3a6a594ace190c7db9879bcee8c7a779b6a76d6e818a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 217,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/build-runner.mjs": {
+      "filePath": "scripts/build-runner.mjs",
+      "contentHash": "485cb355a1d6315b230f92fa2805a9b5a142e3163ec2c3bc1e5592270e8b596a",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "esbuild",
+          "specifiers": [
+            "build"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 19,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/index.ts": {
+      "filePath": "src/ai/index.ts",
+      "contentHash": "3c7c76d4a26f0593c8703353b5fe55fb3523dc31f2cdefbee7d035f71959c420",
+      "functions": [
+        {
+          "name": "runLocalAiReview",
+          "params": [
+            "options"
+          ],
+          "returnType": "Promise<LocalAiRunSummary>",
+          "exported": true,
+          "lineCount": 84
+        },
+        {
+          "name": "resolveProvider",
+          "params": [
+            "providerId"
+          ],
+          "returnType": "LocalAiProviderAdapter | null",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "handleProviderResult",
+          "params": [
+            "aiMode",
+            "result",
+            "stdout"
+          ],
+          "returnType": "LocalAiRunSummary",
+          "exported": false,
+          "lineCount": 88
+        },
+        {
+          "name": "writeLine",
+          "params": [
+            "stream",
+            "line"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "countChangedLines",
+          "params": [
+            "changedFiles"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "estimatePromptTokens",
+          "params": [
+            "prompt"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../config/index.js",
+          "specifiers": [
+            "AiConfig",
+            "ReviewConfig"
+          ]
+        },
+        {
+          "source": "../path-policy/index.js",
+          "specifiers": [
+            "ChangedFileResolution"
+          ]
+        },
+        {
+          "source": "./review-prompt.js",
+          "specifiers": [
+            "buildLocalAiReviewPayload"
+          ]
+        },
+        {
+          "source": "./providers/claude.js",
+          "specifiers": [
+            "claudeProvider"
+          ]
+        },
+        {
+          "source": "./providers/copilot.js",
+          "specifiers": [
+            "copilotProvider"
+          ]
+        },
+        {
+          "source": "./types.js",
+          "specifiers": [
+            "LocalAiProviderAdapter",
+            "LocalAiProviderResult"
+          ]
+        }
+      ],
+      "exports": [
+        "BASE_REVIEW_PROMPT",
+        "buildLocalAiReviewPayload",
+        "renderLocalAiPrompt",
+        "AiReviewOutputError",
+        "parseAiReviewOutput",
+        "AiFinding",
+        "AiFindingCategory",
+        "AiFindingConfidence",
+        "AiFindingSeverity",
+        "AiFindingSource",
+        "AiReviewSummary",
+        "LocalAiFullFileContext",
+        "LocalAiProviderAdapter",
+        "LocalAiProviderFailure",
+        "LocalAiProviderFailureCode",
+        "LocalAiProviderResult",
+        "LocalAiProviderReview",
+        "LocalAiReviewPayload",
+        "RawAiFinding",
+        "RawAiReviewOutput",
+        "AI_BLOCKING_CATEGORIES",
+        "AI_FINDING_CATEGORIES",
+        "AI_FINDING_CONFIDENCE_LEVELS",
+        "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+        "AI_WARNING_CATEGORIES",
+        "runLocalAiReview"
+      ],
+      "totalLines": 255,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/prompts/review-prompt.md": {
+      "filePath": "src/ai/prompts/review-prompt.md",
+      "contentHash": "9527790f87f18849094633f4ce1b73ee794669489d520305ca2c978039e96fde",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 86,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/providers/claude.ts": {
+      "filePath": "src/ai/providers/claude.ts",
+      "contentHash": "fd67f578fcb09fec862103acabf24e5c25d25bc1ff897e439a557bef1b470dfd",
+      "functions": [
+        {
+          "name": "buildClaudeArgs",
+          "params": [
+            "repoRoot",
+            "model"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "selectClaudeModel",
+          "params": [
+            "providerConfig"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "runClaudeCommand",
+          "params": [
+            "args",
+            "prompt",
+            "repoRoot",
+            "env",
+            "timeoutSeconds"
+          ],
+          "returnType": "Promise<\n  | {\n      code: number | null;\n      kind: \"completed\";\n      output?: string;\n      stdout: string;\n    }\n  | {\n      kind: \"spawn-error\";\n    }\n  | {\n      kind: \"timeout\";\n      output?: string;\n    }\n>",
+          "exported": false,
+          "lineCount": 109
+        },
+        {
+          "name": "isClaudeUnauthenticated",
+          "params": [
+            "repoRoot",
+            "env"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "appendCapped",
+          "params": [
+            "current",
+            "next"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "formatCombinedOutput",
+          "params": [
+            "stdout",
+            "stderr"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "../review-output.js",
+          "specifiers": [
+            "AiReviewOutputError",
+            "parseAiReviewOutput"
+          ]
+        },
+        {
+          "source": "../types.js",
+          "specifiers": [
+            "LocalAiProviderAdapter",
+            "LocalAiProviderFailure",
+            "LocalAiProviderResult"
+          ]
+        }
+      ],
+      "exports": [
+        "claudeProvider"
+      ],
+      "totalLines": 297,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/providers/copilot.ts": {
+      "filePath": "src/ai/providers/copilot.ts",
+      "contentHash": "bd41aba7dcbfaddff1b1655af96cf469e30fd00b347532842c9dcbd3196260de",
+      "functions": [
+        {
+          "name": "buildCopilotArgs",
+          "params": [
+            "model"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "selectCopilotModel",
+          "params": [
+            "providerConfig"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "runCopilotCommand",
+          "params": [
+            "args",
+            "prompt",
+            "repoRoot",
+            "env",
+            "timeoutSeconds"
+          ],
+          "returnType": "Promise<\n  | {\n      code: number | null;\n      kind: \"completed\";\n      output?: string;\n      stdout: string;\n    }\n  | {\n      kind: \"spawn-error\";\n    }\n  | {\n      kind: \"timeout\";\n      output?: string;\n    }\n>",
+          "exported": false,
+          "lineCount": 109
+        },
+        {
+          "name": "isCopilotAuthFailure",
+          "params": [
+            "output"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "appendCapped",
+          "params": [
+            "current",
+            "next"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "formatCombinedOutput",
+          "params": [
+            "stdout",
+            "stderr"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "../review-output.js",
+          "specifiers": [
+            "AiReviewOutputError",
+            "parseAiReviewOutput"
+          ]
+        },
+        {
+          "source": "../types.js",
+          "specifiers": [
+            "LocalAiProviderAdapter",
+            "LocalAiProviderFailure",
+            "LocalAiProviderResult"
+          ]
+        }
+      ],
+      "exports": [
+        "copilotProvider"
+      ],
+      "totalLines": 298,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/review-output.ts": {
+      "filePath": "src/ai/review-output.ts",
+      "contentHash": "098f42e101cfa71dc99bfba6606e66290eb72d82b5a404694ed34a36df949ae1",
+      "functions": [
+        {
+          "name": "parseAiReviewOutput",
+          "params": [
+            "rawOutput",
+            "source"
+          ],
+          "returnType": "{\n  findings: AiFinding[];\n  normalizationNotes: string[];\n  summary: AiReviewSummary;\n}",
+          "exported": true,
+          "lineCount": 53
+        },
+        {
+          "name": "parseCandidate",
+          "params": [
+            "candidate",
+            "diagnostics"
+          ],
+          "returnType": "RawAiReviewOutput | null",
+          "exported": false,
+          "lineCount": 39
+        },
+        {
+          "name": "validateParsedReview",
+          "params": [
+            "parsed"
+          ],
+          "returnType": "RawAiReviewOutput | null",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "buildCandidates",
+          "params": [
+            "output"
+          ],
+          "returnType": "ParsedCandidate[]",
+          "exported": false,
+          "lineCount": 37
+        },
+        {
+          "name": "extractFencedJsonBlocks",
+          "params": [
+            "output"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "extractJsonObjectSlice",
+          "params": [
+            "output"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "unwrapSingleNestedObject",
+          "params": [
+            "value"
+          ],
+          "returnType": "{ key: string; value: unknown } | null",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "isPlainObject",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "validateFindingSemantics",
+          "params": [
+            "findings"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "normalizeFinding",
+          "params": [
+            "finding",
+            "source"
+          ],
+          "returnType": "AiFinding",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "summarizeFindings",
+          "params": [
+            "findings"
+          ],
+          "returnType": "AiReviewSummary",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "formatSchemaDiagnostics",
+          "params": [
+            "errors"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "formatSchemaError",
+          "params": [
+            "error"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "formatUnknownError",
+          "params": [
+            "error"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "dedupeDiagnostics",
+          "params": [
+            "diagnostics"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "AiReviewOutputError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "diagnostics"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "ajv",
+          "specifiers": [
+            "Ajv",
+            "ErrorObject",
+            "ValidateFunction"
+          ]
+        },
+        {
+          "source": "../../schemas/ai-review-output-v1.schema.json",
+          "specifiers": [
+            "schema"
+          ]
+        },
+        {
+          "source": "./types.js",
+          "specifiers": [
+            "AI_BLOCKING_CATEGORIES",
+            "AI_WARNING_CATEGORIES",
+            "AiFinding",
+            "AiFindingSource",
+            "AiReviewSummary",
+            "RawAiFinding",
+            "RawAiReviewOutput"
+          ]
+        }
+      ],
+      "exports": [
+        "AiReviewOutputError",
+        "parseAiReviewOutput"
+      ],
+      "totalLines": 319,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/review-prompt.ts": {
+      "filePath": "src/ai/review-prompt.ts",
+      "contentHash": "9c89263e44a4877428ad938af0b619345f34a3444b69720fb7887f3e8e07bcf4",
+      "functions": [
+        {
+          "name": "buildLocalAiReviewPayload",
+          "params": [
+            "options"
+          ],
+          "returnType": "Promise<LocalAiReviewPayload>",
+          "exported": true,
+          "lineCount": 46
+        },
+        {
+          "name": "renderLocalAiPrompt",
+          "params": [
+            "options"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "collectReviewDiff",
+          "params": [
+            "options"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 48
+        },
+        {
+          "name": "collectFullFiles",
+          "params": [
+            "repoRoot",
+            "changedFiles"
+          ],
+          "returnType": "Promise<LocalAiFullFileContext[]>",
+          "exported": false,
+          "lineCount": 59
+        },
+        {
+          "name": "formatChangedFiles",
+          "params": [
+            "changedFiles"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "describeChangedFile",
+          "params": [
+            "file"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "formatFullFiles",
+          "params": [
+            "fullFiles"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "countTextLines",
+          "params": [
+            "text"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "readFile"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "join"
+          ]
+        },
+        {
+          "source": "../config/index.js",
+          "specifiers": [
+            "ReviewConfig"
+          ]
+        },
+        {
+          "source": "../path-policy/index.js",
+          "specifiers": [
+            "ChangedFile",
+            "ChangedFileResolution"
+          ]
+        },
+        {
+          "source": "./types.js",
+          "specifiers": [
+            "LocalAiFullFileContext",
+            "LocalAiReviewPayload"
+          ]
+        }
+      ],
+      "exports": [
+        "BASE_REVIEW_PROMPT",
+        "buildLocalAiReviewPayload",
+        "renderLocalAiPrompt"
+      ],
+      "totalLines": 335,
+      "hasStructuralAnalysis": true
+    },
+    "src/ai/types.ts": {
+      "filePath": "src/ai/types.ts",
+      "contentHash": "68e0d44f0cb74bdae1404cefa15dd705232ab3bd6507508d5d367a505c3325e2",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../config/index.js",
+          "specifiers": [
+            "ProviderConfig"
+          ]
+        },
+        {
+          "source": "../path-policy/index.js",
+          "specifiers": [
+            "ChangedFile"
+          ]
+        }
+      ],
+      "exports": [
+        "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+        "AI_BLOCKING_CATEGORIES",
+        "AI_WARNING_CATEGORIES",
+        "AI_FINDING_CATEGORIES",
+        "AI_FINDING_CONFIDENCE_LEVELS"
+      ],
+      "totalLines": 129,
+      "hasStructuralAnalysis": true
+    },
+    "src/cli.ts": {
+      "filePath": "src/cli.ts",
+      "contentHash": "0ab82880677378dbe59bb925412cae4ff89642eddbefc859a7860084f3b9a623",
+      "functions": [
+        {
+          "name": "main",
+          "params": [
+            "argv",
+            "io"
+          ],
+          "returnType": "Promise<number>",
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "runPrePush",
+          "params": [
+            "io"
+          ],
+          "returnType": "Promise<number>",
+          "exported": false,
+          "lineCount": 58
+        },
+        {
+          "name": "runPushCommand",
+          "params": [
+            "args",
+            "io"
+          ],
+          "returnType": "Promise<number>",
+          "exported": false,
+          "lineCount": 49
+        },
+        {
+          "name": "runDeterministicPhase",
+          "params": [
+            "config",
+            "changedFileResolution",
+            "options"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "runLocalAiPhase",
+          "params": [
+            "config",
+            "changedFileResolution",
+            "skipControls",
+            "options"
+          ],
+          "returnType": "Promise<number>",
+          "exported": false,
+          "lineCount": 38
+        },
+        {
+          "name": "maybeResolveChangedFiles",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<ChangedFileResolution | null>",
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "drainStdin",
+          "params": [
+            "stdin"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "resolveRepoRoot",
+          "params": [
+            "env"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "writePushgateError",
+          "params": [
+            "stderr",
+            "error"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "writeUsageError",
+          "params": [
+            "stderr",
+            "message"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "parsePushCommandArgs",
+          "params": [
+            "args"
+          ],
+          "returnType": "{\n  gitPushArgs: string[];\n  skipAllChecks: boolean;\n  skipAiCheck: boolean;\n}",
+          "exported": false,
+          "lineCount": 34
+        },
+        {
+          "name": "isCliEntrypoint",
+          "params": [],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 14
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "realpathSync"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        },
+        {
+          "source": "./ai/index.js",
+          "specifiers": [
+            "runLocalAiReview"
+          ]
+        },
+        {
+          "source": "./config/index.js",
+          "specifiers": [
+            "ConfigError",
+            "loadConfig",
+            "PushgateConfig"
+          ]
+        },
+        {
+          "source": "./path-policy/index.js",
+          "specifiers": [
+            "ChangedFilePolicyError",
+            "resolveChangedFiles",
+            "ChangedFileResolution"
+          ]
+        },
+        {
+          "source": "./runner/deterministic.js",
+          "specifiers": [
+            "runDeterministicChecks"
+          ]
+        },
+        {
+          "source": "./runner/policies.js",
+          "specifiers": [
+            "countBuiltInPolicies"
+          ]
+        },
+        {
+          "source": "./skip-controls.js",
+          "specifiers": [
+            "buildGitPushArgs",
+            "resolveSkipControlState",
+            "SkipControlError",
+            "SkipControlState"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 391,
+      "hasStructuralAnalysis": true
+    },
+    "src/config/index.ts": {
+      "filePath": "src/config/index.ts",
+      "contentHash": "c2d6938924ed59cc7ee94407116a8c58288973a2f9f0e2d931e94dd53a6a3894",
+      "functions": [
+        {
+          "name": "parseConfigYaml",
+          "params": [
+            "source",
+            "sourcePath"
+          ],
+          "returnType": "PushgateConfig",
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "loadConfig",
+          "params": [
+            "repoRoot"
+          ],
+          "returnType": "Promise<LoadedConfig>",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "normalizeConfig",
+          "params": [
+            "rawConfig"
+          ],
+          "returnType": "PushgateConfig",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "normalizePolicies",
+          "params": [
+            "rawConfig"
+          ],
+          "returnType": "PushgateConfig[\"policies\"]",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "validateProviderSelection",
+          "params": [
+            "config"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "formatSchemaError",
+          "params": [
+            "error"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "cloneValue",
+          "params": [
+            "value"
+          ],
+          "returnType": "T",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "exists",
+          "params": [
+            "path"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "ConfigError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "code",
+            "diagnostics"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "ConfigValidationError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "sourcePath"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "MissingConfigError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "configPath"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "LegacyConfigError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "legacyPath",
+            "configPath"
+          ],
+          "exported": true,
+          "lineCount": 15
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "access",
+            "readFile"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "constants"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "join"
+          ]
+        },
+        {
+          "source": "ajv",
+          "specifiers": [
+            "Ajv",
+            "ErrorObject",
+            "ValidateFunction"
+          ]
+        },
+        {
+          "source": "yaml",
+          "specifiers": [
+            "parseDocument"
+          ]
+        },
+        {
+          "source": "../../schemas/pushgate-config-v2.schema.json",
+          "specifiers": [
+            "schema"
+          ]
+        },
+        {
+          "source": "./types.js",
+          "specifiers": [
+            "LoadedConfig",
+            "PushgateConfig",
+            "RawPushgateConfig"
+          ]
+        }
+      ],
+      "exports": [
+        "AiConfig",
+        "AiMode",
+        "BuiltInPoliciesConfig",
+        "BuiltInPolicyMode",
+        "DiffSizePolicyConfig",
+        "ForbiddenPathsPolicyConfig",
+        "LoadedConfig",
+        "ProviderConfig",
+        "PushgateConfig",
+        "ReviewConfig",
+        "ToolConfig",
+        "ToolMode",
+        "ToolRunMode",
+        "CONFIG_FILENAME",
+        "LEGACY_CONFIG_FILENAME",
+        "ConfigError",
+        "ConfigValidationError",
+        "MissingConfigError",
+        "LegacyConfigError",
+        "parseConfigYaml",
+        "loadConfig"
+      ],
+      "totalLines": 303,
+      "hasStructuralAnalysis": true
+    },
+    "src/config/types.ts": {
+      "filePath": "src/config/types.ts",
+      "contentHash": "864bed5d90a86b366cca759eeb6698ae8ee27f928fc3a1fcc66aa5f21dfe92eb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 162,
+      "hasStructuralAnalysis": true
+    },
+    "src/path-policy/index.ts": {
+      "filePath": "src/path-policy/index.ts",
+      "contentHash": "ae04948a98bcddfba7c0b02e4e59bc70969dd1bc45a803ffb5a07e19da97bc2b",
+      "functions": [
+        {
+          "name": "resolveChangedFiles",
+          "params": [
+            "options"
+          ],
+          "returnType": "Promise<ChangedFileResolution>",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "filterIgnoredChangedFiles",
+          "params": [
+            "files",
+            "ignorePaths"
+          ],
+          "returnType": "ChangedFile[]",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "selectToolChangedFilePaths",
+          "params": [
+            "files",
+            "extensions"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "resolveTargetCommit",
+          "params": [
+            "repoRoot",
+            "targetRef"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "resolveDiffBase",
+          "params": [
+            "repoRoot",
+            "targetRef",
+            "targetCommit"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "runGitChecked",
+          "params": [
+            "repoRoot",
+            "args"
+          ],
+          "returnType": "Promise<Buffer>",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "parseChangedFiles",
+          "params": [
+            "output",
+            "diffStats",
+            "gitArgs"
+          ],
+          "returnType": "ChangedFile[]",
+          "exported": false,
+          "lineCount": 43
+        },
+        {
+          "name": "parseDiffStats",
+          "params": [
+            "output",
+            "gitArgs"
+          ],
+          "returnType": "Map<string, ChangedFileDiffStats>",
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "parseNumstatLineCounts",
+          "params": [
+            "addedLines",
+            "deletedLines",
+            "gitArgs"
+          ],
+          "returnType": "ChangedFileDiffStats",
+          "exported": false,
+          "lineCount": 34
+        },
+        {
+          "name": "isNonNegativeIntegerString",
+          "params": [
+            "value"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "statsForPath",
+          "params": [
+            "diffStats",
+            "path"
+          ],
+          "returnType": "ChangedFileDiffStats",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "splitNullFields",
+          "params": [
+            "output"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "normalizeGitStatus",
+          "params": [
+            "rawStatus"
+          ],
+          "returnType": "ChangedFileStatus",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "matchesExtension",
+          "params": [
+            "path",
+            "extensions"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "requiredPath",
+          "params": [
+            "fields",
+            "index",
+            "gitArgs"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "requiredField",
+          "params": [
+            "fields",
+            "index",
+            "gitArgs",
+            "label"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "malformedGitOutput",
+          "params": [
+            "gitArgs",
+            "detail"
+          ],
+          "returnType": "GitChangedFilesError",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "gitFailure",
+          "params": [
+            "gitArgs",
+            "result"
+          ],
+          "returnType": "GitChangedFilesError",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "gitResultDetail",
+          "params": [
+            "result"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "runGit",
+          "params": [
+            "repoRoot",
+            "args"
+          ],
+          "returnType": "Promise<GitRunResult>",
+          "exported": false,
+          "lineCount": 35
+        }
+      ],
+      "classes": [
+        {
+          "name": "ChangedFilePolicyError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "code",
+            "diagnostics"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "MissingTargetRefError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "targetRef"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "MissingDiffBaseError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "targetRef"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "GitChangedFilesError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "gitArgs"
+          ],
+          "exported": true,
+          "lineCount": 14
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "ignore",
+          "specifiers": [
+            "ignore"
+          ]
+        }
+      ],
+      "exports": [
+        "ChangedFilePolicyError",
+        "MissingTargetRefError",
+        "MissingDiffBaseError",
+        "GitChangedFilesError",
+        "resolveChangedFiles",
+        "filterIgnoredChangedFiles",
+        "selectToolChangedFilePaths"
+      ],
+      "totalLines": 524,
+      "hasStructuralAnalysis": true
+    },
+    "src/runner/deterministic.ts": {
+      "filePath": "src/runner/deterministic.ts",
+      "contentHash": "208709d967c831f25310b00a2d4fb12f05e349a8fe47d817cd20682535c7f02a",
+      "functions": [
+        {
+          "name": "runDeterministicChecks",
+          "params": [
+            "config",
+            "changedFiles",
+            "options"
+          ],
+          "returnType": "Promise<DeterministicCheckSummary>",
+          "exported": true,
+          "lineCount": 97
+        },
+        {
+          "name": "expandChangedFilesToken",
+          "params": [
+            "command",
+            "changedFilePaths"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "runToolCommand",
+          "params": [
+            "tool",
+            "command",
+            "repoRoot",
+            "env"
+          ],
+          "returnType": "Promise<ToolCommandResult>",
+          "exported": false,
+          "lineCount": 95
+        },
+        {
+          "name": "writeFailure",
+          "params": [
+            "stdout",
+            "tool",
+            "result"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "writePolicyResult",
+          "params": [
+            "stdout",
+            "result"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "appendCapped",
+          "params": [
+            "current",
+            "next"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "formatOutputTail",
+          "params": [
+            "stdout",
+            "stderr"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "writeLine",
+          "params": [
+            "stream",
+            "line"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "../config/index.js",
+          "specifiers": [
+            "PushgateConfig",
+            "ToolConfig"
+          ]
+        },
+        {
+          "source": "../path-policy/index.js",
+          "specifiers": [
+            "selectToolChangedFilePaths",
+            "ChangedFile"
+          ]
+        },
+        {
+          "source": "./policies.js",
+          "specifiers": [
+            "countBuiltInPolicies",
+            "runBuiltInPolicies",
+            "BuiltInPolicyResult"
+          ]
+        }
+      ],
+      "exports": [
+        "CHANGED_FILES_TOKEN",
+        "runDeterministicChecks",
+        "expandChangedFilesToken"
+      ],
+      "totalLines": 315,
+      "hasStructuralAnalysis": true
+    },
+    "src/runner/policies.ts": {
+      "filePath": "src/runner/policies.ts",
+      "contentHash": "f750e0661f0d457f100776d4d6126525b14ddf7c969214c3a3f649fc89ea889b",
+      "functions": [
+        {
+          "name": "countBuiltInPolicies",
+          "params": [
+            "policies"
+          ],
+          "returnType": "number",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "runBuiltInPolicies",
+          "params": [
+            "policies",
+            "changedFiles"
+          ],
+          "returnType": "BuiltInPolicyResult[]",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "runDiffSizePolicy",
+          "params": [
+            "policy",
+            "changedFiles"
+          ],
+          "returnType": "BuiltInPolicyResult",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "runForbiddenPathsPolicy",
+          "params": [
+            "policy",
+            "changedFiles"
+          ],
+          "returnType": "BuiltInPolicyResult",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "firstMatchingPattern",
+          "params": [
+            "patterns",
+            "path"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "formatForbiddenPathMatches",
+          "params": [
+            "matches"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "violationResult",
+          "params": [
+            "mode",
+            "name",
+            "detail"
+          ],
+          "returnType": "BuiltInPolicyResult",
+          "exported": false,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "ignore",
+          "specifiers": [
+            "ignore"
+          ]
+        },
+        {
+          "source": "../config/index.js",
+          "specifiers": [
+            "BuiltInPoliciesConfig",
+            "BuiltInPolicyMode",
+            "DiffSizePolicyConfig",
+            "ForbiddenPathsPolicyConfig"
+          ]
+        },
+        {
+          "source": "../path-policy/index.js",
+          "specifiers": [
+            "ChangedFile"
+          ]
+        }
+      ],
+      "exports": [
+        "countBuiltInPolicies",
+        "runBuiltInPolicies"
+      ],
+      "totalLines": 145,
+      "hasStructuralAnalysis": true
+    },
+    "src/skip-controls.ts": {
+      "filePath": "src/skip-controls.ts",
+      "contentHash": "aee57e01e76ce7fcbe62e962346d72f86cb378befb6d02c1cfefcf6b42983d3d",
+      "functions": [
+        {
+          "name": "buildGitPushArgs",
+          "params": [
+            "pushArgs",
+            "state"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "resolveSkipControlState",
+          "params": [
+            "repoRoot",
+            "env"
+          ],
+          "returnType": "Promise<SkipControlState>",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "readGitBooleanConfig",
+          "params": [
+            "repoRoot",
+            "env",
+            "key"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": false,
+          "lineCount": 65
+        }
+      ],
+      "classes": [
+        {
+          "name": "SkipControlError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        }
+      ],
+      "exports": [
+        "SKIP_ALL_CHECKS_CONFIG_KEY",
+        "SKIP_AI_CHECK_CONFIG_KEY",
+        "SkipControlError",
+        "buildGitPushArgs",
+        "resolveSkipControlState"
+      ],
+      "totalLines": 128,
+      "hasStructuralAnalysis": true
+    },
+    "templates/base.yml": {
+      "filePath": "templates/base.yml",
+      "contentHash": "a750f8d88767ea2741b2df9ea922e807c684e8e5db015dea012a1a3646e96186",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 133,
+      "hasStructuralAnalysis": true
+    },
+    "templates/nextjs.yml": {
+      "filePath": "templates/nextjs.yml",
+      "contentHash": "e5215191b2c08b3219232545a94309559b9b2039a91b1e015228d8bf26e70383",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 52,
+      "hasStructuralAnalysis": true
+    },
+    "templates/node.yml": {
+      "filePath": "templates/node.yml",
+      "contentHash": "ae0d81fb5d5692406d22d2f3b7edcaacdda2a30961b374c59e478d49777ad886",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "templates/rails.yml": {
+      "filePath": "templates/rails.yml",
+      "contentHash": "b0cd514abd7a4dae7972282b4a9d6afa485c371e27806cccd81fb335a17e6a44",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 51,
+      "hasStructuralAnalysis": true
+    },
+    "templates/ruby.yml": {
+      "filePath": "templates/ruby.yml",
+      "contentHash": "d46bcf339456ec1f3d409b2cfda56f50d54033fdbe617c01d552497b2fbea522",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 43,
+      "hasStructuralAnalysis": true
+    },
+    "templates/typescript.yml": {
+      "filePath": "templates/typescript.yml",
+      "contentHash": "74cdeae0e0b94f05994b928a882864b41f0b3e1d0d450579656014103c314e86",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "test/ai.test.ts": {
+      "filePath": "test/ai.test.ts",
+      "contentHash": "926c114ecf51f31d6297e4595ef9a2337be8e1e11817532efad5f88e4e52ef99",
+      "functions": [
+        {
+          "name": "withAiRepo",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "checkedRun",
+          "params": [
+            "command",
+            "args",
+            "options"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 43
+        },
+        {
+          "name": "writeRepoFile",
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "readArgLines",
+          "params": [
+            "path"
+          ],
+          "returnType": "Promise<string[]>",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "captureOutput",
+          "params": [],
+          "returnType": "{\n  stream: Writable;\n  text(): string;\n}",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "minimalReviewPayload",
+          "params": [
+            "prompt"
+          ],
+          "returnType": "LocalAiReviewPayload",
+          "exported": false,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "chmod",
+            "mkdir",
+            "mkdtemp",
+            "readFile",
+            "rm",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "delimiter",
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "source": "node:stream",
+          "specifiers": [
+            "Writable"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "../src/ai/index.js",
+          "specifiers": [
+            "buildLocalAiReviewPayload",
+            "parseAiReviewOutput",
+            "runLocalAiReview"
+          ]
+        },
+        {
+          "source": "../src/ai/index.js",
+          "specifiers": [
+            "LocalAiReviewPayload"
+          ]
+        },
+        {
+          "source": "../src/ai/providers/copilot.js",
+          "specifiers": [
+            "copilotProvider"
+          ]
+        },
+        {
+          "source": "../src/path-policy/index.js",
+          "specifiers": [
+            "resolveChangedFiles"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 670,
+      "hasStructuralAnalysis": true
+    },
+    "test/config.test.ts": {
+      "filePath": "test/config.test.ts",
+      "contentHash": "6f61bbe783a5ea33fbfaa6751840f3feeb61e324f9bc40016fba11307de8ad3a",
+      "functions": [
+        {
+          "name": "parseFixture",
+          "params": [
+            "name"
+          ],
+          "returnType": "Promise<PushgateConfig>",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "assertFixtureValidationError",
+          "params": [
+            "name",
+            "messagePattern"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "assertValidationError",
+          "params": [
+            "yaml",
+            "messagePattern"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "withTempRepo",
+          "params": [
+            "files",
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 15
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "mkdtemp",
+            "readFile",
+            "rm",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "join"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "../src/config/index.js",
+          "specifiers": [
+            "ConfigValidationError",
+            "LegacyConfigError",
+            "MissingConfigError",
+            "loadConfig",
+            "parseConfigYaml"
+          ]
+        },
+        {
+          "source": "../src/config/index.js",
+          "specifiers": [
+            "PushgateConfig"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 414,
+      "hasStructuralAnalysis": true
+    },
+    "test/deterministic-runner.test.ts": {
+      "filePath": "test/deterministic-runner.test.ts",
+      "contentHash": "f2876511b68e5ce36232b834e1e3a9007b1c7740de5785d719c59b98b7febcd6",
+      "functions": [
+        {
+          "name": "configWithTools",
+          "params": [
+            "tools"
+          ],
+          "returnType": "PushgateConfig",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "tool",
+          "params": [
+            "overrides"
+          ],
+          "returnType": "ToolConfig",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "withTempDir",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "writeArgRecorder",
+          "params": [
+            "repoRoot"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "captureOutput",
+          "params": [],
+          "returnType": "{\n  stream: Writable;\n  text(): string;\n}",
+          "exported": false,
+          "lineCount": 19
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "chmod",
+            "mkdir",
+            "mkdtemp",
+            "readFile",
+            "rm",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "source": "node:stream",
+          "specifiers": [
+            "Writable"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "../src/config/index.js",
+          "specifiers": [
+            "PushgateConfig",
+            "ToolConfig"
+          ]
+        },
+        {
+          "source": "../src/path-policy/index.js",
+          "specifiers": [
+            "ChangedFile"
+          ]
+        },
+        {
+          "source": "../src/runner/deterministic.js",
+          "specifiers": [
+            "expandChangedFilesToken",
+            "runDeterministicChecks"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 392,
+      "hasStructuralAnalysis": true
+    },
+    "test/fixtures/config/defaults.yml": {
+      "filePath": "test/fixtures/config/defaults.yml",
+      "contentHash": "4591eb45f0ab2c44f7344ceaed2ee6a0ce40d7527bb00b06a8b433bbf3442212",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "test/fixtures/config/invalid-provider.yml": {
+      "filePath": "test/fixtures/config/invalid-provider.yml",
+      "contentHash": "701c3eac85835640ef8e4383e7ff2822096a709616677daf1f0c362c341139ea",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "test/fixtures/config/invalid-string-command.yml": {
+      "filePath": "test/fixtures/config/invalid-string-command.yml",
+      "contentHash": "74ddf33d5376a83d440f7f16ca5d6a9ada20d16253fce9549d909b70c46086ac",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "test/fixtures/config/valid.yml": {
+      "filePath": "test/fixtures/config/valid.yml",
+      "contentHash": "6259e9db3ec8e98c18d80d10d8f2e0773bcf6a07335adc4e2d4ceea6c7ece3e5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 53,
+      "hasStructuralAnalysis": true
+    },
+    "test/hook.test.ts": {
+      "filePath": "test/hook.test.ts",
+      "contentHash": "a2e4f915999804e356651e1cdc1e1a6e59823ff46039eea21b1361fd286cbb66",
+      "functions": [
+        {
+          "name": "withHarness",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "artifactLines",
+          "params": [
+            "harness",
+            "name"
+          ],
+          "returnType": "Promise<string[]>",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "requiredArtifact",
+          "params": [
+            "harness",
+            "name"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "formatResult",
+          "params": [
+            "result"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "writePushgateConfig",
+          "params": [
+            "harness",
+            "content"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "chmod",
+            "realpath",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "join"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "./support/hook-harness.js",
+          "specifiers": [
+            "cleanHookOutput",
+            "createHookHarness",
+            "CommandResult",
+            "HookHarness"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 336,
+      "hasStructuralAnalysis": true
+    },
+    "test/install.test.ts": {
+      "filePath": "test/install.test.ts",
+      "contentHash": "eee6f65e8913dc38b24854711bffef161fe2d29dadb27de942ccaeb16b501540",
+      "functions": [
+        {
+          "name": "withInstallerHarness",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "createInstallerHarness",
+          "params": [],
+          "returnType": "Promise<InstallerHarness>",
+          "exported": false,
+          "lineCount": 46
+        },
+        {
+          "name": "installExecutable",
+          "params": [
+            "binDir",
+            "name",
+            "content"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "checkedRun",
+          "params": [
+            "command",
+            "args",
+            "options"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "runCommand",
+          "params": [
+            "command",
+            "args",
+            "options"
+          ],
+          "returnType": "Promise<CommandResult>",
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "formatResult",
+          "params": [
+            "result"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "chmod",
+            "mkdir",
+            "mkdtemp",
+            "readFile",
+            "readdir",
+            "rm",
+            "stat",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "delimiter",
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 271,
+      "hasStructuralAnalysis": true
+    },
+    "test/path-policy.test.ts": {
+      "filePath": "test/path-policy.test.ts",
+      "contentHash": "80d2fefe839488dece993dd79b0cfe2f6cd81f4504a72f47ce2e7418bc851712",
+      "functions": [
+        {
+          "name": "withFeatureRepo",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "withTempDir",
+          "params": [
+            "prefix",
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "initRepo",
+          "params": [
+            "repoRoot"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "commitAll",
+          "params": [
+            "repoRoot",
+            "message"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "writeRepoFile",
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "checkedGit",
+          "params": [
+            "repoRoot",
+            "args"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "runGit",
+          "params": [
+            "repoRoot",
+            "args"
+          ],
+          "returnType": "Promise<GitResult>",
+          "exported": false,
+          "lineCount": 28
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "mkdir",
+            "mkdtemp",
+            "rm",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "../src/path-policy/index.js",
+          "specifiers": [
+            "GitChangedFilesError",
+            "MissingDiffBaseError",
+            "MissingTargetRefError",
+            "resolveChangedFiles",
+            "selectToolChangedFilePaths"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 264,
+      "hasStructuralAnalysis": true
+    },
+    "test/runner.test.ts": {
+      "filePath": "test/runner.test.ts",
+      "contentHash": "29272e59d8812098e647683cb3201f8346ef4108b5492e7b5979b3440703bb70",
+      "functions": [
+        {
+          "name": "runRunner",
+          "params": [
+            "args",
+            "stdin",
+            "options"
+          ],
+          "returnType": "Promise<RunnerResult>",
+          "exported": false,
+          "lineCount": 42
+        },
+        {
+          "name": "withRunnerRepo",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "withGitRepo",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "withPolicyRepo",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 54
+        },
+        {
+          "name": "withAiRepo",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 52
+        },
+        {
+          "name": "writeRepoFile",
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "installClaudeStub",
+          "params": [
+            "binDir"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "installCopilotStub",
+          "params": [
+            "binDir"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "checkedRun",
+          "params": [
+            "command",
+            "args",
+            "options"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "withGitStub",
+          "params": [
+            "callback"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 38
+        },
+        {
+          "name": "readArgLines",
+          "params": [
+            "path"
+          ],
+          "returnType": "Promise<string[]>",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "formatResult",
+          "params": [
+            "result"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:assert/strict",
+          "specifiers": [
+            "assert"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "chmod",
+            "mkdir",
+            "mkdtemp",
+            "readFile",
+            "rm",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "delimiter",
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "source": "node:test",
+          "specifiers": [
+            "test"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 711,
+      "hasStructuralAnalysis": true
+    },
+    "test/support/hook-harness.ts": {
+      "filePath": "test/support/hook-harness.ts",
+      "contentHash": "66b0b71cc86bc914039838e1e36b12e39b397e48c5e37c0cb648242d45c77a1f",
+      "functions": [
+        {
+          "name": "createHookHarness",
+          "params": [],
+          "returnType": "Promise<HookHarness>",
+          "exported": true,
+          "lineCount": 89
+        },
+        {
+          "name": "cleanHookOutput",
+          "params": [
+            "result"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "prepareRunnerPath",
+          "params": [
+            "homeDir"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "seedFeatureRepo",
+          "params": [
+            "repoRoot",
+            "env"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 48
+        },
+        {
+          "name": "commitAll",
+          "params": [
+            "repoRoot",
+            "env",
+            "message"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "writeRepoFile",
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "createSandboxEnv",
+          "params": [
+            "homeDir",
+            "artifactsDir",
+            "binDir"
+          ],
+          "returnType": "NodeJS.ProcessEnv",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "checkedRun",
+          "params": [
+            "command",
+            "args",
+            "options"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "runCommand",
+          "params": [
+            "command",
+            "args",
+            "options"
+          ],
+          "returnType": "Promise<CommandResult>",
+          "exported": false,
+          "lineCount": 49
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "chmod",
+            "copyFile",
+            "mkdir",
+            "mkdtemp",
+            "readFile",
+            "rm",
+            "writeFile"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "tmpdir"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "delimiter",
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        }
+      ],
+      "exports": [
+        "createHookHarness",
+        "cleanHookOutput"
+      ],
+      "totalLines": 402,
+      "hasStructuralAnalysis": true
+    },
+    "tsconfig.build.json": {
+      "filePath": "tsconfig.build.json",
+      "contentHash": "e549e43bc67f935da6eb9583ac8fc06e4b31a6ee6304447b2c794b4065815f2c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "tsconfig.json": {
+      "filePath": "tsconfig.json",
+      "contentHash": "b83c0ef05264e4b98ab054ea71966c7bc2bb653140c02d49a96245f33a843125",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 19,
+      "hasStructuralAnalysis": true
+    },
+    "VERSION": {
+      "filePath": "VERSION",
+      "contentHash": "b53a131c62a1d0531543d496865e2d4e5680d29a36aa35f50e7abb98ba18256e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": false
+    }
+  }
+}

@@ -1,0 +1,103 @@
+[
+  {
+    "order": 1,
+    "title": "Project Overview",
+    "description": "Start with the README to understand the push-time workflow, install surface, configuration contract, and why Pushgate hooks into normal git push usage instead of introducing a separate primary command.",
+    "nodeIds": [
+      "document:README.md"
+    ]
+  },
+  {
+    "order": 2,
+    "title": "Install and Hook Boundary",
+    "description": "Read the installer, hook script, and bundled runner artifact together to see how a repository gets wired into the managed Pushgate command and how the pre-push boundary stays intentionally thin.",
+    "nodeIds": [
+      "file:install.sh",
+      "file:hook/pre-push",
+      "file:bin/pushgate.mjs"
+    ]
+  },
+  {
+    "order": 3,
+    "title": "CLI Orchestration",
+    "description": "Move into the runtime entrypoint to see how Pushgate dispatches hook-protocol, pre-push, and wrapper push flows while applying skip controls and sequencing the later phases.",
+    "nodeIds": [
+      "function:src/cli.ts:isCliEntrypoint",
+      "class:src/skip-controls.ts:SkipControlError"
+    ]
+  },
+  {
+    "order": 4,
+    "title": "Configuration Contract",
+    "description": "Study the config loader, type surface, schema, and base template together. This step shows how repository-level YAML becomes a validated runtime contract for tools, policies, providers, and ignore rules.",
+    "nodeIds": [
+      "class:src/config/index.ts:LegacyConfigError",
+      "file:src/config/types.ts",
+      "schema:schemas/pushgate-config-v2.schema.json",
+      "config:templates/base.yml",
+      "document:docs/v2-config-schema.md"
+    ]
+  },
+  {
+    "order": 5,
+    "title": "Changed Files and Deterministic Checks",
+    "description": "Follow the push pipeline through changed-file resolution and deterministic enforcement. These files decide what changed, which checks run, how changed-file placeholders expand, and when blocking failures stop the push immediately.",
+    "nodeIds": [
+      "class:src/path-policy/index.ts:GitChangedFilesError",
+      "function:src/runner/deterministic.ts:formatOutputTail",
+      "function:src/runner/policies.ts:violationResult"
+    ]
+  },
+  {
+    "order": 6,
+    "title": "Local AI Review Pipeline",
+    "description": "Once deterministic checks pass, the AI layer builds a review payload, renders the canonical prompt, dispatches a provider-specific CLI, and normalizes the returned JSON findings back into Pushgate verdicts.",
+    "nodeIds": [
+      "function:src/ai/review-prompt.ts:countTextLines",
+      "function:src/ai/index.ts:countChangedLines",
+      "function:src/ai/providers/claude.ts:formatCombinedOutput",
+      "function:src/ai/providers/copilot.ts:formatCombinedOutput",
+      "class:src/ai/review-output.ts:AiReviewOutputError",
+      "schema:schemas/ai-review-output-v1.schema.json",
+      "document:src/ai/prompts/review-prompt.md"
+    ]
+  },
+  {
+    "order": 7,
+    "title": "Templates and Adoption Paths",
+    "description": "Browse the stack templates to see how Pushgate is meant to be adopted across Node, TypeScript, Next.js, Ruby, and Rails repositories without hand-authoring every tool block from scratch.",
+    "nodeIds": [
+      "config:templates/base.yml",
+      "config:templates/node.yml",
+      "config:templates/typescript.yml",
+      "config:templates/nextjs.yml",
+      "config:templates/ruby.yml",
+      "config:templates/rails.yml"
+    ]
+  },
+  {
+    "order": 8,
+    "title": "Test Harness and Safety Net",
+    "description": "Read the reusable hook harness and the focused test suites to see how the project verifies config parsing, hook delegation, deterministic checks, AI normalization, and end-to-end runner behavior.",
+    "nodeIds": [
+      "function:test/support/hook-harness.ts:runCommand",
+      "function:test/hook.test.ts:withHarness",
+      "function:test/config.test.ts:withTempRepo",
+      "function:test/deterministic-runner.test.ts:captureOutput",
+      "function:test/ai.test.ts:minimalReviewPayload",
+      "function:test/runner.test.ts:withGitStub"
+    ]
+  },
+  {
+    "order": 9,
+    "title": "CI and Release Automation",
+    "description": "Finish with the build script, CI workflow, and release automation files to understand how the repository bundles the runner, validates changes in GitHub Actions, and keeps changelog/version artifacts in sync.",
+    "nodeIds": [
+      "file:scripts/build-runner.mjs",
+      "pipeline:.github/workflows/ci.yml",
+      "pipeline:.github/workflows/release-please.yml",
+      "document:CHANGELOG.md",
+      "config:VERSION"
+    ]
+  }
+]

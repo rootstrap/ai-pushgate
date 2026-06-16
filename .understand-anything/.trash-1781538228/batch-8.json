@@ -1,0 +1,53 @@
+{
+  "nodes": [
+    {
+      "id": "config:test/fixtures/config/defaults.yml",
+      "type": "config",
+      "name": "defaults.yml",
+      "filePath": "test/fixtures/config/defaults.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the defaults scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/invalid-provider.yml",
+      "type": "config",
+      "name": "invalid-provider.yml",
+      "filePath": "test/fixtures/config/invalid-provider.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the invalid provider scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/invalid-string-command.yml",
+      "type": "config",
+      "name": "invalid-string-command.yml",
+      "filePath": "test/fixtures/config/invalid-string-command.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the invalid string command scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/valid.yml",
+      "type": "config",
+      "name": "valid.yml",
+      "filePath": "test/fixtures/config/valid.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the valid scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

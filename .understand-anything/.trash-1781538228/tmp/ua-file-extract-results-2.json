@@ -1,0 +1,1772 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 6,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "src/ai/index.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 254,
+      "nonEmptyLines": 222,
+      "functions": [
+        {
+          "name": "runLocalAiReview",
+          "startLine": 46,
+          "endLine": 129,
+          "params": [
+            "options"
+          ]
+        },
+        {
+          "name": "resolveProvider",
+          "startLine": 131,
+          "endLine": 140,
+          "params": [
+            "providerId"
+          ]
+        },
+        {
+          "name": "handleProviderResult",
+          "startLine": 142,
+          "endLine": 229,
+          "params": [
+            "aiMode",
+            "result",
+            "stdout"
+          ]
+        },
+        {
+          "name": "writeLine",
+          "startLine": 231,
+          "endLine": 233,
+          "params": [
+            "stream",
+            "line"
+          ]
+        },
+        {
+          "name": "countChangedLines",
+          "startLine": 235,
+          "endLine": 245,
+          "params": [
+            "changedFiles"
+          ]
+        },
+        {
+          "name": "estimatePromptTokens",
+          "startLine": 247,
+          "endLine": 254,
+          "params": [
+            "prompt"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BASE_REVIEW_PROMPT",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "buildLocalAiReviewPayload",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "renderLocalAiPrompt",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "AiReviewOutputError",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "parseAiReviewOutput",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "AiFinding",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingCategory",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingConfidence",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingSeverity",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingSource",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AiReviewSummary",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiFullFileContext",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderAdapter",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderFailure",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderFailureCode",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderResult",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderReview",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiReviewPayload",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "RawAiFinding",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "RawAiReviewOutput",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AI_BLOCKING_CATEGORIES",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "AI_FINDING_CATEGORIES",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "AI_FINDING_CONFIDENCE_LEVELS",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "AI_WARNING_CATEGORIES",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "runLocalAiReview",
+          "line": 46,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "runLocalAiReview",
+          "callee": "resolveProvider",
+          "lineNumber": 55
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "handleProviderResult",
+          "lineNumber": 58
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "JSON.stringify",
+          "lineNumber": 64
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "writeLine",
+          "lineNumber": 71
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "countChangedLines",
+          "lineNumber": 75
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "writeLine",
+          "lineNumber": 80
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 82
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 82
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "buildLocalAiReviewPayload",
+          "lineNumber": 87
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "estimatePromptTokens",
+          "lineNumber": 93
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "writeLine",
+          "lineNumber": 96
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 98
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 98
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "writeLine",
+          "lineNumber": 103
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 105
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "writeLine",
+          "lineNumber": 109
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 111
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "String",
+          "lineNumber": 111
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "handleProviderResult",
+          "lineNumber": 115
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "provider.runReview",
+          "lineNumber": 117
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 150
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "result.detail.split",
+          "lineNumber": 156
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 157
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 162
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "result.output.split",
+          "lineNumber": 164
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 165
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 170
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 177
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 185
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 189
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 198
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 202
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 203
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 207
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "String",
+          "lineNumber": 209
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "String",
+          "lineNumber": 209
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 217
+        },
+        {
+          "caller": "handleProviderResult",
+          "callee": "writeLine",
+          "lineNumber": 224
+        },
+        {
+          "caller": "writeLine",
+          "callee": "stream.write",
+          "lineNumber": 232
+        },
+        {
+          "caller": "countChangedLines",
+          "callee": "changedFiles.reduce",
+          "lineNumber": 238
+        },
+        {
+          "caller": "estimatePromptTokens",
+          "callee": "Math.ceil",
+          "lineNumber": 253
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 26,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/ai/providers/claude.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 296,
+      "nonEmptyLines": 261,
+      "functions": [
+        {
+          "name": "buildClaudeArgs",
+          "startLine": 111,
+          "endLine": 134,
+          "params": [
+            "repoRoot",
+            "model"
+          ]
+        },
+        {
+          "name": "selectClaudeModel",
+          "startLine": 136,
+          "endLine": 142,
+          "params": [
+            "providerConfig"
+          ]
+        },
+        {
+          "name": "runClaudeCommand",
+          "startLine": 144,
+          "endLine": 252,
+          "params": [
+            "args",
+            "prompt",
+            "repoRoot",
+            "env",
+            "timeoutSeconds"
+          ]
+        },
+        {
+          "name": "isClaudeUnauthenticated",
+          "startLine": 254,
+          "endLine": 272,
+          "params": [
+            "repoRoot",
+            "env"
+          ]
+        },
+        {
+          "name": "appendCapped",
+          "startLine": 274,
+          "endLine": 282,
+          "params": [
+            "current",
+            "next"
+          ]
+        },
+        {
+          "name": "formatCombinedOutput",
+          "startLine": 284,
+          "endLine": 296,
+          "params": [
+            "stdout",
+            "stderr"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "claudeProvider",
+          "line": 13,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "runReview",
+          "callee": "selectClaudeModel",
+          "lineNumber": 16
+        },
+        {
+          "caller": "runReview",
+          "callee": "buildClaudeArgs",
+          "lineNumber": 17
+        },
+        {
+          "caller": "runReview",
+          "callee": "runClaudeCommand",
+          "lineNumber": 18
+        },
+        {
+          "caller": "runReview",
+          "callee": "String",
+          "lineNumber": 41
+        },
+        {
+          "caller": "runReview",
+          "callee": "isClaudeUnauthenticated",
+          "lineNumber": 47
+        },
+        {
+          "caller": "runReview",
+          "callee": "String",
+          "lineNumber": 62
+        },
+        {
+          "caller": "runReview",
+          "callee": "commandResult.stdout.trim",
+          "lineNumber": 67
+        },
+        {
+          "caller": "runReview",
+          "callee": "parseAiReviewOutput",
+          "lineNumber": 80
+        },
+        {
+          "caller": "runReview",
+          "callee": "error.diagnostics.join",
+          "lineNumber": 96
+        },
+        {
+          "caller": "runReview",
+          "callee": "String",
+          "lineNumber": 97
+        },
+        {
+          "caller": "buildClaudeArgs",
+          "callee": "args.push",
+          "lineNumber": 130
+        },
+        {
+          "caller": "selectClaudeModel",
+          "callee": "model.trim",
+          "lineNumber": 139
+        },
+        {
+          "caller": "selectClaudeModel",
+          "callee": "model.trim",
+          "lineNumber": 140
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "spawn",
+          "lineNumber": 172
+        },
+        {
+          "caller": "finish",
+          "callee": "clearTimeout",
+          "lineNumber": 200
+        },
+        {
+          "caller": "finish",
+          "callee": "clearTimeout",
+          "lineNumber": 204
+        },
+        {
+          "caller": "finish",
+          "callee": "resolve",
+          "lineNumber": 207
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "setTimeout",
+          "lineNumber": 210
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.kill",
+          "lineNumber": 212
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "setTimeout",
+          "lineNumber": 213
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.kill",
+          "lineNumber": 214
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 218
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 219
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.stdout?.on",
+          "lineNumber": 220
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "appendCapped",
+          "lineNumber": 221
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.stderr?.on",
+          "lineNumber": 223
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "appendCapped",
+          "lineNumber": 224
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.on",
+          "lineNumber": 226
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "finish",
+          "lineNumber": 227
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.on",
+          "lineNumber": 229
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "finish",
+          "lineNumber": 231
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "formatCombinedOutput",
+          "lineNumber": 233
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "finish",
+          "lineNumber": 238
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "formatCombinedOutput",
+          "lineNumber": 241
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.stdin?.on",
+          "lineNumber": 246
+        },
+        {
+          "caller": "runClaudeCommand",
+          "callee": "child.stdin?.end",
+          "lineNumber": 250
+        },
+        {
+          "caller": "isClaudeUnauthenticated",
+          "callee": "spawn",
+          "lineNumber": 259
+        },
+        {
+          "caller": "isClaudeUnauthenticated",
+          "callee": "child.on",
+          "lineNumber": 265
+        },
+        {
+          "caller": "isClaudeUnauthenticated",
+          "callee": "resolve",
+          "lineNumber": 266
+        },
+        {
+          "caller": "isClaudeUnauthenticated",
+          "callee": "child.on",
+          "lineNumber": 268
+        },
+        {
+          "caller": "isClaudeUnauthenticated",
+          "callee": "resolve",
+          "lineNumber": 269
+        },
+        {
+          "caller": "appendCapped",
+          "callee": "combined.slice",
+          "lineNumber": 281
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "[stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join",
+          "lineNumber": 285
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "[stdout.trimEnd(), stderr.trimEnd()].filter",
+          "lineNumber": 285
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "stdout.trimEnd",
+          "lineNumber": 285
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "stderr.trimEnd",
+          "lineNumber": 285
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "combined.slice",
+          "lineNumber": 295
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/ai/providers/copilot.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 297,
+      "nonEmptyLines": 262,
+      "functions": [
+        {
+          "name": "buildCopilotArgs",
+          "startLine": 113,
+          "endLine": 135,
+          "params": [
+            "model"
+          ]
+        },
+        {
+          "name": "selectCopilotModel",
+          "startLine": 137,
+          "endLine": 145,
+          "params": [
+            "providerConfig"
+          ]
+        },
+        {
+          "name": "runCopilotCommand",
+          "startLine": 147,
+          "endLine": 255,
+          "params": [
+            "args",
+            "prompt",
+            "repoRoot",
+            "env",
+            "timeoutSeconds"
+          ]
+        },
+        {
+          "name": "isCopilotAuthFailure",
+          "startLine": 257,
+          "endLine": 273,
+          "params": [
+            "output"
+          ]
+        },
+        {
+          "name": "appendCapped",
+          "startLine": 275,
+          "endLine": 283,
+          "params": [
+            "current",
+            "next"
+          ]
+        },
+        {
+          "name": "formatCombinedOutput",
+          "startLine": 285,
+          "endLine": 297,
+          "params": [
+            "stdout",
+            "stderr"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "copilotProvider",
+          "line": 13,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "runReview",
+          "callee": "selectCopilotModel",
+          "lineNumber": 16
+        },
+        {
+          "caller": "runReview",
+          "callee": "buildCopilotArgs",
+          "lineNumber": 17
+        },
+        {
+          "caller": "runReview",
+          "callee": "runCopilotCommand",
+          "lineNumber": 18
+        },
+        {
+          "caller": "runReview",
+          "callee": "String",
+          "lineNumber": 41
+        },
+        {
+          "caller": "runReview",
+          "callee": "isCopilotAuthFailure",
+          "lineNumber": 49
+        },
+        {
+          "caller": "runReview",
+          "callee": "String",
+          "lineNumber": 64
+        },
+        {
+          "caller": "runReview",
+          "callee": "commandResult.stdout.trim",
+          "lineNumber": 69
+        },
+        {
+          "caller": "runReview",
+          "callee": "parseAiReviewOutput",
+          "lineNumber": 82
+        },
+        {
+          "caller": "runReview",
+          "callee": "error.diagnostics.join",
+          "lineNumber": 98
+        },
+        {
+          "caller": "runReview",
+          "callee": "String",
+          "lineNumber": 99
+        },
+        {
+          "caller": "buildCopilotArgs",
+          "callee": "args.push",
+          "lineNumber": 131
+        },
+        {
+          "caller": "selectCopilotModel",
+          "callee": "model.trim",
+          "lineNumber": 142
+        },
+        {
+          "caller": "selectCopilotModel",
+          "callee": "model.trim",
+          "lineNumber": 143
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "spawn",
+          "lineNumber": 175
+        },
+        {
+          "caller": "finish",
+          "callee": "clearTimeout",
+          "lineNumber": 203
+        },
+        {
+          "caller": "finish",
+          "callee": "clearTimeout",
+          "lineNumber": 207
+        },
+        {
+          "caller": "finish",
+          "callee": "resolve",
+          "lineNumber": 210
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "setTimeout",
+          "lineNumber": 213
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.kill",
+          "lineNumber": 215
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "setTimeout",
+          "lineNumber": 216
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.kill",
+          "lineNumber": 217
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 221
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 222
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.stdout?.on",
+          "lineNumber": 223
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "appendCapped",
+          "lineNumber": 224
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.stderr?.on",
+          "lineNumber": 226
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "appendCapped",
+          "lineNumber": 227
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.on",
+          "lineNumber": 229
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "finish",
+          "lineNumber": 230
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.on",
+          "lineNumber": 232
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "finish",
+          "lineNumber": 234
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "formatCombinedOutput",
+          "lineNumber": 236
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "finish",
+          "lineNumber": 241
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "formatCombinedOutput",
+          "lineNumber": 244
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.stdin?.on",
+          "lineNumber": 249
+        },
+        {
+          "caller": "runCopilotCommand",
+          "callee": "child.stdin?.end",
+          "lineNumber": 253
+        },
+        {
+          "caller": "isCopilotAuthFailure",
+          "callee": "[\n    /not authenticated/i,\n    /authentication required/i,\n    /must authenticate/i,\n    /please authenticate/i,\n    /not logged in/i,\n    /copilot login/i,\n    /\\/login/i,\n    /COPILOT_GITHUB_TOKEN/,\n    /\\bGH_TOKEN\\b/,\n    /\\bGITHUB_TOKEN\\b/,\n    /copilot.*subscription/i,\n    /copilot.*policy.*enabled/i,\n    /access.*copilot/i,\n  ].some",
+          "lineNumber": 258
+        },
+        {
+          "caller": "isCopilotAuthFailure",
+          "callee": "pattern.test",
+          "lineNumber": 272
+        },
+        {
+          "caller": "appendCapped",
+          "callee": "combined.slice",
+          "lineNumber": 282
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "[stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join",
+          "lineNumber": 286
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "[stdout.trimEnd(), stderr.trimEnd()].filter",
+          "lineNumber": 286
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "stdout.trimEnd",
+          "lineNumber": 286
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "stderr.trimEnd",
+          "lineNumber": 286
+        },
+        {
+          "caller": "formatCombinedOutput",
+          "callee": "combined.slice",
+          "lineNumber": 296
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/ai/review-output.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 318,
+      "nonEmptyLines": 257,
+      "functions": [
+        {
+          "name": "parseAiReviewOutput",
+          "startLine": 40,
+          "endLine": 92,
+          "params": [
+            "rawOutput",
+            "source"
+          ]
+        },
+        {
+          "name": "parseCandidate",
+          "startLine": 94,
+          "endLine": 132,
+          "params": [
+            "candidate",
+            "diagnostics"
+          ]
+        },
+        {
+          "name": "validateParsedReview",
+          "startLine": 134,
+          "endLine": 140,
+          "params": [
+            "parsed"
+          ]
+        },
+        {
+          "name": "buildCandidates",
+          "startLine": 142,
+          "endLine": 178,
+          "params": [
+            "output"
+          ]
+        },
+        {
+          "name": "extractFencedJsonBlocks",
+          "startLine": 180,
+          "endLine": 184,
+          "params": [
+            "output"
+          ]
+        },
+        {
+          "name": "extractJsonObjectSlice",
+          "startLine": 186,
+          "endLine": 197,
+          "params": [
+            "output"
+          ]
+        },
+        {
+          "name": "unwrapSingleNestedObject",
+          "startLine": 199,
+          "endLine": 215,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "isPlainObject",
+          "startLine": 217,
+          "endLine": 219,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "validateFindingSemantics",
+          "startLine": 221,
+          "endLine": 245,
+          "params": [
+            "findings"
+          ]
+        },
+        {
+          "name": "normalizeFinding",
+          "startLine": 247,
+          "endLine": 264,
+          "params": [
+            "finding",
+            "source"
+          ]
+        },
+        {
+          "name": "summarizeFindings",
+          "startLine": 266,
+          "endLine": 279,
+          "params": [
+            "findings"
+          ]
+        },
+        {
+          "name": "formatSchemaDiagnostics",
+          "startLine": 281,
+          "endLine": 287,
+          "params": [
+            "errors"
+          ]
+        },
+        {
+          "name": "formatSchemaError",
+          "startLine": 289,
+          "endLine": 310,
+          "params": [
+            "error"
+          ]
+        },
+        {
+          "name": "formatUnknownError",
+          "startLine": 312,
+          "endLine": 314,
+          "params": [
+            "error"
+          ]
+        },
+        {
+          "name": "dedupeDiagnostics",
+          "startLine": 316,
+          "endLine": 318,
+          "params": [
+            "diagnostics"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "AiReviewOutputError",
+          "startLine": 30,
+          "endLine": 38,
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "diagnostics"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AiReviewOutputError",
+          "line": 30,
+          "isDefault": false
+        },
+        {
+          "name": "parseAiReviewOutput",
+          "line": 40,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "constructor",
+          "callee": "super",
+          "lineNumber": 34
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "rawOutput.replace(/\\r/g, \"\").trim",
+          "lineNumber": 48
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "rawOutput.replace",
+          "lineNumber": 48
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "buildCandidates",
+          "lineNumber": 59
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "parseCandidate",
+          "lineNumber": 60
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "validateFindingSemantics",
+          "lineNumber": 66
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "diagnostics.push",
+          "lineNumber": 69
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "semanticDiagnostics.join",
+          "lineNumber": 70
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "rawReview.findings.map",
+          "lineNumber": 75
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "normalizeFinding",
+          "lineNumber": 76
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "summarizeFindings",
+          "lineNumber": 82
+        },
+        {
+          "caller": "parseAiReviewOutput",
+          "callee": "dedupeDiagnostics",
+          "lineNumber": 89
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "JSON.parse",
+          "lineNumber": 101
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "diagnostics.push",
+          "lineNumber": 103
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "formatUnknownError",
+          "lineNumber": 104
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "validateParsedReview",
+          "lineNumber": 109
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "unwrapSingleNestedObject",
+          "lineNumber": 115
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "validateParsedReview",
+          "lineNumber": 118
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "candidate.notes.push",
+          "lineNumber": 121
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "JSON.stringify",
+          "lineNumber": 122
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "diagnostics.push",
+          "lineNumber": 128
+        },
+        {
+          "caller": "parseCandidate",
+          "callee": "formatSchemaDiagnostics",
+          "lineNumber": 129
+        },
+        {
+          "caller": "validateParsedReview",
+          "callee": "validateSchema",
+          "lineNumber": 135
+        },
+        {
+          "caller": "addCandidate",
+          "callee": "value.trim",
+          "lineNumber": 147
+        },
+        {
+          "caller": "addCandidate",
+          "callee": "seen.has",
+          "lineNumber": 149
+        },
+        {
+          "caller": "addCandidate",
+          "callee": "seen.add",
+          "lineNumber": 153
+        },
+        {
+          "caller": "addCandidate",
+          "callee": "candidates.push",
+          "lineNumber": 154
+        },
+        {
+          "caller": "buildCandidates",
+          "callee": "addCandidate",
+          "lineNumber": 161
+        },
+        {
+          "caller": "buildCandidates",
+          "callee": "extractFencedJsonBlocks",
+          "lineNumber": 163
+        },
+        {
+          "caller": "buildCandidates",
+          "callee": "addCandidate",
+          "lineNumber": 164
+        },
+        {
+          "caller": "buildCandidates",
+          "callee": "extractJsonObjectSlice",
+          "lineNumber": 169
+        },
+        {
+          "caller": "buildCandidates",
+          "callee": "addCandidate",
+          "lineNumber": 172
+        },
+        {
+          "caller": "extractFencedJsonBlocks",
+          "callee": "output.matchAll",
+          "lineNumber": 181
+        },
+        {
+          "caller": "extractFencedJsonBlocks",
+          "callee": "[...matches].map",
+          "lineNumber": 183
+        },
+        {
+          "caller": "extractJsonObjectSlice",
+          "callee": "output.indexOf",
+          "lineNumber": 187
+        },
+        {
+          "caller": "extractJsonObjectSlice",
+          "callee": "output.lastIndexOf",
+          "lineNumber": 188
+        },
+        {
+          "caller": "extractJsonObjectSlice",
+          "callee": "output.slice",
+          "lineNumber": 194
+        },
+        {
+          "caller": "unwrapSingleNestedObject",
+          "callee": "isPlainObject",
+          "lineNumber": 202
+        },
+        {
+          "caller": "unwrapSingleNestedObject",
+          "callee": "Object.entries",
+          "lineNumber": 206
+        },
+        {
+          "caller": "unwrapSingleNestedObject",
+          "callee": "isPlainObject",
+          "lineNumber": 214
+        },
+        {
+          "caller": "isPlainObject",
+          "callee": "Array.isArray",
+          "lineNumber": 218
+        },
+        {
+          "caller": "validateFindingSemantics",
+          "callee": "BLOCKING_CATEGORY_SET.has",
+          "lineNumber": 226
+        },
+        {
+          "caller": "validateFindingSemantics",
+          "callee": "diagnostics.push",
+          "lineNumber": 229
+        },
+        {
+          "caller": "validateFindingSemantics",
+          "callee": "JSON.stringify",
+          "lineNumber": 230
+        },
+        {
+          "caller": "validateFindingSemantics",
+          "callee": "WARNING_CATEGORY_SET.has",
+          "lineNumber": 235
+        },
+        {
+          "caller": "validateFindingSemantics",
+          "callee": "diagnostics.push",
+          "lineNumber": 238
+        },
+        {
+          "caller": "validateFindingSemantics",
+          "callee": "JSON.stringify",
+          "lineNumber": 239
+        },
+        {
+          "caller": "summarizeFindings",
+          "callee": "findings.filter",
+          "lineNumber": 267
+        },
+        {
+          "caller": "summarizeFindings",
+          "callee": "findings.filter",
+          "lineNumber": 270
+        },
+        {
+          "caller": "formatSchemaDiagnostics",
+          "callee": "errors.map(formatSchemaError).join",
+          "lineNumber": 286
+        },
+        {
+          "caller": "formatSchemaDiagnostics",
+          "callee": "errors.map",
+          "lineNumber": 286
+        },
+        {
+          "caller": "formatSchemaError",
+          "callee": "String",
+          "lineNumber": 294
+        },
+        {
+          "caller": "formatSchemaError",
+          "callee": "JSON.stringify",
+          "lineNumber": 295
+        },
+        {
+          "caller": "formatSchemaError",
+          "callee": "JSON.stringify",
+          "lineNumber": 304
+        },
+        {
+          "caller": "formatSchemaError",
+          "callee": "String",
+          "lineNumber": 304
+        },
+        {
+          "caller": "formatSchemaError",
+          "callee": "String",
+          "lineNumber": 306
+        },
+        {
+          "caller": "formatUnknownError",
+          "callee": "String",
+          "lineNumber": 313
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 2,
+        "functionCount": 15,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "src/ai/types.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 128,
+      "nonEmptyLines": 109,
+      "exports": [
+        {
+          "name": "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "AI_BLOCKING_CATEGORIES",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "AI_WARNING_CATEGORIES",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "AI_FINDING_CATEGORIES",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AI_FINDING_CONFIDENCE_LEVELS",
+          "line": 22,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 5,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "test/ai.test.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 669,
+      "nonEmptyLines": 613,
+      "functions": [
+        {
+          "name": "withAiRepo",
+          "startLine": 539,
+          "endLine": 578,
+          "params": [
+            "callback"
+          ]
+        },
+        {
+          "name": "checkedRun",
+          "startLine": 580,
+          "endLine": 622,
+          "params": [
+            "command",
+            "args",
+            "options"
+          ]
+        },
+        {
+          "name": "writeRepoFile",
+          "startLine": 624,
+          "endLine": 633,
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ]
+        },
+        {
+          "name": "readArgLines",
+          "startLine": 635,
+          "endLine": 637,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "captureOutput",
+          "startLine": 639,
+          "endLine": 657,
+          "params": []
+        },
+        {
+          "name": "minimalReviewPayload",
+          "startLine": 659,
+          "endLine": 669,
+          "params": [
+            "prompt"
+          ]
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "withAiRepo",
+          "callee": "mkdtemp",
+          "lineNumber": 542
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "join",
+          "lineNumber": 542
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "tmpdir",
+          "lineNumber": 542
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 545
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 548
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 551
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "writeRepoFile",
+          "lineNumber": 554
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "writeRepoFile",
+          "lineNumber": 555
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 556
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 557
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 560
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "writeRepoFile",
+          "lineNumber": 563
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "rm",
+          "lineNumber": 568
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "join",
+          "lineNumber": 568
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 569
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 570
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "callback",
+          "lineNumber": 574
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "rm",
+          "lineNumber": 576
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "spawn",
+          "lineNumber": 592
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 599
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 600
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stdout?.on",
+          "lineNumber": 601
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stderr?.on",
+          "lineNumber": 604
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.on",
+          "lineNumber": 607
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.on",
+          "lineNumber": 608
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "resolve",
+          "lineNumber": 609
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "[\n        `${command} ${args.join(\" \")} exited with ${String(result.code)}.`,\n        `stdout:\\n${result.stdout}`,\n        `stderr:\\n${result.stderr}`,\n      ].join",
+          "lineNumber": 615
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "args.join",
+          "lineNumber": 616
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "String",
+          "lineNumber": 616
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "join",
+          "lineNumber": 629
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "mkdir",
+          "lineNumber": 631
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "dirname",
+          "lineNumber": 631
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "writeFile",
+          "lineNumber": 632
+        },
+        {
+          "caller": "readArgLines",
+          "callee": "(await readFile(path, \"utf8\")).trimEnd().split",
+          "lineNumber": 636
+        },
+        {
+          "caller": "readArgLines",
+          "callee": "(await readFile(path, \"utf8\")).trimEnd",
+          "lineNumber": 636
+        },
+        {
+          "caller": "readArgLines",
+          "callee": "readFile",
+          "lineNumber": 636
+        },
+        {
+          "caller": "write",
+          "callee": "chunk.toString",
+          "lineNumber": 646
+        },
+        {
+          "caller": "write",
+          "callee": "callback",
+          "lineNumber": 647
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 0,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    }
+  ]
+}

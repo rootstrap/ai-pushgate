@@ -1,0 +1,5863 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "ai-pushgate",
+    "languages": [
+      "javascript",
+      "json",
+      "markdown",
+      "shell",
+      "typescript",
+      "unknown",
+      "yaml"
+    ],
+    "frameworks": [
+      "TypeScript",
+      "AJV",
+      "tsx",
+      "Node.js",
+      "GitHub Actions"
+    ],
+    "description": "A language-agnostic push gate for regular git push workflows. An installed pre-push hook delegates into a managed Pushgate runner so local checks and AI review can fit the normal git push flow before changes reach the next layer of review.",
+    "analyzedAt": "2026-06-15T15:42:38Z",
+    "gitCommitHash": "66b295724c059ef1073a21baadfb2f8c674fe378"
+  },
+  "nodes": [
+    {
+      "id": "file:src/cli.ts",
+      "type": "file",
+      "name": "cli.ts",
+      "filePath": "src/cli.ts",
+      "summary": "Primary Pushgate CLI entrypoint that dispatches hook-protocol, pre-push, and wrapper push commands across config, deterministic checks, and local AI review.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "orchestration",
+        "ai-review"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/cli.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        38,
+        72
+      ],
+      "summary": "Helper named main that supports primary pushgate cli entrypoint that dispatches hook-protocol, pre-push, and wrapper push commands across config, deterministic checks, and local ai review.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:runPrePush",
+      "type": "function",
+      "name": "runPrePush",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        74,
+        131
+      ],
+      "summary": "Runs the pre push path within cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/cli.ts:runPushCommand",
+      "type": "function",
+      "name": "runPushCommand",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        133,
+        181
+      ],
+      "summary": "Runs the push command path within cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:runDeterministicPhase",
+      "type": "function",
+      "name": "runDeterministicPhase",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        183,
+        201
+      ],
+      "summary": "Runs the deterministic phase path within cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:runLocalAiPhase",
+      "type": "function",
+      "name": "runLocalAiPhase",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        203,
+        240
+      ],
+      "summary": "Runs the local ai phase path within cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:maybeResolveChangedFiles",
+      "type": "function",
+      "name": "maybeResolveChangedFiles",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        242,
+        263
+      ],
+      "summary": "Helper named maybeResolveChangedFiles that supports primary pushgate cli entrypoint that dispatches hook-protocol, pre-push, and wrapper push commands across config, deterministic checks, and local ai review.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:drainStdin",
+      "type": "function",
+      "name": "drainStdin",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        265,
+        276
+      ],
+      "summary": "Helper named drainStdin that supports primary pushgate cli entrypoint that dispatches hook-protocol, pre-push, and wrapper push commands across config, deterministic checks, and local ai review.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:resolveRepoRoot",
+      "type": "function",
+      "name": "resolveRepoRoot",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        278,
+        309
+      ],
+      "summary": "Resolves repo root for cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:writePushgateError",
+      "type": "function",
+      "name": "writePushgateError",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        311,
+        327
+      ],
+      "summary": "Typed error used by cli.ts to report write pushgate failures with clearer diagnostics.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:parsePushCommandArgs",
+      "type": "function",
+      "name": "parsePushCommandArgs",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        336,
+        369
+      ],
+      "summary": "Parses push command args input for cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli.ts:isCliEntrypoint",
+      "type": "function",
+      "name": "isCliEntrypoint",
+      "filePath": "src/cli.ts",
+      "lineRange": [
+        377,
+        390
+      ],
+      "summary": "Checks whether cli entrypoint within cli.ts.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "git-hooks",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/config/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/config/index.ts",
+      "summary": "Loads, validates, and normalizes the v2 Pushgate YAML config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "yaml",
+        "loader",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/config/index.ts:parseConfigYaml",
+      "type": "function",
+      "name": "parseConfigYaml",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        113,
+        143
+      ],
+      "summary": "Parses config yaml input for index.ts.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/index.ts:loadConfig",
+      "type": "function",
+      "name": "loadConfig",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        152,
+        183
+      ],
+      "summary": "Helper named loadConfig that supports loads, validates, and normalizes the v2 pushgate yaml config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/index.ts:normalizeConfig",
+      "type": "function",
+      "name": "normalizeConfig",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        185,
+        216
+      ],
+      "summary": "Helper named normalizeConfig that supports loads, validates, and normalizes the v2 pushgate yaml config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/index.ts:normalizePolicies",
+      "type": "function",
+      "name": "normalizePolicies",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        218,
+        241
+      ],
+      "summary": "Helper named normalizePolicies that supports loads, validates, and normalizes the v2 pushgate yaml config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/index.ts:validateProviderSelection",
+      "type": "function",
+      "name": "validateProviderSelection",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        243,
+        261
+      ],
+      "summary": "Helper named validateProviderSelection that supports loads, validates, and normalizes the v2 pushgate yaml config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/index.ts:formatSchemaError",
+      "type": "function",
+      "name": "formatSchemaError",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        263,
+        279
+      ],
+      "summary": "Typed error used by index.ts to report format schema failures with clearer diagnostics.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/index.ts:cloneValue",
+      "type": "function",
+      "name": "cloneValue",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        281,
+        293
+      ],
+      "summary": "Helper named cloneValue that supports loads, validates, and normalizes the v2 pushgate yaml config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/index.ts:ConfigError",
+      "type": "class",
+      "name": "ConfigError",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        39,
+        51
+      ],
+      "summary": "Typed error used by index.ts to report config failures with clearer diagnostics.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/index.ts:ConfigValidationError",
+      "type": "class",
+      "name": "ConfigValidationError",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        54,
+        68
+      ],
+      "summary": "Typed error used by index.ts to report config validation failures with clearer diagnostics.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/index.ts:MissingConfigError",
+      "type": "class",
+      "name": "MissingConfigError",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        71,
+        82
+      ],
+      "summary": "Typed error used by index.ts to report missing config failures with clearer diagnostics.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/index.ts:LegacyConfigError",
+      "type": "class",
+      "name": "LegacyConfigError",
+      "filePath": "src/config/index.ts",
+      "lineRange": [
+        90,
+        104
+      ],
+      "summary": "Typed error used by index.ts to report legacy config failures with clearer diagnostics.",
+      "tags": [
+        "configuration",
+        "validation",
+        "schema",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/config/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "src/config/types.ts",
+      "summary": "Defines the TypeScript contract for Pushgate v2 configuration, provider settings, tool execution, and built-in policy settings.",
+      "tags": [
+        "configuration",
+        "type-definition",
+        "schema",
+        "contracts"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/runner/deterministic.ts",
+      "type": "file",
+      "name": "deterministic.ts",
+      "filePath": "src/runner/deterministic.ts",
+      "summary": "Runs configured deterministic checks, expands changed-file arguments, captures tool output, and enforces blocking versus warning behavior.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "policy",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "type": "function",
+      "name": "runDeterministicChecks",
+      "filePath": "src/runner/deterministic.ts",
+      "lineRange": [
+        47,
+        143
+      ],
+      "summary": "Runs the deterministic checks path within deterministic.ts.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:expandChangedFilesToken",
+      "type": "function",
+      "name": "expandChangedFilesToken",
+      "filePath": "src/runner/deterministic.ts",
+      "lineRange": [
+        145,
+        152
+      ],
+      "summary": "Helper named expandChangedFilesToken that supports runs configured deterministic checks, expands changed-file arguments, captures tool output, and enforces blocking versus warning behavior.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:runToolCommand",
+      "type": "function",
+      "name": "runToolCommand",
+      "filePath": "src/runner/deterministic.ts",
+      "lineRange": [
+        154,
+        248
+      ],
+      "summary": "Runs the tool command path within deterministic.ts.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:writeFailure",
+      "type": "function",
+      "name": "writeFailure",
+      "filePath": "src/runner/deterministic.ts",
+      "lineRange": [
+        250,
+        269
+      ],
+      "summary": "Writes failure output for deterministic.ts.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:writePolicyResult",
+      "type": "function",
+      "name": "writePolicyResult",
+      "filePath": "src/runner/deterministic.ts",
+      "lineRange": [
+        271,
+        286
+      ],
+      "summary": "Writes policy result output for deterministic.ts.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:formatOutputTail",
+      "type": "function",
+      "name": "formatOutputTail",
+      "filePath": "src/runner/deterministic.ts",
+      "lineRange": [
+        298,
+        310
+      ],
+      "summary": "Formats output tail values for deterministic.ts.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/runner/policies.ts",
+      "type": "file",
+      "name": "policies.ts",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Implements built-in deterministic policies such as diff-size and forbidden-path checks used before external tools or AI review run.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "guardrails"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "function",
+      "name": "countBuiltInPolicies",
+      "filePath": "src/runner/policies.ts",
+      "lineRange": [
+        26,
+        33
+      ],
+      "summary": "Counts built in policies for policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "function",
+      "name": "runBuiltInPolicies",
+      "filePath": "src/runner/policies.ts",
+      "lineRange": [
+        35,
+        52
+      ],
+      "summary": "Runs the built in policies path within policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:runDiffSizePolicy",
+      "type": "function",
+      "name": "runDiffSizePolicy",
+      "filePath": "src/runner/policies.ts",
+      "lineRange": [
+        54,
+        79
+      ],
+      "summary": "Runs the diff size policy path within policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "type": "function",
+      "name": "runForbiddenPathsPolicy",
+      "filePath": "src/runner/policies.ts",
+      "lineRange": [
+        81,
+        110
+      ],
+      "summary": "Runs the forbidden paths policy path within policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:formatForbiddenPathMatches",
+      "type": "function",
+      "name": "formatForbiddenPathMatches",
+      "filePath": "src/runner/policies.ts",
+      "lineRange": [
+        119,
+        132
+      ],
+      "summary": "Formats forbidden path matches values for policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:violationResult",
+      "type": "function",
+      "name": "violationResult",
+      "filePath": "src/runner/policies.ts",
+      "lineRange": [
+        134,
+        144
+      ],
+      "summary": "Helper named violationResult that supports implements built-in deterministic policies such as diff-size and forbidden-path checks used before external tools or ai review run.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/skip-controls.ts",
+      "type": "file",
+      "name": "skip-controls.ts",
+      "filePath": "src/skip-controls.ts",
+      "summary": "Reads one-push Git config flags and builds git push arguments for skipping all checks or only the local AI phase.",
+      "tags": [
+        "git-config",
+        "skip-controls",
+        "cli",
+        "git-push"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/skip-controls.ts:buildGitPushArgs",
+      "type": "function",
+      "name": "buildGitPushArgs",
+      "filePath": "src/skip-controls.ts",
+      "lineRange": [
+        19,
+        34
+      ],
+      "summary": "Builds git push args data for skip-controls.ts.",
+      "tags": [
+        "git-config",
+        "skip-controls",
+        "cli",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/skip-controls.ts:resolveSkipControlState",
+      "type": "function",
+      "name": "resolveSkipControlState",
+      "filePath": "src/skip-controls.ts",
+      "lineRange": [
+        36,
+        61
+      ],
+      "summary": "Resolves skip control state for skip-controls.ts.",
+      "tags": [
+        "git-config",
+        "skip-controls",
+        "cli",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/skip-controls.ts:readGitBooleanConfig",
+      "type": "function",
+      "name": "readGitBooleanConfig",
+      "filePath": "src/skip-controls.ts",
+      "lineRange": [
+        63,
+        127
+      ],
+      "summary": "Helper named readGitBooleanConfig that supports reads one-push git config flags and builds git push arguments for skipping all checks or only the local ai phase.",
+      "tags": [
+        "git-config",
+        "skip-controls",
+        "cli",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/skip-controls.ts:SkipControlError",
+      "type": "class",
+      "name": "SkipControlError",
+      "filePath": "src/skip-controls.ts",
+      "lineRange": [
+        12,
+        17
+      ],
+      "summary": "Typed error used by skip-controls.ts to report skip control failures with clearer diagnostics.",
+      "tags": [
+        "git-config",
+        "skip-controls",
+        "cli",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/config.test.ts",
+      "type": "file",
+      "name": "config.test.ts",
+      "filePath": "test/config.test.ts",
+      "summary": "Config-loader test suite covering valid configs, schema validation failures, and legacy migration behavior.",
+      "tags": [
+        "test",
+        "configuration",
+        "validation",
+        "schema"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/config.test.ts:assertValidationError",
+      "type": "function",
+      "name": "assertValidationError",
+      "filePath": "test/config.test.ts",
+      "lineRange": [
+        388,
+        397
+      ],
+      "summary": "Typed error used by config.test.ts to report assert validation failures with clearer diagnostics.",
+      "tags": [
+        "test",
+        "configuration",
+        "validation",
+        "function",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/config.test.ts:withTempRepo",
+      "type": "function",
+      "name": "withTempRepo",
+      "filePath": "test/config.test.ts",
+      "lineRange": [
+        399,
+        413
+      ],
+      "summary": "Helper named withTempRepo that supports config-loader test suite covering valid configs, schema validation failures, and legacy migration behavior.",
+      "tags": [
+        "test",
+        "configuration",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/deterministic-runner.test.ts",
+      "type": "file",
+      "name": "deterministic-runner.test.ts",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "policy"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:configWithTools",
+      "type": "function",
+      "name": "configWithTools",
+      "filePath": "test/deterministic-runner.test.ts",
+      "lineRange": [
+        313,
+        332
+      ],
+      "summary": "Helper named configWithTools that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:tool",
+      "type": "function",
+      "name": "tool",
+      "filePath": "test/deterministic-runner.test.ts",
+      "lineRange": [
+        334,
+        344
+      ],
+      "summary": "Helper named tool that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:withTempDir",
+      "type": "function",
+      "name": "withTempDir",
+      "filePath": "test/deterministic-runner.test.ts",
+      "lineRange": [
+        346,
+        356
+      ],
+      "summary": "Helper named withTempDir that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:writeArgRecorder",
+      "type": "function",
+      "name": "writeArgRecorder",
+      "filePath": "test/deterministic-runner.test.ts",
+      "lineRange": [
+        358,
+        371
+      ],
+      "summary": "Writes arg recorder output for deterministic-runner.test.ts.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:captureOutput",
+      "type": "function",
+      "name": "captureOutput",
+      "filePath": "test/deterministic-runner.test.ts",
+      "lineRange": [
+        373,
+        391
+      ],
+      "summary": "Helper named captureOutput that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/ai/index.ts",
+      "summary": "Coordinates provider-backed local AI review, including prompt budgeting, provider selection, normalized findings, and blocking versus advisory outcomes.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "orchestration",
+        "prompt-budget",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/index.ts:runLocalAiReview",
+      "type": "function",
+      "name": "runLocalAiReview",
+      "filePath": "src/ai/index.ts",
+      "lineRange": [
+        46,
+        129
+      ],
+      "summary": "Runs the local ai review path within index.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/index.ts:resolveProvider",
+      "type": "function",
+      "name": "resolveProvider",
+      "filePath": "src/ai/index.ts",
+      "lineRange": [
+        131,
+        140
+      ],
+      "summary": "Resolves provider for index.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "orchestration",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/index.ts:handleProviderResult",
+      "type": "function",
+      "name": "handleProviderResult",
+      "filePath": "src/ai/index.ts",
+      "lineRange": [
+        142,
+        229
+      ],
+      "summary": "Helper named handleProviderResult that supports coordinates provider-backed local ai review, including prompt budgeting, provider selection, normalized findings, and blocking versus advisory outcomes.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/index.ts:countChangedLines",
+      "type": "function",
+      "name": "countChangedLines",
+      "filePath": "src/ai/index.ts",
+      "lineRange": [
+        235,
+        245
+      ],
+      "summary": "Counts changed lines for index.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/providers/claude.ts",
+      "type": "file",
+      "name": "claude.ts",
+      "filePath": "src/ai/providers/claude.ts",
+      "summary": "Adapter for running Claude Code CLI reviews and converting command failures or malformed output into Pushgate provider results.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "cli-adapter"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/providers/claude.ts:buildClaudeArgs",
+      "type": "function",
+      "name": "buildClaudeArgs",
+      "filePath": "src/ai/providers/claude.ts",
+      "lineRange": [
+        111,
+        134
+      ],
+      "summary": "Builds claude args data for claude.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/claude.ts:runClaudeCommand",
+      "type": "function",
+      "name": "runClaudeCommand",
+      "filePath": "src/ai/providers/claude.ts",
+      "lineRange": [
+        144,
+        252
+      ],
+      "summary": "Runs the claude command path within claude.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/providers/claude.ts:isClaudeUnauthenticated",
+      "type": "function",
+      "name": "isClaudeUnauthenticated",
+      "filePath": "src/ai/providers/claude.ts",
+      "lineRange": [
+        254,
+        272
+      ],
+      "summary": "Checks whether claude unauthenticated within claude.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/claude.ts:formatCombinedOutput",
+      "type": "function",
+      "name": "formatCombinedOutput",
+      "filePath": "src/ai/providers/claude.ts",
+      "lineRange": [
+        284,
+        296
+      ],
+      "summary": "Formats combined output values for claude.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/providers/copilot.ts",
+      "type": "file",
+      "name": "copilot.ts",
+      "filePath": "src/ai/providers/copilot.ts",
+      "summary": "Adapter for running the standalone GitHub Copilot CLI review flow and normalizing authentication, timeout, and output parsing failures.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "cli-adapter",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/providers/copilot.ts:buildCopilotArgs",
+      "type": "function",
+      "name": "buildCopilotArgs",
+      "filePath": "src/ai/providers/copilot.ts",
+      "lineRange": [
+        113,
+        135
+      ],
+      "summary": "Builds copilot args data for copilot.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/copilot.ts:runCopilotCommand",
+      "type": "function",
+      "name": "runCopilotCommand",
+      "filePath": "src/ai/providers/copilot.ts",
+      "lineRange": [
+        147,
+        255
+      ],
+      "summary": "Runs the copilot command path within copilot.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/providers/copilot.ts:isCopilotAuthFailure",
+      "type": "function",
+      "name": "isCopilotAuthFailure",
+      "filePath": "src/ai/providers/copilot.ts",
+      "lineRange": [
+        257,
+        273
+      ],
+      "summary": "Checks whether copilot auth failure within copilot.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/copilot.ts:formatCombinedOutput",
+      "type": "function",
+      "name": "formatCombinedOutput",
+      "filePath": "src/ai/providers/copilot.ts",
+      "lineRange": [
+        285,
+        297
+      ],
+      "summary": "Formats combined output values for copilot.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/review-output.ts",
+      "type": "file",
+      "name": "review-output.ts",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Parses provider JSON output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "normalization"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "type": "function",
+      "name": "parseAiReviewOutput",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        40,
+        92
+      ],
+      "summary": "Parses ai review output input for review-output.ts.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "parsing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:parseCandidate",
+      "type": "function",
+      "name": "parseCandidate",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        94,
+        132
+      ],
+      "summary": "Parses candidate input for review-output.ts.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:buildCandidates",
+      "type": "function",
+      "name": "buildCandidates",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        142,
+        178
+      ],
+      "summary": "Builds candidates data for review-output.ts.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:extractJsonObjectSlice",
+      "type": "function",
+      "name": "extractJsonObjectSlice",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        186,
+        197
+      ],
+      "summary": "Helper named extractJsonObjectSlice that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:unwrapSingleNestedObject",
+      "type": "function",
+      "name": "unwrapSingleNestedObject",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        199,
+        215
+      ],
+      "summary": "Helper named unwrapSingleNestedObject that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:validateFindingSemantics",
+      "type": "function",
+      "name": "validateFindingSemantics",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        221,
+        245
+      ],
+      "summary": "Helper named validateFindingSemantics that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:normalizeFinding",
+      "type": "function",
+      "name": "normalizeFinding",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        247,
+        264
+      ],
+      "summary": "Helper named normalizeFinding that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:summarizeFindings",
+      "type": "function",
+      "name": "summarizeFindings",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        266,
+        279
+      ],
+      "summary": "Helper named summarizeFindings that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:formatSchemaError",
+      "type": "function",
+      "name": "formatSchemaError",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        289,
+        310
+      ],
+      "summary": "Typed error used by review-output.ts to report format schema failures with clearer diagnostics.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/ai/review-output.ts:AiReviewOutputError",
+      "type": "class",
+      "name": "AiReviewOutputError",
+      "filePath": "src/ai/review-output.ts",
+      "lineRange": [
+        30,
+        38
+      ],
+      "summary": "Typed error used by review-output.ts to report ai review output failures with clearer diagnostics.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "src/ai/types.ts",
+      "summary": "Declares shared types, enums, and schema-version constants for provider adapters and normalized AI review results.",
+      "tags": [
+        "ai-review",
+        "type-definition",
+        "schema",
+        "contracts"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:test/ai.test.ts",
+      "type": "file",
+      "name": "ai.test.ts",
+      "filePath": "test/ai.test.ts",
+      "summary": "AI review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "prompt"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/ai.test.ts:withAiRepo",
+      "type": "function",
+      "name": "withAiRepo",
+      "filePath": "test/ai.test.ts",
+      "lineRange": [
+        539,
+        578
+      ],
+      "summary": "Helper named withAiRepo that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:checkedRun",
+      "type": "function",
+      "name": "checkedRun",
+      "filePath": "test/ai.test.ts",
+      "lineRange": [
+        580,
+        622
+      ],
+      "summary": "Helper named checkedRun that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/ai.test.ts",
+      "lineRange": [
+        624,
+        633
+      ],
+      "summary": "Writes repo file output for ai.test.ts.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:captureOutput",
+      "type": "function",
+      "name": "captureOutput",
+      "filePath": "test/ai.test.ts",
+      "lineRange": [
+        639,
+        657
+      ],
+      "summary": "Helper named captureOutput that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:minimalReviewPayload",
+      "type": "function",
+      "name": "minimalReviewPayload",
+      "filePath": "test/ai.test.ts",
+      "lineRange": [
+        659,
+        669
+      ],
+      "summary": "Helper named minimalReviewPayload that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/review-prompt.ts",
+      "type": "file",
+      "name": "review-prompt.ts",
+      "filePath": "src/ai/review-prompt.ts",
+      "summary": "Builds the local AI review payload from changed files, Git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "full-file-context"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "function",
+      "name": "buildLocalAiReviewPayload",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        104,
+        149
+      ],
+      "summary": "Builds local ai review payload data for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "function",
+      "name": "renderLocalAiPrompt",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        151,
+        171
+      ],
+      "summary": "Helper named renderLocalAiPrompt that supports builds the local ai review payload from changed files, git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:collectReviewDiff",
+      "type": "function",
+      "name": "collectReviewDiff",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        173,
+        220
+      ],
+      "summary": "Collects review diff for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:collectFullFiles",
+      "type": "function",
+      "name": "collectFullFiles",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        222,
+        280
+      ],
+      "summary": "Collects full files for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:describeChangedFile",
+      "type": "function",
+      "name": "describeChangedFile",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        292,
+        308
+      ],
+      "summary": "Helper named describeChangedFile that supports builds the local ai review payload from changed files, git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "function",
+      "name": "formatFullFiles",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        310,
+        320
+      ],
+      "summary": "Formats full files values for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:countTextLines",
+      "type": "function",
+      "name": "countTextLines",
+      "filePath": "src/ai/review-prompt.ts",
+      "lineRange": [
+        322,
+        334
+      ],
+      "summary": "Counts text lines for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/path-policy/index.ts",
+      "summary": "Resolves changed files from the configured Git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "policy",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "function",
+      "name": "resolveChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        136,
+        179
+      ],
+      "summary": "Resolves changed files for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "function",
+      "name": "filterIgnoredChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        182,
+        193
+      ],
+      "summary": "Helper named filterIgnoredChangedFiles that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "function",
+      "name": "selectToolChangedFilePaths",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        201,
+        209
+      ],
+      "summary": "Helper named selectToolChangedFilePaths that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "type": "function",
+      "name": "resolveTargetCommit",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        211,
+        227
+      ],
+      "summary": "Resolves target commit for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveDiffBase",
+      "type": "function",
+      "name": "resolveDiffBase",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        229,
+        242
+      ],
+      "summary": "Resolves diff base for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:runGitChecked",
+      "type": "function",
+      "name": "runGitChecked",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        244,
+        255
+      ],
+      "summary": "Runs the git checked path within index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:parseChangedFiles",
+      "type": "function",
+      "name": "parseChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        257,
+        299
+      ],
+      "summary": "Parses changed files input for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:parseDiffStats",
+      "type": "function",
+      "name": "parseDiffStats",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        301,
+        336
+      ],
+      "summary": "Parses diff stats input for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:parseNumstatLineCounts",
+      "type": "function",
+      "name": "parseNumstatLineCounts",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        338,
+        371
+      ],
+      "summary": "Parses numstat line counts input for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:statsForPath",
+      "type": "function",
+      "name": "statsForPath",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        377,
+        388
+      ],
+      "summary": "Helper named statsForPath that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "function",
+      "name": "splitNullFields",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        390,
+        402
+      ],
+      "summary": "Helper named splitNullFields that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:normalizeGitStatus",
+      "type": "function",
+      "name": "normalizeGitStatus",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        404,
+        423
+      ],
+      "summary": "Helper named normalizeGitStatus that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:matchesExtension",
+      "type": "function",
+      "name": "matchesExtension",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        425,
+        434
+      ],
+      "summary": "Helper named matchesExtension that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:requiredPath",
+      "type": "function",
+      "name": "requiredPath",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        436,
+        448
+      ],
+      "summary": "Helper named requiredPath that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:requiredField",
+      "type": "function",
+      "name": "requiredField",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        450,
+        463
+      ],
+      "summary": "Helper named requiredField that supports resolves changed files from the configured git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:runGit",
+      "type": "function",
+      "name": "runGit",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        489,
+        523
+      ],
+      "summary": "Runs the git path within index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:ChangedFilePolicyError",
+      "type": "class",
+      "name": "ChangedFilePolicyError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        67,
+        79
+      ],
+      "summary": "Typed error used by index.ts to report changed file policy failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:MissingTargetRefError",
+      "type": "class",
+      "name": "MissingTargetRefError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        82,
+        92
+      ],
+      "summary": "Typed error used by index.ts to report missing target ref failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:MissingDiffBaseError",
+      "type": "class",
+      "name": "MissingDiffBaseError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        95,
+        112
+      ],
+      "summary": "Typed error used by index.ts to report missing diff base failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/index.ts:GitChangedFilesError",
+      "type": "class",
+      "name": "GitChangedFilesError",
+      "filePath": "src/path-policy/index.ts",
+      "lineRange": [
+        115,
+        128
+      ],
+      "summary": "Typed error used by index.ts to report git changed files failures with clearer diagnostics.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/path-policy.test.ts",
+      "type": "file",
+      "name": "path-policy.test.ts",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Changed-file resolution test suite covering Git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "filtering"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:withFeatureRepo",
+      "type": "function",
+      "name": "withFeatureRepo",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        136,
+        175
+      ],
+      "summary": "Helper named withFeatureRepo that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:withTempDir",
+      "type": "function",
+      "name": "withTempDir",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        177,
+        188
+      ],
+      "summary": "Helper named withTempDir that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        205,
+        214
+      ],
+      "summary": "Writes repo file output for path-policy.test.ts.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:checkedGit",
+      "type": "function",
+      "name": "checkedGit",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        222,
+        234
+      ],
+      "summary": "Helper named checkedGit that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:runGit",
+      "type": "function",
+      "name": "runGit",
+      "filePath": "test/path-policy.test.ts",
+      "lineRange": [
+        236,
+        263
+      ],
+      "summary": "Runs the git path within path-policy.test.ts.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "pipeline:.github/workflows/ci.yml",
+      "type": "pipeline",
+      "name": "ci.yml",
+      "filePath": ".github/workflows/ci.yml",
+      "summary": "GitHub Actions workflow that runs the project validation pipeline for pushes and pull requests.",
+      "tags": [
+        "ci-cd",
+        "automation",
+        "testing",
+        "github-actions"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "pipeline:.github/workflows/release-please.yml",
+      "type": "pipeline",
+      "name": "release-please.yml",
+      "filePath": ".github/workflows/release-please.yml",
+      "summary": "GitHub Actions workflow that drives automated release-please versioning, changelog, and release PR updates.",
+      "tags": [
+        "ci-cd",
+        "automation",
+        "release-management",
+        "github-actions"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.release-please-manifest.json",
+      "type": "config",
+      "name": ".release-please-manifest.json",
+      "filePath": ".release-please-manifest.json",
+      "summary": "Release Please manifest tracking published versions for the repository's releasable artifacts.",
+      "tags": [
+        "configuration",
+        "release-management",
+        "automation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:CHANGELOG.md",
+      "type": "document",
+      "name": "CHANGELOG.md",
+      "filePath": "CHANGELOG.md",
+      "summary": "Release history documenting shipped Pushgate versions and user-facing changes over time.",
+      "tags": [
+        "documentation",
+        "release-management",
+        "history"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:CONTRIBUTING.md",
+      "type": "document",
+      "name": "CONTRIBUTING.md",
+      "filePath": "CONTRIBUTING.md",
+      "summary": "Contribution guide for extending Pushgate templates and working with the repository's development workflow.",
+      "tags": [
+        "documentation",
+        "development",
+        "contributing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Project entry document describing Pushgate's pre-push workflow, install path, configuration contract, templates, and skip controls.",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "installation",
+        "configuration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:install.sh",
+      "type": "file",
+      "name": "install.sh",
+      "filePath": "install.sh",
+      "summary": "Installer script that downloads the managed runner, installs the pre-push hook, and seeds a template .pushgate.yml into the repository.",
+      "tags": [
+        "installation",
+        "shell-script",
+        "git-hooks",
+        "templates"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Node package manifest defining Pushgate build, bundle, shell-check, typecheck, and test scripts along with runtime dependencies.",
+      "tags": [
+        "configuration",
+        "build-system",
+        "nodejs",
+        "scripts"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:pnpm-workspace.yaml",
+      "type": "config",
+      "name": "pnpm-workspace.yaml",
+      "filePath": "pnpm-workspace.yaml",
+      "summary": "pnpm workspace configuration anchoring the repository's package-manager setup.",
+      "tags": [
+        "configuration",
+        "workspace",
+        "pnpm"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:release-please-config.json",
+      "type": "config",
+      "name": "release-please-config.json",
+      "filePath": "release-please-config.json",
+      "summary": "Release Please configuration describing the repo's release strategy and changelog settings.",
+      "tags": [
+        "configuration",
+        "release-management",
+        "automation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.build.json",
+      "type": "config",
+      "name": "tsconfig.build.json",
+      "filePath": "tsconfig.build.json",
+      "summary": "TypeScript build configuration used for generating distributable JavaScript artifacts.",
+      "tags": [
+        "configuration",
+        "typescript",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "tsconfig.json",
+      "summary": "Base TypeScript compiler configuration for source development and typechecking.",
+      "tags": [
+        "configuration",
+        "typescript",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:docs/issue-10-local-ai-provider-interface-plan.md",
+      "type": "document",
+      "name": "issue-10-local-ai-provider-interface-plan.md",
+      "filePath": "docs/issue-10-local-ai-provider-interface-plan.md",
+      "summary": "Planning document for the local ai provider interface plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-12-structured-ai-review-output-plan.md",
+      "type": "document",
+      "name": "issue-12-structured-ai-review-output-plan.md",
+      "filePath": "docs/issue-12-structured-ai-review-output-plan.md",
+      "summary": "Planning document for the structured ai review output plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-18-local-skip-controls-plan.md",
+      "type": "document",
+      "name": "issue-18-local-skip-controls-plan.md",
+      "filePath": "docs/issue-18-local-skip-controls-plan.md",
+      "summary": "Planning document for the local skip controls plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "type": "document",
+      "name": "issue-19-github-copilot-provider-adapter-plan.md",
+      "filePath": "docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "summary": "Planning document for the github copilot provider adapter plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/issue-2-config-schema-plan.md",
+      "type": "document",
+      "name": "issue-2-config-schema-plan.md",
+      "filePath": "docs/issue-2-config-schema-plan.md",
+      "summary": "Planning document for the config schema plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-3-hook-runner-test-harness-plan.md",
+      "type": "document",
+      "name": "issue-3-hook-runner-test-harness-plan.md",
+      "filePath": "docs/issue-3-hook-runner-test-harness-plan.md",
+      "summary": "Planning document for the hook runner test harness plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/product-contract-plan.md",
+      "type": "document",
+      "name": "product-contract-plan.md",
+      "filePath": "docs/product-contract-plan.md",
+      "summary": "Planning document for the product-level Pushgate contract, expected behavior, and repository boundary decisions.",
+      "tags": [
+        "documentation",
+        "planning",
+        "product-contract"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/v2-config-schema.md",
+      "type": "document",
+      "name": "v2-config-schema.md",
+      "filePath": "docs/v2-config-schema.md",
+      "summary": "Detailed design document for the v2 Pushgate config schema, migration boundary, and changed-file review contract.",
+      "tags": [
+        "documentation",
+        "configuration",
+        "schema",
+        "planning"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:templates/base.yml",
+      "type": "config",
+      "name": "base.yml",
+      "filePath": "templates/base.yml",
+      "summary": "Starter Pushgate configuration template for Base repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "configuration",
+        "template"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:templates/nextjs.yml",
+      "type": "config",
+      "name": "nextjs.yml",
+      "filePath": "templates/nextjs.yml",
+      "summary": "Starter Pushgate configuration template for Nextjs repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "configuration",
+        "template"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/node.yml",
+      "type": "config",
+      "name": "node.yml",
+      "filePath": "templates/node.yml",
+      "summary": "Starter Pushgate configuration template for Node repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "configuration",
+        "template"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/rails.yml",
+      "type": "config",
+      "name": "rails.yml",
+      "filePath": "templates/rails.yml",
+      "summary": "Starter Pushgate configuration template for Rails repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "configuration",
+        "template"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/ruby.yml",
+      "type": "config",
+      "name": "ruby.yml",
+      "filePath": "templates/ruby.yml",
+      "summary": "Starter Pushgate configuration template for Ruby repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "configuration",
+        "template"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/typescript.yml",
+      "type": "config",
+      "name": "typescript.yml",
+      "filePath": "templates/typescript.yml",
+      "summary": "Starter Pushgate configuration template for Typescript repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "configuration",
+        "template"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/defaults.yml",
+      "type": "config",
+      "name": "defaults.yml",
+      "filePath": "test/fixtures/config/defaults.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the defaults scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/invalid-provider.yml",
+      "type": "config",
+      "name": "invalid-provider.yml",
+      "filePath": "test/fixtures/config/invalid-provider.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the invalid provider scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/invalid-string-command.yml",
+      "type": "config",
+      "name": "invalid-string-command.yml",
+      "filePath": "test/fixtures/config/invalid-string-command.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the invalid string command scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:test/fixtures/config/valid.yml",
+      "type": "config",
+      "name": "valid.yml",
+      "filePath": "test/fixtures/config/valid.yml",
+      "summary": "Fixture Pushgate configuration used by config parser tests to exercise the valid scenario.",
+      "tags": [
+        "test-fixture",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.github/PULL_REQUEST_TEMPLATE.md",
+      "type": "document",
+      "name": "PULL_REQUEST_TEMPLATE.md",
+      "filePath": ".github/PULL_REQUEST_TEMPLATE.md",
+      "summary": "Pull request template that standardizes contribution context for Pushgate changes.",
+      "tags": [
+        "documentation",
+        "pull-request",
+        "development"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.nvmrc",
+      "type": "config",
+      "name": ".nvmrc",
+      "filePath": ".nvmrc",
+      "summary": "Pinned Node.js version hint for local development and installer compatibility.",
+      "tags": [
+        "configuration",
+        "nodejs",
+        "tooling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:bin/pushgate.mjs",
+      "type": "file",
+      "name": "pushgate.mjs",
+      "filePath": "bin/pushgate.mjs",
+      "summary": "Bundled Node.js runner artifact built from src/cli.ts and installed by the shell installer for hook execution.",
+      "tags": [
+        "entry-point",
+        "generated-artifact",
+        "cli",
+        "distribution"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Generated bundle output; function-level structure is intentionally suppressed to keep the graph focused on source files."
+    },
+    {
+      "id": "file:hook/pre-push",
+      "type": "file",
+      "name": "pre-push",
+      "filePath": "hook/pre-push",
+      "summary": "Thin Git pre-push hook that validates the managed runner boundary and then delegates into the installed Pushgate command.",
+      "tags": [
+        "git-hooks",
+        "entry-point",
+        "delegation",
+        "installation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "schema:schemas/ai-review-output-v1.schema.json",
+      "type": "schema",
+      "name": "ai-review-output-v1.schema.json",
+      "filePath": "schemas/ai-review-output-v1.schema.json",
+      "summary": "JSON Schema that validates normalized AI review responses returned by provider adapters.",
+      "tags": [
+        "schema-definition",
+        "ai-review",
+        "validation",
+        "json-schema"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "schema:schemas/pushgate-config-v2.schema.json",
+      "type": "schema",
+      "name": "pushgate-config-v2.schema.json",
+      "filePath": "schemas/pushgate-config-v2.schema.json",
+      "summary": "JSON Schema that validates the v2 .pushgate.yml contract consumed by the config loader.",
+      "tags": [
+        "schema-definition",
+        "configuration",
+        "validation",
+        "json-schema"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:scripts/build-runner.mjs",
+      "type": "file",
+      "name": "build-runner.mjs",
+      "filePath": "scripts/build-runner.mjs",
+      "summary": "esbuild bundling script that packages src/cli.ts into the distributable bin/pushgate.mjs runner.",
+      "tags": [
+        "build-system",
+        "esbuild",
+        "distribution",
+        "bundling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:src/ai/prompts/review-prompt.md",
+      "type": "document",
+      "name": "review-prompt.md",
+      "filePath": "src/ai/prompts/review-prompt.md",
+      "summary": "Markdown copy of the Pushgate AI review instructions that stays aligned with the runtime prompt string.",
+      "tags": [
+        "documentation",
+        "ai-review",
+        "prompt",
+        "reference"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:test/hook.test.ts",
+      "type": "file",
+      "name": "hook.test.ts",
+      "filePath": "test/hook.test.ts",
+      "summary": "Hook boundary test suite exercising the thin pre-push delegator against runner stubs and error cases.",
+      "tags": [
+        "test",
+        "git-hooks",
+        "installation",
+        "boundary"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/hook.test.ts:withHarness",
+      "type": "function",
+      "name": "withHarness",
+      "filePath": "test/hook.test.ts",
+      "lineRange": [
+        293,
+        303
+      ],
+      "summary": "Helper named withHarness that supports hook boundary test suite exercising the thin pre-push delegator against runner stubs and error cases.",
+      "tags": [
+        "test",
+        "git-hooks",
+        "installation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/install.test.ts",
+      "type": "file",
+      "name": "install.test.ts",
+      "filePath": "test/install.test.ts",
+      "summary": "Installer-focused test suite covering command download, hook installation, and configuration seeding behavior.",
+      "tags": [
+        "test",
+        "installation",
+        "distribution",
+        "shell-script"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/install.test.ts:withInstallerHarness",
+      "type": "function",
+      "name": "withInstallerHarness",
+      "filePath": "test/install.test.ts",
+      "lineRange": [
+        137,
+        147
+      ],
+      "summary": "Helper named withInstallerHarness that supports installer-focused test suite covering command download, hook installation, and configuration seeding behavior.",
+      "tags": [
+        "test",
+        "installation",
+        "distribution",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/install.test.ts:createInstallerHarness",
+      "type": "function",
+      "name": "createInstallerHarness",
+      "filePath": "test/install.test.ts",
+      "lineRange": [
+        149,
+        194
+      ],
+      "summary": "Helper named createInstallerHarness that supports installer-focused test suite covering command download, hook installation, and configuration seeding behavior.",
+      "tags": [
+        "test",
+        "installation",
+        "distribution",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/install.test.ts:installExecutable",
+      "type": "function",
+      "name": "installExecutable",
+      "filePath": "test/install.test.ts",
+      "lineRange": [
+        196,
+        205
+      ],
+      "summary": "Helper named installExecutable that supports installer-focused test suite covering command download, hook installation, and configuration seeding behavior.",
+      "tags": [
+        "test",
+        "installation",
+        "distribution",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/install.test.ts:checkedRun",
+      "type": "function",
+      "name": "checkedRun",
+      "filePath": "test/install.test.ts",
+      "lineRange": [
+        207,
+        223
+      ],
+      "summary": "Helper named checkedRun that supports installer-focused test suite covering command download, hook installation, and configuration seeding behavior.",
+      "tags": [
+        "test",
+        "installation",
+        "distribution",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/install.test.ts:runCommand",
+      "type": "function",
+      "name": "runCommand",
+      "filePath": "test/install.test.ts",
+      "lineRange": [
+        230,
+        262
+      ],
+      "summary": "Runs the command path within install.test.ts.",
+      "tags": [
+        "test",
+        "installation",
+        "distribution",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/runner.test.ts",
+      "type": "file",
+      "name": "runner.test.ts",
+      "filePath": "test/runner.test.ts",
+      "summary": "Integration-style runner tests that exercise the CLI workflow across config, deterministic checks, and local AI gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "integration-tests"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/runner.test.ts:runRunner",
+      "type": "function",
+      "name": "runRunner",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        406,
+        447
+      ],
+      "summary": "Runs the runner path within runner.test.ts.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:withRunnerRepo",
+      "type": "function",
+      "name": "withRunnerRepo",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        449,
+        459
+      ],
+      "summary": "Helper named withRunnerRepo that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:withGitRepo",
+      "type": "function",
+      "name": "withGitRepo",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        461,
+        474
+      ],
+      "summary": "Helper named withGitRepo that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:withPolicyRepo",
+      "type": "function",
+      "name": "withPolicyRepo",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        476,
+        529
+      ],
+      "summary": "Helper named withPolicyRepo that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:test/runner.test.ts:withAiRepo",
+      "type": "function",
+      "name": "withAiRepo",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        531,
+        582
+      ],
+      "summary": "Helper named withAiRepo that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:test/runner.test.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        584,
+        593
+      ],
+      "summary": "Writes repo file output for runner.test.ts.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:installClaudeStub",
+      "type": "function",
+      "name": "installClaudeStub",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        595,
+        608
+      ],
+      "summary": "Helper named installClaudeStub that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:installCopilotStub",
+      "type": "function",
+      "name": "installCopilotStub",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        610,
+        623
+      ],
+      "summary": "Helper named installCopilotStub that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:checkedRun",
+      "type": "function",
+      "name": "checkedRun",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        629,
+        659
+      ],
+      "summary": "Helper named checkedRun that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/runner.test.ts:withGitStub",
+      "type": "function",
+      "name": "withGitStub",
+      "filePath": "test/runner.test.ts",
+      "lineRange": [
+        661,
+        698
+      ],
+      "summary": "Helper named withGitStub that supports integration-style runner tests that exercise the cli workflow across config, deterministic checks, and local ai gating.",
+      "tags": [
+        "test",
+        "cli",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/support/hook-harness.ts",
+      "type": "file",
+      "name": "hook-harness.ts",
+      "filePath": "test/support/hook-harness.ts",
+      "summary": "Reusable hook-test harness that provisions isolated Git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "integration-tests"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:createHookHarness",
+      "type": "function",
+      "name": "createHookHarness",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        122,
+        210
+      ],
+      "summary": "Helper named createHookHarness that supports reusable hook-test harness that provisions isolated git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:cleanHookOutput",
+      "type": "function",
+      "name": "cleanHookOutput",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        215,
+        220
+      ],
+      "summary": "Helper named cleanHookOutput that supports reusable hook-test harness that provisions isolated git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:seedFeatureRepo",
+      "type": "function",
+      "name": "seedFeatureRepo",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        230,
+        277
+      ],
+      "summary": "Helper named seedFeatureRepo that supports reusable hook-test harness that provisions isolated git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:commitAll",
+      "type": "function",
+      "name": "commitAll",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        279,
+        289
+      ],
+      "summary": "Helper named commitAll that supports reusable hook-test harness that provisions isolated git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        291,
+        300
+      ],
+      "summary": "Writes repo file output for hook-harness.ts.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:createSandboxEnv",
+      "type": "function",
+      "name": "createSandboxEnv",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        305,
+        325
+      ],
+      "summary": "Helper named createSandboxEnv that supports reusable hook-test harness that provisions isolated git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:checkedRun",
+      "type": "function",
+      "name": "checkedRun",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        328,
+        344
+      ],
+      "summary": "Helper named checkedRun that supports reusable hook-test harness that provisions isolated git repos, managed-runner stubs, and helper commands for boundary tests.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/support/hook-harness.ts:runCommand",
+      "type": "function",
+      "name": "runCommand",
+      "filePath": "test/support/hook-harness.ts",
+      "lineRange": [
+        353,
+        401
+      ],
+      "summary": "Runs the command path within hook-harness.ts.",
+      "tags": [
+        "testing",
+        "git-hooks",
+        "harness",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:VERSION",
+      "type": "config",
+      "name": "VERSION",
+      "filePath": "VERSION",
+      "summary": "Single-value release version file used by the repository's release automation.",
+      "tags": [
+        "configuration",
+        "release-management",
+        "versioning"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:runPrePush",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:runPushCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:runDeterministicPhase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:runLocalAiPhase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:maybeResolveChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:drainStdin",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:resolveRepoRoot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:writePushgateError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:parsePushCommandArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "function:src/cli.ts:isCliEntrypoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:parseConfigYaml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:parseConfigYaml",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:loadConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:loadConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:normalizeConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:normalizePolicies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:validateProviderSelection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:formatSchemaError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "function:src/config/index.ts:cloneValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:ConfigError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:ConfigError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:ConfigValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:ConfigValidationError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:MissingConfigError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:MissingConfigError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:LegacyConfigError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "class:src/config/index.ts:LegacyConfigError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:expandChangedFilesToken",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:expandChangedFilesToken",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:runToolCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:writeFailure",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:writePolicyResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:formatOutputTail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runDiffSizePolicy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:formatForbiddenPathMatches",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:violationResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "function:src/skip-controls.ts:buildGitPushArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "function:src/skip-controls.ts:buildGitPushArgs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "function:src/skip-controls.ts:resolveSkipControlState",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "function:src/skip-controls.ts:resolveSkipControlState",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "function:src/skip-controls.ts:readGitBooleanConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "class:src/skip-controls.ts:SkipControlError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/skip-controls.ts",
+      "target": "class:src/skip-controls.ts:SkipControlError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/config.test.ts",
+      "target": "function:test/config.test.ts:assertValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/config.test.ts",
+      "target": "function:test/config.test.ts:withTempRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:configWithTools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:tool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:withTempDir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:writeArgRecorder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:captureOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "file:src/ai/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "file:src/runner/deterministic.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "file:src/runner/policies.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli.ts",
+      "target": "file:src/skip-controls.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/cli.ts:main",
+      "target": "function:src/cli.ts:runPrePush",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:main",
+      "target": "function:src/cli.ts:runPushCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/cli.ts:drainStdin",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/cli.ts:resolveRepoRoot",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/skip-controls.ts:resolveSkipControlState",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/config/index.ts:loadConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/cli.ts:maybeResolveChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/cli.ts:runDeterministicPhase",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/cli.ts:runLocalAiPhase",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPrePush",
+      "target": "function:src/cli.ts:writePushgateError",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPushCommand",
+      "target": "function:src/cli.ts:parsePushCommandArgs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPushCommand",
+      "target": "function:src/skip-controls.ts:buildGitPushArgs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runPushCommand",
+      "target": "function:src/cli.ts:writePushgateError",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runDeterministicPhase",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runDeterministicPhase",
+      "target": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:runLocalAiPhase",
+      "target": "function:src/ai/index.ts:runLocalAiReview",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:maybeResolveChangedFiles",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli.ts:maybeResolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "schema:schemas/pushgate-config-v2.schema.json",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "file:src/config/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/config/index.ts:parseConfigYaml",
+      "target": "function:src/config/index.ts:normalizeConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/config/index.ts:parseConfigYaml",
+      "target": "function:src/config/index.ts:validateProviderSelection",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/config/index.ts:loadConfig",
+      "target": "function:src/config/index.ts:parseConfigYaml",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/config/index.ts:normalizeConfig",
+      "target": "function:src/config/index.ts:normalizePolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/config/index.ts:normalizeConfig",
+      "target": "function:src/config/index.ts:cloneValue",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/runner/policies.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/deterministic.ts:writePolicyResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/deterministic.ts:expandChangedFilesToken",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/deterministic.ts:runToolCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/deterministic.ts:writeFailure",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runToolCommand",
+      "target": "function:src/runner/deterministic.ts:formatOutputTail",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "target": "function:src/runner/policies.ts:runDiffSizePolicy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "target": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/policies.ts:runDiffSizePolicy",
+      "target": "function:src/runner/policies.ts:violationResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "target": "function:src/runner/policies.ts:violationResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "target": "function:src/runner/policies.ts:formatForbiddenPathMatches",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/skip-controls.ts:resolveSkipControlState",
+      "target": "function:src/skip-controls.ts:readGitBooleanConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/config.test.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "file:test/config.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:test/config.test.ts:assertValidationError",
+      "target": "function:src/config/index.ts:parseConfigYaml",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/index.ts",
+      "target": "file:test/deterministic-runner.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/runner/deterministic.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:test/deterministic-runner.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:runLocalAiReview",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:runLocalAiReview",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:resolveProvider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:handleProviderResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:countChangedLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/claude.ts:buildClaudeArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/claude.ts:runClaudeCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/claude.ts:isClaudeUnauthenticated",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/claude.ts:formatCombinedOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/copilot.ts:buildCopilotArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/copilot.ts:runCopilotCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/copilot.ts:isCopilotAuthFailure",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/copilot.ts:formatCombinedOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:parseCandidate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:buildCandidates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:extractJsonObjectSlice",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:unwrapSingleNestedObject",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:validateFindingSemantics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:normalizeFinding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:summarizeFindings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:formatSchemaError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "class:src/ai/review-output.ts:AiReviewOutputError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "class:src/ai/review-output.ts:AiReviewOutputError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:withAiRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:checkedRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:captureOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:minimalReviewPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/providers/claude.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/providers/copilot.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/review-prompt.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/index.ts:resolveProvider",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/index.ts:handleProviderResult",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/index.ts:countChangedLines",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/ai/review-output.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/providers/claude.ts:runClaudeCommand",
+      "target": "function:src/ai/providers/claude.ts:formatCombinedOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:src/ai/review-output.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/providers/copilot.ts:runCopilotCommand",
+      "target": "function:src/ai/providers/copilot.ts:formatCombinedOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "schema:schemas/ai-review-output-v1.schema.json",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "target": "function:src/ai/review-output.ts:buildCandidates",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "target": "function:src/ai/review-output.ts:parseCandidate",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "target": "function:src/ai/review-output.ts:validateFindingSemantics",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "target": "function:src/ai/review-output.ts:normalizeFinding",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "target": "function:src/ai/review-output.ts:summarizeFindings",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:parseCandidate",
+      "target": "function:src/ai/review-output.ts:unwrapSingleNestedObject",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:buildCandidates",
+      "target": "function:src/ai/review-output.ts:extractJsonObjectSlice",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/types.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/types.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:test/ai.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/providers/copilot.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:test/ai.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:test/ai.test.ts:withAiRepo",
+      "target": "function:test/ai.test.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/ai.test.ts:withAiRepo",
+      "target": "function:test/ai.test.ts:writeRepoFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:collectReviewDiff",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:collectFullFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:describeChangedFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:countTextLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveDiffBase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:runGitChecked",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:parseChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:parseDiffStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:parseNumstatLineCounts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:statsForPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:normalizeGitStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:matchesExtension",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:requiredPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:ChangedFilePolicyError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:ChangedFilePolicyError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingTargetRefError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingTargetRefError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingDiffBaseError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:MissingDiffBaseError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:GitChangedFilesError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "class:src/path-policy/index.ts:GitChangedFilesError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:withFeatureRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:withTempDir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:checkedGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:runGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:collectReviewDiff",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:countTextLines",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:collectFullFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "target": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:resolveDiffBase",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:runGitChecked",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:parseDiffStats",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:filterIgnoredChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/index.ts:parseChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:selectToolChangedFilePaths",
+      "target": "function:src/path-policy/index.ts:matchesExtension",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveTargetCommit",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveDiffBase",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:runGitChecked",
+      "target": "function:src/path-policy/index.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:normalizeGitStatus",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:requiredPath",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseChangedFiles",
+      "target": "function:src/path-policy/index.ts:statsForPath",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:splitNullFields",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:requiredPath",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:parseDiffStats",
+      "target": "function:src/path-policy/index.ts:parseNumstatLineCounts",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:requiredPath",
+      "target": "function:src/path-policy/index.ts:requiredField",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "file:test/path-policy.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:test/path-policy.test.ts:withFeatureRepo",
+      "target": "function:test/path-policy.test.ts:withTempDir",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/path-policy.test.ts:withFeatureRepo",
+      "target": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/path-policy.test.ts:withFeatureRepo",
+      "target": "function:test/path-policy.test.ts:checkedGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/path-policy.test.ts:checkedGit",
+      "target": "function:test/path-policy.test.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "document:CONTRIBUTING.md",
+      "target": "document:README.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:install.sh",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:pnpm-workspace.yaml",
+      "target": "config:package.json",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:test/hook.test.ts",
+      "target": "function:test/hook.test.ts:withHarness",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/install.test.ts",
+      "target": "function:test/install.test.ts:withInstallerHarness",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/install.test.ts",
+      "target": "function:test/install.test.ts:createInstallerHarness",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/install.test.ts",
+      "target": "function:test/install.test.ts:installExecutable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/install.test.ts",
+      "target": "function:test/install.test.ts:checkedRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/install.test.ts",
+      "target": "function:test/install.test.ts:runCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:runRunner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:withRunnerRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:withGitRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:withPolicyRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:withAiRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:installClaudeStub",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:installCopilotStub",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:checkedRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/runner.test.ts",
+      "target": "function:test/runner.test.ts:withGitStub",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:createHookHarness",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:createHookHarness",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:cleanHookOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:cleanHookOutput",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:seedFeatureRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:commitAll",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:createSandboxEnv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:checkedRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/support/hook-harness.ts",
+      "target": "function:test/support/hook-harness.ts:runCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:hook/pre-push",
+      "target": "file:bin/pushgate.mjs",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/build-runner.mjs",
+      "target": "file:bin/pushgate.mjs",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:test/hook.test.ts",
+      "target": "file:test/support/hook-harness.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:test/hook.test.ts:withHarness",
+      "target": "function:test/support/hook-harness.ts:createHookHarness",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/install.test.ts:withInstallerHarness",
+      "target": "function:test/install.test.ts:createInstallerHarness",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/install.test.ts:createInstallerHarness",
+      "target": "function:test/install.test.ts:installExecutable",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/install.test.ts:createInstallerHarness",
+      "target": "function:test/install.test.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/install.test.ts:checkedRun",
+      "target": "function:test/install.test.ts:runCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withRunnerRepo",
+      "target": "function:test/runner.test.ts:withGitRepo",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withGitRepo",
+      "target": "function:test/runner.test.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withPolicyRepo",
+      "target": "function:test/runner.test.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withPolicyRepo",
+      "target": "function:test/runner.test.ts:writeRepoFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withAiRepo",
+      "target": "function:test/runner.test.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withAiRepo",
+      "target": "function:test/runner.test.ts:writeRepoFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/runner.test.ts:withAiRepo",
+      "target": "function:test/runner.test.ts:installClaudeStub",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:createHookHarness",
+      "target": "function:test/support/hook-harness.ts:createSandboxEnv",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:createHookHarness",
+      "target": "function:test/support/hook-harness.ts:seedFeatureRepo",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:seedFeatureRepo",
+      "target": "function:test/support/hook-harness.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:seedFeatureRepo",
+      "target": "function:test/support/hook-harness.ts:writeRepoFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:seedFeatureRepo",
+      "target": "function:test/support/hook-harness.ts:commitAll",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:commitAll",
+      "target": "function:test/support/hook-harness.ts:checkedRun",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:test/support/hook-harness.ts:checkedRun",
+      "target": "function:test/support/hook-harness.ts:runCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/cli.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "config:templates/base.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/config/index.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CONTRIBUTING.md",
+      "target": "config:templates/base.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.github/PULL_REQUEST_TEMPLATE.md",
+      "target": "document:CONTRIBUTING.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/v2-config-schema.md",
+      "target": "file:src/config/index.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/v2-config-schema.md",
+      "target": "schema:schemas/pushgate-config-v2.schema.json",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/product-contract-plan.md",
+      "target": "file:src/cli.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/product-contract-plan.md",
+      "target": "file:hook/pre-push",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-10-local-ai-provider-interface-plan.md",
+      "target": "file:src/ai/index.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-12-structured-ai-review-output-plan.md",
+      "target": "file:src/ai/review-output.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-12-structured-ai-review-output-plan.md",
+      "target": "schema:schemas/ai-review-output-v1.schema.json",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-18-local-skip-controls-plan.md",
+      "target": "file:src/skip-controls.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "target": "file:src/ai/providers/copilot.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-2-config-schema-plan.md",
+      "target": "file:src/config/index.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/issue-3-hook-runner-test-harness-plan.md",
+      "target": "file:test/support/hook-harness.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:src/ai/prompts/review-prompt.md",
+      "target": "file:src/ai/review-prompt.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "pipeline:.github/workflows/ci.yml",
+      "target": "document:README.md",
+      "type": "triggers",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "pipeline:.github/workflows/ci.yml",
+      "target": "file:test/runner.test.ts",
+      "type": "triggers",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "pipeline:.github/workflows/release-please.yml",
+      "target": "document:CHANGELOG.md",
+      "type": "triggers",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "pipeline:.github/workflows/release-please.yml",
+      "target": "config:VERSION",
+      "type": "triggers",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.release-please-manifest.json",
+      "target": "pipeline:.github/workflows/release-please.yml",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:release-please-config.json",
+      "target": "pipeline:.github/workflows/release-please.yml",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:scripts/build-runner.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:src/cli.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:tsconfig.json",
+      "target": "file:src/cli.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:tsconfig.build.json",
+      "target": "file:scripts/build-runner.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "schema:schemas/pushgate-config-v2.schema.json",
+      "target": "file:src/config/index.ts",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "schema:schemas/ai-review-output-v1.schema.json",
+      "target": "file:src/ai/review-output.ts",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:install.sh",
+      "target": "file:hook/pre-push",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:install.sh",
+      "target": "file:bin/pushgate.mjs",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:install.sh",
+      "target": "config:templates/base.yml",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/build-runner.mjs",
+      "target": "file:src/cli.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:bin/pushgate.mjs",
+      "target": "file:src/cli.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:VERSION",
+      "target": "document:CHANGELOG.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:templates/base.yml",
+      "target": "file:src/config/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:templates/nextjs.yml",
+      "target": "file:src/config/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:templates/node.yml",
+      "target": "file:src/config/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:templates/rails.yml",
+      "target": "file:src/config/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:templates/ruby.yml",
+      "target": "file:src/config/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:templates/typescript.yml",
+      "target": "file:src/config/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:test/fixtures/config/defaults.yml",
+      "target": "file:test/config.test.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:test/fixtures/config/invalid-provider.yml",
+      "target": "file:test/config.test.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:test/fixtures/config/invalid-string-command.yml",
+      "target": "file:test/config.test.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:test/fixtures/config/valid.yml",
+      "target": "file:test/config.test.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:.nvmrc",
+      "target": "config:package.json",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:documentation-and-planning",
+      "name": "Documentation and Planning",
+      "description": "Human-facing guides, planning notes, and contribution documents that explain the product contract and roadmap.",
+      "nodeIds": [
+        "document:.github/PULL_REQUEST_TEMPLATE.md",
+        "document:CHANGELOG.md",
+        "document:CONTRIBUTING.md",
+        "document:README.md",
+        "document:docs/issue-10-local-ai-provider-interface-plan.md",
+        "document:docs/issue-12-structured-ai-review-output-plan.md",
+        "document:docs/issue-18-local-skip-controls-plan.md",
+        "document:docs/issue-19-github-copilot-provider-adapter-plan.md",
+        "document:docs/issue-2-config-schema-plan.md",
+        "document:docs/issue-3-hook-runner-test-harness-plan.md",
+        "document:docs/product-contract-plan.md",
+        "document:docs/v2-config-schema.md",
+        "document:src/ai/prompts/review-prompt.md"
+      ]
+    },
+    {
+      "id": "layer:automation-and-distribution",
+      "name": "Automation and Distribution",
+      "description": "Packaging, installation, CI, release, and generated runner artifacts that ship or automate Pushgate outside the core source tree.",
+      "nodeIds": [
+        "pipeline:.github/workflows/ci.yml",
+        "pipeline:.github/workflows/release-please.yml",
+        "config:.nvmrc",
+        "config:.release-please-manifest.json",
+        "file:bin/pushgate.mjs",
+        "file:hook/pre-push",
+        "file:install.sh",
+        "config:package.json",
+        "config:pnpm-workspace.yaml",
+        "config:release-please-config.json",
+        "file:scripts/build-runner.mjs",
+        "config:tsconfig.build.json",
+        "config:tsconfig.json",
+        "config:VERSION"
+      ]
+    },
+    {
+      "id": "layer:configuration-contract",
+      "name": "Configuration Contract",
+      "description": "Files that define, validate, and exemplify the repository-level Pushgate configuration consumed by the runtime.",
+      "nodeIds": [
+        "schema:schemas/ai-review-output-v1.schema.json",
+        "schema:schemas/pushgate-config-v2.schema.json",
+        "file:src/config/index.ts",
+        "file:src/config/types.ts",
+        "config:templates/base.yml",
+        "config:templates/nextjs.yml",
+        "config:templates/node.yml",
+        "config:templates/rails.yml",
+        "config:templates/ruby.yml",
+        "config:templates/typescript.yml"
+      ]
+    },
+    {
+      "id": "layer:runtime-execution",
+      "name": "Runtime Execution",
+      "description": "The command path that resolves changed files, evaluates deterministic checks, handles skip controls, and orchestrates the push-time runner flow.",
+      "nodeIds": [
+        "file:src/cli.ts",
+        "file:src/path-policy/index.ts",
+        "file:src/runner/deterministic.ts",
+        "file:src/runner/policies.ts",
+        "file:src/skip-controls.ts"
+      ]
+    },
+    {
+      "id": "layer:ai-review-engine",
+      "name": "AI Review Engine",
+      "description": "Provider adapters, prompt construction, response parsing, and shared types for the local AI review phase.",
+      "nodeIds": [
+        "file:src/ai/index.ts",
+        "file:src/ai/providers/claude.ts",
+        "file:src/ai/providers/copilot.ts",
+        "file:src/ai/review-output.ts",
+        "file:src/ai/review-prompt.ts",
+        "file:src/ai/types.ts"
+      ]
+    },
+    {
+      "id": "layer:tests-and-fixtures",
+      "name": "Tests and Fixtures",
+      "description": "Executable verification, reusable harness code, and fixture configurations that exercise the hook, config, runner, and AI flows.",
+      "nodeIds": [
+        "file:test/ai.test.ts",
+        "file:test/config.test.ts",
+        "file:test/deterministic-runner.test.ts",
+        "config:test/fixtures/config/defaults.yml",
+        "config:test/fixtures/config/invalid-provider.yml",
+        "config:test/fixtures/config/invalid-string-command.yml",
+        "config:test/fixtures/config/valid.yml",
+        "file:test/hook.test.ts",
+        "file:test/install.test.ts",
+        "file:test/path-policy.test.ts",
+        "file:test/runner.test.ts",
+        "file:test/support/hook-harness.ts"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Project Overview",
+      "description": "Start with the README to understand the push-time workflow, install surface, configuration contract, and why Pushgate hooks into normal git push usage instead of introducing a separate primary command.",
+      "nodeIds": [
+        "document:README.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Install and Hook Boundary",
+      "description": "Read the installer, hook script, and bundled runner artifact together to see how a repository gets wired into the managed Pushgate command and how the pre-push boundary stays intentionally thin.",
+      "nodeIds": [
+        "file:install.sh",
+        "file:hook/pre-push",
+        "file:bin/pushgate.mjs"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "CLI Orchestration",
+      "description": "Move into the runtime entrypoint to see how Pushgate dispatches hook-protocol, pre-push, and wrapper push flows while applying skip controls and sequencing the later phases.",
+      "nodeIds": [
+        "function:src/cli.ts:isCliEntrypoint",
+        "class:src/skip-controls.ts:SkipControlError"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Configuration Contract",
+      "description": "Study the config loader, type surface, schema, and base template together. This step shows how repository-level YAML becomes a validated runtime contract for tools, policies, providers, and ignore rules.",
+      "nodeIds": [
+        "class:src/config/index.ts:LegacyConfigError",
+        "file:src/config/types.ts",
+        "schema:schemas/pushgate-config-v2.schema.json",
+        "config:templates/base.yml",
+        "document:docs/v2-config-schema.md"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Changed Files and Deterministic Checks",
+      "description": "Follow the push pipeline through changed-file resolution and deterministic enforcement. These files decide what changed, which checks run, how changed-file placeholders expand, and when blocking failures stop the push immediately.",
+      "nodeIds": [
+        "class:src/path-policy/index.ts:GitChangedFilesError",
+        "function:src/runner/deterministic.ts:formatOutputTail",
+        "function:src/runner/policies.ts:violationResult"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Local AI Review Pipeline",
+      "description": "Once deterministic checks pass, the AI layer builds a review payload, renders the canonical prompt, dispatches a provider-specific CLI, and normalizes the returned JSON findings back into Pushgate verdicts.",
+      "nodeIds": [
+        "function:src/ai/review-prompt.ts:countTextLines",
+        "function:src/ai/index.ts:countChangedLines",
+        "function:src/ai/providers/claude.ts:formatCombinedOutput",
+        "function:src/ai/providers/copilot.ts:formatCombinedOutput",
+        "class:src/ai/review-output.ts:AiReviewOutputError",
+        "schema:schemas/ai-review-output-v1.schema.json",
+        "document:src/ai/prompts/review-prompt.md"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Templates and Adoption Paths",
+      "description": "Browse the stack templates to see how Pushgate is meant to be adopted across Node, TypeScript, Next.js, Ruby, and Rails repositories without hand-authoring every tool block from scratch.",
+      "nodeIds": [
+        "config:templates/base.yml",
+        "config:templates/node.yml",
+        "config:templates/typescript.yml",
+        "config:templates/nextjs.yml",
+        "config:templates/ruby.yml",
+        "config:templates/rails.yml"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Test Harness and Safety Net",
+      "description": "Read the reusable hook harness and the focused test suites to see how the project verifies config parsing, hook delegation, deterministic checks, AI normalization, and end-to-end runner behavior.",
+      "nodeIds": [
+        "function:test/support/hook-harness.ts:runCommand",
+        "function:test/hook.test.ts:withHarness",
+        "function:test/config.test.ts:withTempRepo",
+        "function:test/deterministic-runner.test.ts:captureOutput",
+        "function:test/ai.test.ts:minimalReviewPayload",
+        "function:test/runner.test.ts:withGitStub"
+      ]
+    },
+    {
+      "order": 9,
+      "title": "CI and Release Automation",
+      "description": "Finish with the build script, CI workflow, and release automation files to understand how the repository bundles the runner, validates changes in GitHub Actions, and keeps changelog/version artifacts in sync.",
+      "nodeIds": [
+        "file:scripts/build-runner.mjs",
+        "pipeline:.github/workflows/ci.yml",
+        "pipeline:.github/workflows/release-please.yml",
+        "document:CHANGELOG.md",
+        "config:VERSION"
+      ]
+    }
+  ]
+}

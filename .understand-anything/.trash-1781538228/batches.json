@@ -1,0 +1,1152 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "louvain",
+  "totalFiles": 60,
+  "totalBatches": 9,
+  "exportsByPath": {
+    ".nvmrc": [],
+    "bin/pushgate.mjs": [
+      "main"
+    ],
+    "hook/pre-push": [],
+    "scripts/build-runner.mjs": [],
+    "src/ai/index.ts": [
+      "BASE_REVIEW_PROMPT",
+      "buildLocalAiReviewPayload",
+      "renderLocalAiPrompt",
+      "AiReviewOutputError",
+      "parseAiReviewOutput",
+      "AiFinding",
+      "AiFindingCategory",
+      "AiFindingConfidence",
+      "AiFindingSeverity",
+      "AiFindingSource",
+      "AiReviewSummary",
+      "LocalAiFullFileContext",
+      "LocalAiProviderAdapter",
+      "LocalAiProviderFailure",
+      "LocalAiProviderFailureCode",
+      "LocalAiProviderResult",
+      "LocalAiProviderReview",
+      "LocalAiReviewPayload",
+      "RawAiFinding",
+      "RawAiReviewOutput",
+      "AI_BLOCKING_CATEGORIES",
+      "AI_FINDING_CATEGORIES",
+      "AI_FINDING_CONFIDENCE_LEVELS",
+      "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+      "AI_WARNING_CATEGORIES",
+      "runLocalAiReview"
+    ],
+    "src/ai/providers/claude.ts": [
+      "claudeProvider"
+    ],
+    "src/ai/providers/copilot.ts": [
+      "copilotProvider"
+    ],
+    "src/ai/review-output.ts": [
+      "AiReviewOutputError",
+      "parseAiReviewOutput"
+    ],
+    "src/ai/review-prompt.ts": [
+      "BASE_REVIEW_PROMPT",
+      "buildLocalAiReviewPayload",
+      "renderLocalAiPrompt"
+    ],
+    "src/ai/types.ts": [
+      "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+      "AI_BLOCKING_CATEGORIES",
+      "AI_WARNING_CATEGORIES",
+      "AI_FINDING_CATEGORIES",
+      "AI_FINDING_CONFIDENCE_LEVELS"
+    ],
+    "src/cli.ts": [
+      "main"
+    ],
+    "src/config/index.ts": [
+      "AiConfig",
+      "AiMode",
+      "BuiltInPoliciesConfig",
+      "BuiltInPolicyMode",
+      "DiffSizePolicyConfig",
+      "ForbiddenPathsPolicyConfig",
+      "LoadedConfig",
+      "ProviderConfig",
+      "PushgateConfig",
+      "ReviewConfig",
+      "ToolConfig",
+      "ToolMode",
+      "ToolRunMode",
+      "CONFIG_FILENAME",
+      "LEGACY_CONFIG_FILENAME",
+      "ConfigError",
+      "ConfigValidationError",
+      "MissingConfigError",
+      "LegacyConfigError",
+      "parseConfigYaml",
+      "loadConfig"
+    ],
+    "src/config/types.ts": [],
+    "src/path-policy/index.ts": [
+      "ChangedFilePolicyError",
+      "MissingTargetRefError",
+      "MissingDiffBaseError",
+      "GitChangedFilesError",
+      "resolveChangedFiles",
+      "filterIgnoredChangedFiles",
+      "selectToolChangedFilePaths"
+    ],
+    "src/runner/deterministic.ts": [
+      "CHANGED_FILES_TOKEN",
+      "runDeterministicChecks",
+      "expandChangedFilesToken"
+    ],
+    "src/runner/policies.ts": [
+      "countBuiltInPolicies",
+      "runBuiltInPolicies"
+    ],
+    "src/skip-controls.ts": [
+      "SKIP_ALL_CHECKS_CONFIG_KEY",
+      "SKIP_AI_CHECK_CONFIG_KEY",
+      "SkipControlError",
+      "buildGitPushArgs",
+      "resolveSkipControlState"
+    ],
+    "test/ai.test.ts": [],
+    "test/config.test.ts": [],
+    "test/deterministic-runner.test.ts": [],
+    "test/hook.test.ts": [],
+    "test/install.test.ts": [],
+    "test/path-policy.test.ts": [],
+    "test/runner.test.ts": [],
+    "test/support/hook-harness.ts": [
+      "createHookHarness",
+      "cleanHookOutput"
+    ],
+    "VERSION": []
+  },
+  "batches": [
+    {
+      "batchIndex": 1,
+      "files": [
+        {
+          "path": "src/cli.ts",
+          "language": "typescript",
+          "sizeLines": 390,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/config/index.ts",
+          "language": "typescript",
+          "sizeLines": 302,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/config/types.ts",
+          "language": "typescript",
+          "sizeLines": 161,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/runner/deterministic.ts",
+          "language": "typescript",
+          "sizeLines": 314,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/runner/policies.ts",
+          "language": "typescript",
+          "sizeLines": 144,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/skip-controls.ts",
+          "language": "typescript",
+          "sizeLines": 127,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/config.test.ts",
+          "language": "typescript",
+          "sizeLines": 413,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/deterministic-runner.test.ts",
+          "language": "typescript",
+          "sizeLines": 391,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "src/cli.ts": [
+          "src/ai/index.ts",
+          "src/config/index.ts",
+          "src/path-policy/index.ts",
+          "src/runner/deterministic.ts",
+          "src/runner/policies.ts",
+          "src/skip-controls.ts"
+        ],
+        "src/config/index.ts": [
+          "schemas/pushgate-config-v2.schema.json",
+          "src/config/types.ts"
+        ],
+        "src/config/types.ts": [],
+        "src/runner/deterministic.ts": [
+          "src/config/index.ts",
+          "src/path-policy/index.ts",
+          "src/runner/policies.ts"
+        ],
+        "src/runner/policies.ts": [
+          "src/config/index.ts",
+          "src/path-policy/index.ts"
+        ],
+        "src/skip-controls.ts": [],
+        "test/config.test.ts": [
+          "src/config/index.ts"
+        ],
+        "test/deterministic-runner.test.ts": [
+          "src/config/index.ts",
+          "src/path-policy/index.ts",
+          "src/runner/deterministic.ts"
+        ]
+      },
+      "neighborMap": {
+        "src/cli.ts": [
+          {
+            "path": "src/ai/index.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt",
+              "AiReviewOutputError",
+              "parseAiReviewOutput",
+              "AiFinding",
+              "AiFindingCategory",
+              "AiFindingConfidence",
+              "AiFindingSeverity",
+              "AiFindingSource",
+              "AiReviewSummary",
+              "LocalAiFullFileContext",
+              "LocalAiProviderAdapter",
+              "LocalAiProviderFailure",
+              "LocalAiProviderFailureCode",
+              "LocalAiProviderResult",
+              "LocalAiProviderReview",
+              "LocalAiReviewPayload",
+              "RawAiFinding",
+              "RawAiReviewOutput",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS",
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_WARNING_CATEGORIES",
+              "runLocalAiReview"
+            ]
+          },
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          }
+        ],
+        "src/config/index.ts": [
+          {
+            "path": "schemas/pushgate-config-v2.schema.json",
+            "batchIndex": 9,
+            "symbols": []
+          },
+          {
+            "path": "src/ai/index.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt",
+              "AiReviewOutputError",
+              "parseAiReviewOutput",
+              "AiFinding",
+              "AiFindingCategory",
+              "AiFindingConfidence",
+              "AiFindingSeverity",
+              "AiFindingSource",
+              "AiReviewSummary",
+              "LocalAiFullFileContext",
+              "LocalAiProviderAdapter",
+              "LocalAiProviderFailure",
+              "LocalAiProviderFailureCode",
+              "LocalAiProviderResult",
+              "LocalAiProviderReview",
+              "LocalAiReviewPayload",
+              "RawAiFinding",
+              "RawAiReviewOutput",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS",
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_WARNING_CATEGORIES",
+              "runLocalAiReview"
+            ]
+          },
+          {
+            "path": "src/ai/review-prompt.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt"
+            ]
+          },
+          {
+            "path": "src/ai/types.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_WARNING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS"
+            ]
+          }
+        ],
+        "src/runner/deterministic.ts": [
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          }
+        ],
+        "src/runner/policies.ts": [
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          }
+        ],
+        "test/deterministic-runner.test.ts": [
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 2,
+      "files": [
+        {
+          "path": "src/ai/index.ts",
+          "language": "typescript",
+          "sizeLines": 254,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/ai/providers/claude.ts",
+          "language": "typescript",
+          "sizeLines": 296,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/ai/providers/copilot.ts",
+          "language": "typescript",
+          "sizeLines": 297,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/ai/review-output.ts",
+          "language": "typescript",
+          "sizeLines": 318,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/ai/types.ts",
+          "language": "typescript",
+          "sizeLines": 128,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/ai.test.ts",
+          "language": "typescript",
+          "sizeLines": 669,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "src/ai/index.ts": [
+          "src/ai/providers/claude.ts",
+          "src/ai/providers/copilot.ts",
+          "src/ai/review-prompt.ts",
+          "src/ai/types.ts",
+          "src/config/index.ts",
+          "src/path-policy/index.ts"
+        ],
+        "src/ai/providers/claude.ts": [
+          "src/ai/review-output.ts",
+          "src/ai/types.ts"
+        ],
+        "src/ai/providers/copilot.ts": [
+          "src/ai/review-output.ts",
+          "src/ai/types.ts"
+        ],
+        "src/ai/review-output.ts": [
+          "schemas/ai-review-output-v1.schema.json",
+          "src/ai/types.ts"
+        ],
+        "src/ai/types.ts": [
+          "src/config/index.ts",
+          "src/path-policy/index.ts"
+        ],
+        "test/ai.test.ts": [
+          "src/ai/index.ts",
+          "src/ai/providers/copilot.ts",
+          "src/path-policy/index.ts"
+        ]
+      },
+      "neighborMap": {
+        "src/ai/index.ts": [
+          {
+            "path": "src/ai/review-prompt.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt"
+            ]
+          },
+          {
+            "path": "src/config/index.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AiConfig",
+              "AiMode",
+              "BuiltInPoliciesConfig",
+              "BuiltInPolicyMode",
+              "DiffSizePolicyConfig",
+              "ForbiddenPathsPolicyConfig",
+              "LoadedConfig",
+              "ProviderConfig",
+              "PushgateConfig",
+              "ReviewConfig",
+              "ToolConfig",
+              "ToolMode",
+              "ToolRunMode",
+              "CONFIG_FILENAME",
+              "LEGACY_CONFIG_FILENAME",
+              "ConfigError",
+              "ConfigValidationError",
+              "MissingConfigError",
+              "LegacyConfigError",
+              "parseConfigYaml",
+              "loadConfig"
+            ]
+          },
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          },
+          {
+            "path": "src/cli.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "main"
+            ]
+          }
+        ],
+        "src/ai/review-output.ts": [
+          {
+            "path": "schemas/ai-review-output-v1.schema.json",
+            "batchIndex": 9,
+            "symbols": []
+          }
+        ],
+        "src/ai/types.ts": [
+          {
+            "path": "src/config/index.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AiConfig",
+              "AiMode",
+              "BuiltInPoliciesConfig",
+              "BuiltInPolicyMode",
+              "DiffSizePolicyConfig",
+              "ForbiddenPathsPolicyConfig",
+              "LoadedConfig",
+              "ProviderConfig",
+              "PushgateConfig",
+              "ReviewConfig",
+              "ToolConfig",
+              "ToolMode",
+              "ToolRunMode",
+              "CONFIG_FILENAME",
+              "LEGACY_CONFIG_FILENAME",
+              "ConfigError",
+              "ConfigValidationError",
+              "MissingConfigError",
+              "LegacyConfigError",
+              "parseConfigYaml",
+              "loadConfig"
+            ]
+          },
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          },
+          {
+            "path": "src/ai/review-prompt.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt"
+            ]
+          }
+        ],
+        "test/ai.test.ts": [
+          {
+            "path": "src/path-policy/index.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "ChangedFilePolicyError",
+              "MissingTargetRefError",
+              "MissingDiffBaseError",
+              "GitChangedFilesError",
+              "resolveChangedFiles",
+              "filterIgnoredChangedFiles",
+              "selectToolChangedFilePaths"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 3,
+      "files": [
+        {
+          "path": "src/ai/review-prompt.ts",
+          "language": "typescript",
+          "sizeLines": 334,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/path-policy/index.ts",
+          "language": "typescript",
+          "sizeLines": 523,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/path-policy.test.ts",
+          "language": "typescript",
+          "sizeLines": 263,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "src/ai/review-prompt.ts": [
+          "src/ai/types.ts",
+          "src/config/index.ts",
+          "src/path-policy/index.ts"
+        ],
+        "src/path-policy/index.ts": [],
+        "test/path-policy.test.ts": [
+          "src/path-policy/index.ts"
+        ]
+      },
+      "neighborMap": {
+        "src/ai/review-prompt.ts": [
+          {
+            "path": "src/ai/types.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_WARNING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS"
+            ]
+          },
+          {
+            "path": "src/config/index.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AiConfig",
+              "AiMode",
+              "BuiltInPoliciesConfig",
+              "BuiltInPolicyMode",
+              "DiffSizePolicyConfig",
+              "ForbiddenPathsPolicyConfig",
+              "LoadedConfig",
+              "ProviderConfig",
+              "PushgateConfig",
+              "ReviewConfig",
+              "ToolConfig",
+              "ToolMode",
+              "ToolRunMode",
+              "CONFIG_FILENAME",
+              "LEGACY_CONFIG_FILENAME",
+              "ConfigError",
+              "ConfigValidationError",
+              "MissingConfigError",
+              "LegacyConfigError",
+              "parseConfigYaml",
+              "loadConfig"
+            ]
+          },
+          {
+            "path": "src/ai/index.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt",
+              "AiReviewOutputError",
+              "parseAiReviewOutput",
+              "AiFinding",
+              "AiFindingCategory",
+              "AiFindingConfidence",
+              "AiFindingSeverity",
+              "AiFindingSource",
+              "AiReviewSummary",
+              "LocalAiFullFileContext",
+              "LocalAiProviderAdapter",
+              "LocalAiProviderFailure",
+              "LocalAiProviderFailureCode",
+              "LocalAiProviderResult",
+              "LocalAiProviderReview",
+              "LocalAiReviewPayload",
+              "RawAiFinding",
+              "RawAiReviewOutput",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS",
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_WARNING_CATEGORIES",
+              "runLocalAiReview"
+            ]
+          }
+        ],
+        "src/path-policy/index.ts": [
+          {
+            "path": "src/ai/index.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "BASE_REVIEW_PROMPT",
+              "buildLocalAiReviewPayload",
+              "renderLocalAiPrompt",
+              "AiReviewOutputError",
+              "parseAiReviewOutput",
+              "AiFinding",
+              "AiFindingCategory",
+              "AiFindingConfidence",
+              "AiFindingSeverity",
+              "AiFindingSource",
+              "AiReviewSummary",
+              "LocalAiFullFileContext",
+              "LocalAiProviderAdapter",
+              "LocalAiProviderFailure",
+              "LocalAiProviderFailureCode",
+              "LocalAiProviderResult",
+              "LocalAiProviderReview",
+              "LocalAiReviewPayload",
+              "RawAiFinding",
+              "RawAiReviewOutput",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS",
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_WARNING_CATEGORIES",
+              "runLocalAiReview"
+            ]
+          },
+          {
+            "path": "src/ai/types.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+              "AI_BLOCKING_CATEGORIES",
+              "AI_WARNING_CATEGORIES",
+              "AI_FINDING_CATEGORIES",
+              "AI_FINDING_CONFIDENCE_LEVELS"
+            ]
+          },
+          {
+            "path": "src/cli.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "main"
+            ]
+          },
+          {
+            "path": "src/runner/deterministic.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "CHANGED_FILES_TOKEN",
+              "runDeterministicChecks",
+              "expandChangedFilesToken"
+            ]
+          },
+          {
+            "path": "src/runner/policies.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "countBuiltInPolicies",
+              "runBuiltInPolicies"
+            ]
+          },
+          {
+            "path": "test/ai.test.ts",
+            "batchIndex": 2,
+            "symbols": []
+          },
+          {
+            "path": "test/deterministic-runner.test.ts",
+            "batchIndex": 1,
+            "symbols": []
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 4,
+      "files": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "language": "yaml",
+          "sizeLines": 96,
+          "fileCategory": "infra"
+        },
+        {
+          "path": ".github/workflows/release-please.yml",
+          "language": "yaml",
+          "sizeLines": 19,
+          "fileCategory": "infra"
+        }
+      ],
+      "batchImportData": {
+        ".github/workflows/ci.yml": [],
+        ".github/workflows/release-please.yml": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 5,
+      "files": [
+        {
+          "path": ".release-please-manifest.json",
+          "language": "json",
+          "sizeLines": 2,
+          "fileCategory": "config"
+        },
+        {
+          "path": "CHANGELOG.md",
+          "language": "markdown",
+          "sizeLines": 87,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "CONTRIBUTING.md",
+          "language": "markdown",
+          "sizeLines": 139,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "README.md",
+          "language": "markdown",
+          "sizeLines": 228,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "install.sh",
+          "language": "shell",
+          "sizeLines": 159,
+          "fileCategory": "script"
+        },
+        {
+          "path": "package.json",
+          "language": "json",
+          "sizeLines": 38,
+          "fileCategory": "config"
+        },
+        {
+          "path": "pnpm-workspace.yaml",
+          "language": "yaml",
+          "sizeLines": 2,
+          "fileCategory": "config"
+        },
+        {
+          "path": "release-please-config.json",
+          "language": "json",
+          "sizeLines": 10,
+          "fileCategory": "config"
+        },
+        {
+          "path": "tsconfig.build.json",
+          "language": "json",
+          "sizeLines": 10,
+          "fileCategory": "config"
+        },
+        {
+          "path": "tsconfig.json",
+          "language": "json",
+          "sizeLines": 18,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        ".release-please-manifest.json": [],
+        "CHANGELOG.md": [],
+        "CONTRIBUTING.md": [],
+        "README.md": [],
+        "install.sh": [],
+        "package.json": [],
+        "pnpm-workspace.yaml": [],
+        "release-please-config.json": [],
+        "tsconfig.build.json": [],
+        "tsconfig.json": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 6,
+      "files": [
+        {
+          "path": "docs/issue-10-local-ai-provider-interface-plan.md",
+          "language": "markdown",
+          "sizeLines": 238,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/issue-12-structured-ai-review-output-plan.md",
+          "language": "markdown",
+          "sizeLines": 236,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/issue-18-local-skip-controls-plan.md",
+          "language": "markdown",
+          "sizeLines": 211,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/issue-19-github-copilot-provider-adapter-plan.md",
+          "language": "markdown",
+          "sizeLines": 280,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/issue-2-config-schema-plan.md",
+          "language": "markdown",
+          "sizeLines": 216,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/issue-3-hook-runner-test-harness-plan.md",
+          "language": "markdown",
+          "sizeLines": 215,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/product-contract-plan.md",
+          "language": "markdown",
+          "sizeLines": 147,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/v2-config-schema.md",
+          "language": "markdown",
+          "sizeLines": 226,
+          "fileCategory": "docs"
+        }
+      ],
+      "batchImportData": {
+        "docs/issue-10-local-ai-provider-interface-plan.md": [],
+        "docs/issue-12-structured-ai-review-output-plan.md": [],
+        "docs/issue-18-local-skip-controls-plan.md": [],
+        "docs/issue-19-github-copilot-provider-adapter-plan.md": [],
+        "docs/issue-2-config-schema-plan.md": [],
+        "docs/issue-3-hook-runner-test-harness-plan.md": [],
+        "docs/product-contract-plan.md": [],
+        "docs/v2-config-schema.md": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 7,
+      "files": [
+        {
+          "path": "templates/base.yml",
+          "language": "yaml",
+          "sizeLines": 132,
+          "fileCategory": "config"
+        },
+        {
+          "path": "templates/nextjs.yml",
+          "language": "yaml",
+          "sizeLines": 51,
+          "fileCategory": "config"
+        },
+        {
+          "path": "templates/node.yml",
+          "language": "yaml",
+          "sizeLines": 44,
+          "fileCategory": "config"
+        },
+        {
+          "path": "templates/rails.yml",
+          "language": "yaml",
+          "sizeLines": 50,
+          "fileCategory": "config"
+        },
+        {
+          "path": "templates/ruby.yml",
+          "language": "yaml",
+          "sizeLines": 42,
+          "fileCategory": "config"
+        },
+        {
+          "path": "templates/typescript.yml",
+          "language": "yaml",
+          "sizeLines": 48,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        "templates/base.yml": [],
+        "templates/nextjs.yml": [],
+        "templates/node.yml": [],
+        "templates/rails.yml": [],
+        "templates/ruby.yml": [],
+        "templates/typescript.yml": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 8,
+      "files": [
+        {
+          "path": "test/fixtures/config/defaults.yml",
+          "language": "yaml",
+          "sizeLines": 6,
+          "fileCategory": "config"
+        },
+        {
+          "path": "test/fixtures/config/invalid-provider.yml",
+          "language": "yaml",
+          "sizeLines": 6,
+          "fileCategory": "config"
+        },
+        {
+          "path": "test/fixtures/config/invalid-string-command.yml",
+          "language": "yaml",
+          "sizeLines": 8,
+          "fileCategory": "config"
+        },
+        {
+          "path": "test/fixtures/config/valid.yml",
+          "language": "yaml",
+          "sizeLines": 52,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        "test/fixtures/config/defaults.yml": [],
+        "test/fixtures/config/invalid-provider.yml": [],
+        "test/fixtures/config/invalid-string-command.yml": [],
+        "test/fixtures/config/valid.yml": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 9,
+      "files": [
+        {
+          "path": ".github/PULL_REQUEST_TEMPLATE.md",
+          "language": "markdown",
+          "sizeLines": 47,
+          "fileCategory": "docs"
+        },
+        {
+          "path": ".nvmrc",
+          "language": "unknown",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "bin/pushgate.mjs",
+          "language": "javascript",
+          "sizeLines": 16916,
+          "fileCategory": "code"
+        },
+        {
+          "path": "hook/pre-push",
+          "language": "unknown",
+          "sizeLines": 67,
+          "fileCategory": "code"
+        },
+        {
+          "path": "schemas/ai-review-output-v1.schema.json",
+          "language": "json",
+          "sizeLines": 66,
+          "fileCategory": "config"
+        },
+        {
+          "path": "schemas/pushgate-config-v2.schema.json",
+          "language": "json",
+          "sizeLines": 216,
+          "fileCategory": "config"
+        },
+        {
+          "path": "scripts/build-runner.mjs",
+          "language": "javascript",
+          "sizeLines": 18,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/ai/prompts/review-prompt.md",
+          "language": "markdown",
+          "sizeLines": 85,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "test/hook.test.ts",
+          "language": "typescript",
+          "sizeLines": 335,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/install.test.ts",
+          "language": "typescript",
+          "sizeLines": 270,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/runner.test.ts",
+          "language": "typescript",
+          "sizeLines": 710,
+          "fileCategory": "code"
+        },
+        {
+          "path": "test/support/hook-harness.ts",
+          "language": "typescript",
+          "sizeLines": 401,
+          "fileCategory": "code"
+        },
+        {
+          "path": "VERSION",
+          "language": "unknown",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        ".github/PULL_REQUEST_TEMPLATE.md": [],
+        ".nvmrc": [],
+        "bin/pushgate.mjs": [],
+        "hook/pre-push": [],
+        "schemas/ai-review-output-v1.schema.json": [],
+        "schemas/pushgate-config-v2.schema.json": [],
+        "scripts/build-runner.mjs": [],
+        "src/ai/prompts/review-prompt.md": [],
+        "test/hook.test.ts": [
+          "test/support/hook-harness.ts"
+        ],
+        "test/install.test.ts": [],
+        "test/runner.test.ts": [],
+        "test/support/hook-harness.ts": [],
+        "VERSION": []
+      },
+      "neighborMap": {
+        "schemas/ai-review-output-v1.schema.json": [
+          {
+            "path": "src/ai/review-output.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "AiReviewOutputError",
+              "parseAiReviewOutput"
+            ]
+          }
+        ],
+        "schemas/pushgate-config-v2.schema.json": [
+          {
+            "path": "src/config/index.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AiConfig",
+              "AiMode",
+              "BuiltInPoliciesConfig",
+              "BuiltInPolicyMode",
+              "DiffSizePolicyConfig",
+              "ForbiddenPathsPolicyConfig",
+              "LoadedConfig",
+              "ProviderConfig",
+              "PushgateConfig",
+              "ReviewConfig",
+              "ToolConfig",
+              "ToolMode",
+              "ToolRunMode",
+              "CONFIG_FILENAME",
+              "LEGACY_CONFIG_FILENAME",
+              "ConfigError",
+              "ConfigValidationError",
+              "MissingConfigError",
+              "LegacyConfigError",
+              "parseConfigYaml",
+              "loadConfig"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
