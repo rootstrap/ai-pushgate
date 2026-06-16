@@ -1,15 +1,13 @@
-import { Ajv, type ErrorObject, type ValidateFunction } from "ajv";
 import { parseDocument } from "yaml";
-import schema from "../../schemas/pushgate-config-v2.schema.json" with { type: "json" };
 
 import { CONFIG_FILENAME } from "./constants.js";
 import { ConfigValidationError } from "./errors.js";
 import { normalizeConfig } from "./normalize.js";
 import type { PushgateConfig, RawPushgateConfig } from "./types.js";
-
-const ajv = new Ajv({ allErrors: true, strict: true });
-const validateSchema: ValidateFunction<RawPushgateConfig> =
-  ajv.compile<RawPushgateConfig>(schema);
+import {
+  type SchemaValidationError,
+  validatePushgateConfig,
+} from "../generated/pushgate-config-v2-validator.js";
 
 /**
  * Parse, validate, and normalize a v2 Pushgate YAML config string.
@@ -33,14 +31,16 @@ export function parseConfigYaml(
 
   const rawConfig: unknown = document.toJS();
 
-  if (!validateSchema(rawConfig)) {
+  const schemaValidation = validatePushgateConfig(rawConfig);
+
+  if (!schemaValidation.valid) {
     throw new ConfigValidationError(
       sourcePath,
-      (validateSchema.errors ?? []).map(formatSchemaError),
+      (schemaValidation.errors ?? []).map(formatSchemaError),
     );
   }
 
-  const config = normalizeConfig(rawConfig);
+  const config = normalizeConfig(rawConfig as RawPushgateConfig);
   const providerDiagnostics = validateProviderSelection(config);
 
   if (providerDiagnostics.length > 0) {
@@ -70,15 +70,15 @@ function validateProviderSelection(config: PushgateConfig): string[] {
   return [];
 }
 
-function formatSchemaError(error: ErrorObject): string {
+function formatSchemaError(error: SchemaValidationError): string {
   const path = error.instancePath || ".";
 
   if (error.keyword === "required") {
-    return `${path} is missing required key "${error.params.missingProperty}".`;
+    return `${path} is missing required key "${String(error.params.missingProperty)}".`;
   }
 
   if (error.keyword === "additionalProperties") {
-    return `${path} contains unknown key "${error.params.additionalProperty}".`;
+    return `${path} contains unknown key "${String(error.params.additionalProperty)}".`;
   }
 
   if (error.keyword === "const") {
