@@ -10926,92 +10926,94 @@ function violationResult(mode, name, detail) {
   };
 }
 
-// src/runner/deterministic.ts
-var CHANGED_FILES_TOKEN = "{changed_files}";
-var OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-var OUTPUT_TAIL_LIMIT = 4 * 1024;
-var TIMEOUT_KILL_GRACE_MS = 1e3;
-async function runDeterministicChecks(config, changedFiles, options = {}) {
-  const stdout = options.stdout ?? process.stdout;
-  const repoRoot = options.repoRoot ?? process.cwd();
-  const env = options.env ?? process.env;
-  const results = [];
-  const policyCount = countBuiltInPolicies(config.policies);
-  const checkCount = policyCount + config.tools.length;
-  if (checkCount === 0) {
-    writeLine2(stdout, "[pushgate] No deterministic checks configured.");
-    return { exitCode: 0, results };
-  }
-  writeLine2(
-    stdout,
-    `[pushgate] Running ${String(checkCount)} deterministic check(s).`
-  );
-  for (const policyResult of runBuiltInPolicies(
-    config.policies,
-    changedFiles
-  )) {
-    results.push(policyResult);
-    writePolicyResult(stdout, policyResult);
-  }
-  for (const tool of config.tools) {
-    const selectedPaths = selectToolChangedFilePaths(
-      changedFiles,
-      tool.extensions
-    );
-    if (tool.run === "changed_files" && selectedPaths.length === 0) {
-      const result2 = {
-        name: tool.name,
-        status: "skipped",
-        detail: "no matching changed files"
-      };
-      results.push(result2);
-      writeLine2(stdout, `[pushgate] SKIP ${tool.name}: ${result2.detail}.`);
-      continue;
-    }
-    const command = expandChangedFilesToken(tool.command, selectedPaths);
-    const commandResult = await runToolCommand(tool, command, repoRoot, env);
-    if (commandResult.passed) {
-      results.push({ name: tool.name, status: "passed" });
-      writeLine2(stdout, `[pushgate] PASS ${tool.name}.`);
-      continue;
-    }
-    const status = tool.mode === "warning" ? "warning" : "blocked";
-    const result = {
-      name: tool.name,
-      status,
-      detail: commandResult.detail,
-      outputTail: commandResult.outputTail
-    };
-    results.push(result);
-    writeFailure(stdout, tool, result);
-    if (status === "blocked" && tool.fail_fast) {
+// src/runner/summary.ts
+function summarizeDeterministicResults(results) {
+  const blockedCount = results.filter((result) => result.status === "blocked").length;
+  const warningCount = results.filter((result) => result.status === "warning").length;
+  return {
+    blockedCount,
+    exitCode: blockedCount > 0 ? 1 : 0,
+    warningCount
+  };
+}
+
+// src/runner/transcript.ts
+function createDeterministicTranscript(stdout) {
+  return {
+    writeFailFast() {
       writeLine2(
         stdout,
         "[pushgate] Stopping deterministic checks after blocking failure because fail_fast is true."
       );
-      break;
+    },
+    writeNoChecks() {
+      writeLine2(stdout, "[pushgate] No deterministic checks configured.");
+    },
+    writePolicyResult(result) {
+      const labelByStatus = {
+        blocked: "BLOCK",
+        passed: "PASS",
+        warning: "WARN"
+      };
+      const detail = result.detail ? `: ${result.detail}` : "";
+      writeLine2(
+        stdout,
+        `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
+      );
+    },
+    writeStart(checkCount) {
+      writeLine2(
+        stdout,
+        `[pushgate] Running ${String(checkCount)} deterministic check(s).`
+      );
+    },
+    writeSummary(summary) {
+      writeLine2(
+        stdout,
+        `[pushgate] Deterministic checks finished: ${String(summary.blockedCount)} blocking failure(s), ${String(summary.warningCount)} warning(s).`
+      );
+      if (summary.blockedCount > 0) {
+        writeLine2(
+          stdout,
+          "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally."
+        );
+      }
+    },
+    writeToolResult(tool, result) {
+      if (result.status === "passed") {
+        writeLine2(stdout, `[pushgate] PASS ${tool.name}.`);
+        return;
+      }
+      if (result.status === "skipped") {
+        writeLine2(stdout, `[pushgate] SKIP ${tool.name}: ${result.detail}.`);
+        return;
+      }
+      const label = result.status === "warning" ? "WARN" : "BLOCK";
+      writeLine2(
+        stdout,
+        `[pushgate] ${label} ${tool.name}: ${result.detail ?? "command failed"}.`
+      );
+      if (result.outputTail) {
+        writeLine2(stdout, "[pushgate] Command output:");
+        for (const line of result.outputTail.split("\n")) {
+          writeLine2(stdout, `[pushgate]   ${line}`);
+        }
+      }
     }
-  }
-  const blockedCount = results.filter((result) => result.status === "blocked").length;
-  const warningCount = results.filter((result) => result.status === "warning").length;
-  writeLine2(
-    stdout,
-    `[pushgate] Deterministic checks finished: ${String(blockedCount)} blocking failure(s), ${String(warningCount)} warning(s).`
-  );
-  if (blockedCount > 0) {
-    writeLine2(
-      stdout,
-      "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally."
-    );
-  }
-  return { exitCode: blockedCount > 0 ? 1 : 0, results };
+  };
 }
-function expandChangedFilesToken(command, changedFilePaths) {
-  return command.flatMap(
-    (token) => token === CHANGED_FILES_TOKEN ? [...changedFilePaths] : [token]
-  );
+function writeLine2(stream, line) {
+  stream.write(`${line}
+`);
 }
-async function runToolCommand(tool, command, repoRoot, env) {
+
+// src/runner/tool-command.ts
+var CHANGED_FILES_TOKEN = "{changed_files}";
+var OUTPUT_CAPTURE_LIMIT = 64 * 1024;
+var OUTPUT_TAIL_LIMIT = 4 * 1024;
+var TIMEOUT_KILL_GRACE_MS = 1e3;
+async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
+  const command = expandChangedFilesToken(tool.command, changedFilePaths);
   const [executable, ...args] = command;
   if (!executable) {
     return {
@@ -11052,34 +11054,77 @@ async function runToolCommand(tool, command, repoRoot, env) {
     outputTail: commandResult.outputTail
   };
 }
-function writeFailure(stdout, tool, result) {
-  const label = result.status === "warning" ? "WARN" : "BLOCK";
-  writeLine2(
-    stdout,
-    `[pushgate] ${label} ${tool.name}: ${result.detail ?? "command failed"}.`
+function expandChangedFilesToken(command, changedFilePaths) {
+  return command.flatMap(
+    (token) => token === CHANGED_FILES_TOKEN ? [...changedFilePaths] : [token]
   );
-  if (result.outputTail) {
-    writeLine2(stdout, "[pushgate] Command output:");
-    for (const line of result.outputTail.split("\n")) {
-      writeLine2(stdout, `[pushgate]   ${line}`);
+}
+
+// src/runner/deterministic.ts
+async function runDeterministicChecks(config, changedFiles, options = {}) {
+  const stdout = options.stdout ?? process.stdout;
+  const repoRoot = options.repoRoot ?? process.cwd();
+  const env = options.env ?? process.env;
+  const results = [];
+  const transcript = createDeterministicTranscript(stdout);
+  const policyCount = countBuiltInPolicies(config.policies);
+  const checkCount = policyCount + config.tools.length;
+  if (checkCount === 0) {
+    transcript.writeNoChecks();
+    return { exitCode: 0, results };
+  }
+  transcript.writeStart(checkCount);
+  for (const policyResult of runBuiltInPolicies(
+    config.policies,
+    changedFiles
+  )) {
+    results.push(policyResult);
+    transcript.writePolicyResult(policyResult);
+  }
+  for (const tool of config.tools) {
+    const selectedPaths = selectToolChangedFilePaths(
+      changedFiles,
+      tool.extensions
+    );
+    if (tool.run === "changed_files" && selectedPaths.length === 0) {
+      const result2 = {
+        name: tool.name,
+        status: "skipped",
+        detail: "no matching changed files"
+      };
+      results.push(result2);
+      transcript.writeToolResult(tool, result2);
+      continue;
+    }
+    const commandResult = await runToolCommand(
+      tool,
+      selectedPaths,
+      repoRoot,
+      env
+    );
+    if (commandResult.passed) {
+      const result2 = { name: tool.name, status: "passed" };
+      results.push(result2);
+      transcript.writeToolResult(tool, result2);
+      continue;
+    }
+    const status = tool.mode === "warning" ? "warning" : "blocked";
+    const result = {
+      name: tool.name,
+      status,
+      detail: commandResult.detail,
+      outputTail: commandResult.outputTail
+    };
+    results.push(result);
+    transcript.writeToolResult(tool, result);
+    if (status === "blocked" && tool.fail_fast) {
+      transcript.writeFailFast();
+      break;
     }
   }
-}
-function writePolicyResult(stdout, result) {
-  const labelByStatus = {
-    blocked: "BLOCK",
-    passed: "PASS",
-    warning: "WARN"
-  };
-  const detail = result.detail ? `: ${result.detail}` : "";
-  writeLine2(
-    stdout,
-    `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
-  );
-}
-function writeLine2(stream, line) {
-  stream.write(`${line}
-`);
+  const resultSummary = summarizeDeterministicResults(results);
+  transcript.writeSummary(resultSummary);
+  return { exitCode: resultSummary.exitCode, results };
 }
 
 // src/workflows/pre-push.ts
