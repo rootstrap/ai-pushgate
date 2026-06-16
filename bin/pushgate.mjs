@@ -14783,119 +14783,7 @@ async function exists(path) {
   }
 }
 
-// src/path-policy/index.ts
-var import_ignore = __toESM(require_ignore(), 1);
-
-// src/process/run-command.ts
-import { spawn } from "node:child_process";
-function runCommand(options) {
-  const outputEncoding = options.outputEncoding ?? "utf8";
-  return new Promise((resolve, reject) => {
-    const child = spawn(options.command, [...options.args ?? []], {
-      cwd: options.cwd,
-      env: options.env,
-      stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
-    });
-    const stdoutBuffers = [];
-    let stderr = "";
-    let stdout = "";
-    if (!child.stdout || !child.stderr) {
-      reject(new Error(`${options.command} output streams were not captured.`));
-      return;
-    }
-    if (outputEncoding === "buffer") {
-      child.stdout.on("data", (data) => {
-        stdoutBuffers.push(data);
-      });
-    } else {
-      child.stdout.setEncoding("utf8");
-      child.stdout.on("data", (data) => {
-        stdout += data;
-      });
-    }
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (data) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code, signal) => {
-      if (outputEncoding === "buffer") {
-        resolve({
-          code,
-          signal,
-          stderr,
-          stdout: Buffer.concat(stdoutBuffers)
-        });
-        return;
-      }
-      resolve({
-        code,
-        signal,
-        stderr,
-        stdout
-      });
-    });
-    if (options.stdin !== void 0) {
-      if (!child.stdin) {
-        reject(new Error(`${options.command} stdin was not piped.`));
-        return;
-      }
-      child.stdin.end(options.stdin);
-    }
-  });
-}
-
-// src/git/command.ts
-var GitCommandError = class extends Error {
-  gitArgs;
-  result;
-  constructor(gitArgs, result) {
-    super(gitResultDetail(result));
-    this.name = new.target.name;
-    this.gitArgs = [...gitArgs];
-    this.result = result;
-  }
-};
-function runGit(repoRoot, args, options = {}) {
-  const commandOptions = {
-    args,
-    command: "git",
-    cwd: repoRoot,
-    env: options.env
-  };
-  if (options.encoding === "buffer") {
-    return runCommand({
-      ...commandOptions,
-      outputEncoding: "buffer"
-    });
-  }
-  return runCommand({
-    ...commandOptions,
-    outputEncoding: "utf8"
-  });
-}
-async function runGitChecked(repoRoot, args, options = {}) {
-  const result = options.encoding === "buffer" ? await runGit(repoRoot, args, {
-    ...options,
-    encoding: "buffer"
-  }) : await runGit(repoRoot, args, {
-    ...options,
-    encoding: "utf8"
-  });
-  if (result.code !== 0) {
-    throw new GitCommandError(args, result);
-  }
-  return result.stdout;
-}
-function gitResultDetail(result) {
-  const stderr = result.stderr.trim();
-  if (stderr) {
-    return stderr;
-  }
-  return `git exited with ${String(result.code)}.`;
-}
-
-// src/path-policy/index.ts
+// src/path-policy/errors.ts
 var ChangedFilePolicyError = class extends Error {
   /** Stable machine-readable error code for callers to render. */
   code;
@@ -14946,86 +14834,28 @@ var GitChangedFilesError = class extends ChangedFilePolicyError {
     this.gitArgs = [...gitArgs];
   }
 };
-async function resolveChangedFiles(options) {
-  const repoRoot = options.repoRoot ?? process.cwd();
-  const targetCommit = await resolveTargetCommit(repoRoot, options.targetBranch);
-  const diffBase = await resolveDiffBase(
-    repoRoot,
-    options.targetBranch,
-    targetCommit
+function malformedGitOutput(gitArgs, detail) {
+  return new GitChangedFilesError(
+    gitArgs,
+    `Git returned malformed output: ${detail}.`
   );
-  const diffRange = `${targetCommit}...HEAD`;
-  const nameStatusArgs = [
-    "diff",
-    "--name-status",
-    "-z",
-    "--find-renames",
-    "--no-ext-diff",
-    diffRange
-  ];
-  const numstatArgs = [
-    "diff",
-    "--numstat",
-    "-z",
-    "--find-renames",
-    "--no-ext-diff",
-    diffRange
-  ];
-  const [nameStatusOutput, numstatOutput] = await Promise.all([
-    readChangedFilesGitOutput(repoRoot, nameStatusArgs),
-    readChangedFilesGitOutput(repoRoot, numstatArgs)
-  ]);
-  const diffStats = parseDiffStats(numstatOutput, numstatArgs);
-  const files = filterIgnoredChangedFiles(
-    parseChangedFiles(nameStatusOutput, diffStats, nameStatusArgs),
-    options.ignorePaths ?? []
-  );
-  return {
-    diffBase,
-    files,
-    targetCommit,
-    targetRef: options.targetBranch
-  };
 }
-function filterIgnoredChangedFiles(files, ignorePaths) {
-  if (ignorePaths.length === 0) {
-    return [...files];
+function gitFailure(gitArgs, result) {
+  return new GitChangedFilesError(gitArgs, gitResultDetail(result));
+}
+function gitSpawnFailure(gitArgs, error) {
+  const detail = error instanceof Error ? error.message : String(error);
+  return new GitChangedFilesError(gitArgs, detail);
+}
+function gitResultDetail(result) {
+  const stderr = result.stderr.trim();
+  if (stderr) {
+    return stderr;
   }
-  const ignorePathsMatcher = (0, import_ignore.default)().add(ignorePaths);
-  return files.filter((file) => !ignorePathsMatcher.ignores(file.path));
+  return `git exited with ${String(result.code)}.`;
 }
-function selectToolChangedFilePaths(files, extensions) {
-  return files.filter((file) => file.status !== "deleted").filter((file) => matchesExtension(file.path, extensions)).map((file) => file.path);
-}
-async function resolveTargetCommit(repoRoot, targetRef) {
-  const args = ["rev-parse", "--verify", "--quiet", `${targetRef}^{commit}`];
-  const result = await runChangedFilesGit(repoRoot, args);
-  if (result.code === 0) {
-    return result.stdout.trim();
-  }
-  if (result.code === 1) {
-    throw new MissingTargetRefError(targetRef);
-  }
-  throw gitFailure(args, result);
-}
-async function resolveDiffBase(repoRoot, targetRef, targetCommit) {
-  const args = ["merge-base", targetCommit, "HEAD"];
-  const result = await runChangedFilesGit(repoRoot, args);
-  if (result.code === 0) {
-    return result.stdout.trim();
-  }
-  throw new MissingDiffBaseError(targetRef, gitResultDetail2(result));
-}
-async function readChangedFilesGitOutput(repoRoot, args) {
-  try {
-    return await runGitChecked(repoRoot, args, { encoding: "buffer" });
-  } catch (error) {
-    if (error instanceof GitCommandError) {
-      throw gitFailure(args, error.result);
-    }
-    throw gitSpawnFailure(args, error);
-  }
-}
+
+// src/path-policy/diff-parsers.ts
 function parseChangedFiles(output, diffStats, gitArgs) {
   const fields = splitNullFields(output);
   const files = [];
@@ -15145,12 +14975,6 @@ function normalizeGitStatus(rawStatus) {
       return "unknown";
   }
 }
-function matchesExtension(path, extensions) {
-  if (extensions === void 0) {
-    return true;
-  }
-  return extensions.some((extension) => path.endsWith(extension));
-}
 function requiredPath(fields, index, gitArgs) {
   const path = requiredField(fields, index, gitArgs, "path");
   if (path === "") {
@@ -15165,15 +14989,126 @@ function requiredField(fields, index, gitArgs, label) {
   }
   return field;
 }
-function malformedGitOutput(gitArgs, detail) {
-  return new GitChangedFilesError(gitArgs, `Git returned malformed output: ${detail}.`);
+
+// src/path-policy/filtering.ts
+var import_ignore = __toESM(require_ignore(), 1);
+function filterIgnoredChangedFiles(files, ignorePaths) {
+  if (ignorePaths.length === 0) {
+    return [...files];
+  }
+  const ignorePathsMatcher = (0, import_ignore.default)().add(ignorePaths);
+  return files.filter((file) => !ignorePathsMatcher.ignores(file.path));
 }
-function gitFailure(gitArgs, result) {
-  return new GitChangedFilesError(gitArgs, gitResultDetail2(result));
+function selectToolChangedFilePaths(files, extensions) {
+  return files.filter((file) => file.status !== "deleted").filter((file) => matchesExtension(file.path, extensions)).map((file) => file.path);
 }
-function gitSpawnFailure(gitArgs, error) {
-  const detail = error instanceof Error ? error.message : String(error);
-  return new GitChangedFilesError(gitArgs, detail);
+function matchesExtension(path, extensions) {
+  if (extensions === void 0) {
+    return true;
+  }
+  return extensions.some((extension) => path.endsWith(extension));
+}
+
+// src/process/run-command.ts
+import { spawn } from "node:child_process";
+function runCommand(options) {
+  const outputEncoding = options.outputEncoding ?? "utf8";
+  return new Promise((resolve, reject) => {
+    const child = spawn(options.command, [...options.args ?? []], {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
+    });
+    const stdoutBuffers = [];
+    let stderr = "";
+    let stdout = "";
+    if (!child.stdout || !child.stderr) {
+      reject(new Error(`${options.command} output streams were not captured.`));
+      return;
+    }
+    if (outputEncoding === "buffer") {
+      child.stdout.on("data", (data) => {
+        stdoutBuffers.push(data);
+      });
+    } else {
+      child.stdout.setEncoding("utf8");
+      child.stdout.on("data", (data) => {
+        stdout += data;
+      });
+    }
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (data) => {
+      stderr += data;
+    });
+    child.on("error", reject);
+    child.on("close", (code, signal) => {
+      if (outputEncoding === "buffer") {
+        resolve({
+          code,
+          signal,
+          stderr,
+          stdout: Buffer.concat(stdoutBuffers)
+        });
+        return;
+      }
+      resolve({
+        code,
+        signal,
+        stderr,
+        stdout
+      });
+    });
+    if (options.stdin !== void 0) {
+      if (!child.stdin) {
+        reject(new Error(`${options.command} stdin was not piped.`));
+        return;
+      }
+      child.stdin.end(options.stdin);
+    }
+  });
+}
+
+// src/git/command.ts
+var GitCommandError = class extends Error {
+  gitArgs;
+  result;
+  constructor(gitArgs, result) {
+    super(gitResultDetail2(result));
+    this.name = new.target.name;
+    this.gitArgs = [...gitArgs];
+    this.result = result;
+  }
+};
+function runGit(repoRoot, args, options = {}) {
+  const commandOptions = {
+    args,
+    command: "git",
+    cwd: repoRoot,
+    env: options.env
+  };
+  if (options.encoding === "buffer") {
+    return runCommand({
+      ...commandOptions,
+      outputEncoding: "buffer"
+    });
+  }
+  return runCommand({
+    ...commandOptions,
+    outputEncoding: "utf8"
+  });
+}
+async function runGitChecked(repoRoot, args, options = {}) {
+  const result = options.encoding === "buffer" ? await runGit(repoRoot, args, {
+    ...options,
+    encoding: "buffer"
+  }) : await runGit(repoRoot, args, {
+    ...options,
+    encoding: "utf8"
+  });
+  if (result.code !== 0) {
+    throw new GitCommandError(args, result);
+  }
+  return result.stdout;
 }
 function gitResultDetail2(result) {
   const stderr = result.stderr.trim();
@@ -15182,12 +15117,106 @@ function gitResultDetail2(result) {
   }
   return `git exited with ${String(result.code)}.`;
 }
+
+// src/path-policy/git-resolution.ts
+async function resolveTargetCommit(repoRoot, targetRef) {
+  const args = ["rev-parse", "--verify", "--quiet", `${targetRef}^{commit}`];
+  const result = await runChangedFilesGit(repoRoot, args);
+  if (result.code === 0) {
+    return result.stdout.trim();
+  }
+  if (result.code === 1) {
+    throw new MissingTargetRefError(targetRef);
+  }
+  throw gitFailure(args, result);
+}
+async function resolveDiffBase(repoRoot, targetRef, targetCommit) {
+  const args = ["merge-base", targetCommit, "HEAD"];
+  const result = await runChangedFilesGit(repoRoot, args);
+  if (result.code === 0) {
+    return result.stdout.trim();
+  }
+  throw new MissingDiffBaseError(targetRef, gitResultDetail(result));
+}
+async function readChangedFileDiffs(repoRoot, targetCommit) {
+  const diffRange = `${targetCommit}...HEAD`;
+  const nameStatusArgs = [
+    "diff",
+    "--name-status",
+    "-z",
+    "--find-renames",
+    "--no-ext-diff",
+    diffRange
+  ];
+  const numstatArgs = [
+    "diff",
+    "--numstat",
+    "-z",
+    "--find-renames",
+    "--no-ext-diff",
+    diffRange
+  ];
+  const [nameStatusOutput, numstatOutput] = await Promise.all([
+    readChangedFilesGitOutput(repoRoot, nameStatusArgs),
+    readChangedFilesGitOutput(repoRoot, numstatArgs)
+  ]);
+  return {
+    nameStatus: {
+      args: nameStatusArgs,
+      output: nameStatusOutput
+    },
+    numstat: {
+      args: numstatArgs,
+      output: numstatOutput
+    }
+  };
+}
+async function readChangedFilesGitOutput(repoRoot, args) {
+  try {
+    return await runGitChecked(repoRoot, args, { encoding: "buffer" });
+  } catch (error) {
+    if (error instanceof GitCommandError) {
+      throw gitFailure(args, error.result);
+    }
+    throw gitSpawnFailure(args, error);
+  }
+}
 async function runChangedFilesGit(repoRoot, args) {
   try {
     return await runGit(repoRoot, args);
   } catch (error) {
     throw gitSpawnFailure(args, error);
   }
+}
+
+// src/path-policy/index.ts
+async function resolveChangedFiles(options) {
+  const repoRoot = options.repoRoot ?? process.cwd();
+  const targetCommit = await resolveTargetCommit(repoRoot, options.targetBranch);
+  const diffBase = await resolveDiffBase(
+    repoRoot,
+    options.targetBranch,
+    targetCommit
+  );
+  const diffOutput = await readChangedFileDiffs(repoRoot, targetCommit);
+  const diffStats = parseDiffStats(
+    diffOutput.numstat.output,
+    diffOutput.numstat.args
+  );
+  const files = filterIgnoredChangedFiles(
+    parseChangedFiles(
+      diffOutput.nameStatus.output,
+      diffStats,
+      diffOutput.nameStatus.args
+    ),
+    options.ignorePaths ?? []
+  );
+  return {
+    diffBase,
+    files,
+    targetCommit,
+    targetRef: options.targetBranch
+  };
 }
 
 // src/git/config.ts
