@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -8,6 +7,8 @@ import {
   loadConfig,
   type PushgateConfig,
 } from "./config/index.js";
+import { runGitPush } from "./git/push.js";
+import { resolveGitRepositoryRoot } from "./git/repository.js";
 import {
   ChangedFilePolicyError,
   resolveChangedFiles,
@@ -75,7 +76,7 @@ async function runPrePush(io: CliIO): Promise<number> {
   try {
     await drainStdin(io.stdin);
 
-    const repoRoot = await resolveRepoRoot(io.env);
+    const repoRoot = await resolveGitRepositoryRoot(io.env);
     const skipControls = await resolveSkipControlState(repoRoot, io.env);
 
     if (skipControls.skipAllChecks) {
@@ -137,43 +138,29 @@ async function runPushCommand(
   try {
     const parsed = parsePushCommandArgs(args);
 
-    return await new Promise<number>((resolve, reject) => {
-      const child = spawn(
-        "git",
-        buildGitPushArgs(parsed.gitPushArgs, {
-          skipAllChecks: parsed.skipAllChecks,
-          skipAiCheck: parsed.skipAiCheck,
-        }),
-        {
-          env: io.env,
-          stdio: "inherit",
-        },
+    const result = await runGitPush(
+      buildGitPushArgs(parsed.gitPushArgs, {
+        skipAllChecks: parsed.skipAllChecks,
+        skipAiCheck: parsed.skipAiCheck,
+      }),
+      { env: io.env },
+    ).catch((error: unknown) => {
+      const spawnError = error as NodeJS.ErrnoException;
+
+      throw new SkipControlError(
+        spawnError.code === "ENOENT"
+          ? "Git is required for `pushgate push`, but it was not found on PATH."
+          : `Failed to run git push: ${error instanceof Error ? error.message : String(error)}`,
       );
-
-      child.on("error", (error) => {
-        const spawnError = error as NodeJS.ErrnoException;
-
-        reject(
-          new SkipControlError(
-            spawnError.code === "ENOENT"
-              ? "Git is required for `pushgate push`, but it was not found on PATH."
-              : `Failed to run git push: ${error.message}`,
-          ),
-        );
-      });
-      child.on("close", (code, signal) => {
-        if (code !== null) {
-          resolve(code);
-          return;
-        }
-
-        reject(
-          new SkipControlError(
-            `git push ended unexpectedly with signal ${signal ?? "unknown"}.`,
-          ),
-        );
-      });
     });
+
+    if (result.code !== null) {
+      return result.code;
+    }
+
+    throw new SkipControlError(
+      `git push ended unexpectedly with signal ${result.signal ?? "unknown"}.`,
+    );
   } catch (error) {
     writePushgateError(io.stderr, error);
     return 1;
@@ -272,39 +259,6 @@ function drainStdin(stdin: NodeJS.ReadableStream): Promise<void> {
     stdin.on("error", reject);
     stdin.on("end", resolve);
     stdin.resume();
-  });
-}
-
-function resolveRepoRoot(env: NodeJS.ProcessEnv): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("git", ["rev-parse", "--show-toplevel"], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stderr = "";
-    let stdout = "";
-
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data: string) => {
-      stdout += data;
-    });
-    child.stderr?.on("data", (data: string) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve(stdout.trim());
-        return;
-      }
-
-      reject(
-        new Error(
-          `Pushgate must run inside a Git repository. git rev-parse exited with ${String(code)}.${stderr.trim() ? ` ${stderr.trim()}` : ""}`,
-        ),
-      );
-    });
   });
 }
 

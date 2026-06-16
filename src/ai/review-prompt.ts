@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { ReviewConfig } from "../config/index.js";
+import { GitCommandError, runGitChecked } from "../git/command.js";
 import type {
   ChangedFile,
   ChangedFileResolution,
@@ -186,37 +186,21 @@ async function collectReviewDiff(options: {
     ...filePaths,
   ];
 
-  return new Promise((resolve, reject) => {
-    const child = spawn("git", args, {
-      cwd: options.repoRoot,
+  try {
+    return await runGitChecked(options.repoRoot, args, {
       env: options.env,
-      stdio: ["ignore", "pipe", "pipe"],
     });
-    let stderr = "";
-    let stdout = "";
+  } catch (error) {
+    if (error instanceof GitCommandError) {
+      const stderr = error.result.stderr.trim();
 
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data: string) => {
-      stdout += data;
-    });
-    child.stderr?.on("data", (data: string) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve(stdout);
-        return;
-      }
-
-      reject(
-        new Error(
-          `git diff failed while building the local AI review payload.${stderr.trim() ? ` ${stderr.trim()}` : ""}`,
-        ),
+      throw new Error(
+        `git diff failed while building the local AI review payload.${stderr ? ` ${stderr}` : ""}`,
       );
-    });
-  });
+    }
+
+    throw error;
+  }
 }
 
 async function collectFullFiles(

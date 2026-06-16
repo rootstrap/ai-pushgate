@@ -14357,14 +14357,123 @@ var require_ignore = __commonJS({
 });
 
 // src/cli.ts
-import { spawn as spawn7 } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // src/ai/review-prompt.ts
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
+// src/process/run-command.ts
+import { spawn } from "node:child_process";
+function runCommand(options) {
+  const outputEncoding = options.outputEncoding ?? "utf8";
+  return new Promise((resolve, reject) => {
+    const child = spawn(options.command, [...options.args ?? []], {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
+    });
+    const stdoutBuffers = [];
+    let stderr = "";
+    let stdout = "";
+    if (!child.stdout || !child.stderr) {
+      reject(new Error(`${options.command} output streams were not captured.`));
+      return;
+    }
+    if (outputEncoding === "buffer") {
+      child.stdout.on("data", (data) => {
+        stdoutBuffers.push(data);
+      });
+    } else {
+      child.stdout.setEncoding("utf8");
+      child.stdout.on("data", (data) => {
+        stdout += data;
+      });
+    }
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (data) => {
+      stderr += data;
+    });
+    child.on("error", reject);
+    child.on("close", (code, signal) => {
+      if (outputEncoding === "buffer") {
+        resolve({
+          code,
+          signal,
+          stderr,
+          stdout: Buffer.concat(stdoutBuffers)
+        });
+        return;
+      }
+      resolve({
+        code,
+        signal,
+        stderr,
+        stdout
+      });
+    });
+    if (options.stdin !== void 0) {
+      if (!child.stdin) {
+        reject(new Error(`${options.command} stdin was not piped.`));
+        return;
+      }
+      child.stdin.end(options.stdin);
+    }
+  });
+}
+
+// src/git/command.ts
+var GitCommandError = class extends Error {
+  gitArgs;
+  result;
+  constructor(gitArgs, result) {
+    super(gitResultDetail(result));
+    this.name = new.target.name;
+    this.gitArgs = [...gitArgs];
+    this.result = result;
+  }
+};
+function runGit(repoRoot, args, options = {}) {
+  const commandOptions = {
+    args,
+    command: "git",
+    cwd: repoRoot,
+    env: options.env
+  };
+  if (options.encoding === "buffer") {
+    return runCommand({
+      ...commandOptions,
+      outputEncoding: "buffer"
+    });
+  }
+  return runCommand({
+    ...commandOptions,
+    outputEncoding: "utf8"
+  });
+}
+async function runGitChecked(repoRoot, args, options = {}) {
+  const result = options.encoding === "buffer" ? await runGit(repoRoot, args, {
+    ...options,
+    encoding: "buffer"
+  }) : await runGit(repoRoot, args, {
+    ...options,
+    encoding: "utf8"
+  });
+  if (result.code !== 0) {
+    throw new GitCommandError(args, result);
+  }
+  return result.stdout;
+}
+function gitResultDetail(result) {
+  const stderr = result.stderr.trim();
+  if (stderr) {
+    return stderr;
+  }
+  return `git exited with ${String(result.code)}.`;
+}
+
+// src/ai/review-prompt.ts
 var MAX_FULL_FILE_BYTES = 50 * 1024;
 var BASE_REVIEW_PROMPT = `# Pushgate Review Prompt
 
@@ -14511,35 +14620,19 @@ async function collectReviewDiff(options) {
     "--",
     ...filePaths
   ];
-  return new Promise((resolve, reject) => {
-    const child = spawn("git", args, {
-      cwd: options.repoRoot,
-      env: options.env,
-      stdio: ["ignore", "pipe", "pipe"]
+  try {
+    return await runGitChecked(options.repoRoot, args, {
+      env: options.env
     });
-    let stderr = "";
-    let stdout = "";
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data) => {
-      stdout += data;
-    });
-    child.stderr?.on("data", (data) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve(stdout);
-        return;
-      }
-      reject(
-        new Error(
-          `git diff failed while building the local AI review payload.${stderr.trim() ? ` ${stderr.trim()}` : ""}`
-        )
+  } catch (error) {
+    if (error instanceof GitCommandError) {
+      const stderr = error.result.stderr.trim();
+      throw new Error(
+        `git diff failed while building the local AI review payload.${stderr ? ` ${stderr}` : ""}`
       );
-    });
-  });
+    }
+    throw error;
+  }
 }
 async function collectFullFiles(repoRoot, changedFiles) {
   const fullFiles = [];
@@ -15940,9 +16033,39 @@ async function exists(path) {
   }
 }
 
+// src/git/push.ts
+import { spawn as spawn4 } from "node:child_process";
+function runGitPush(args, options) {
+  return new Promise((resolve, reject) => {
+    const child = spawn4("git", [...args], {
+      env: options.env,
+      stdio: "inherit"
+    });
+    child.on("error", reject);
+    child.on("close", (code, signal) => {
+      resolve({ code, signal });
+    });
+  });
+}
+
+// src/git/repository.ts
+async function resolveGitRepositoryRoot(env = process.env) {
+  const result = await runCommand({
+    args: ["rev-parse", "--show-toplevel"],
+    command: "git",
+    env
+  });
+  if (result.code === 0) {
+    return result.stdout.trim();
+  }
+  const stderr = result.stderr.trim();
+  throw new Error(
+    `Pushgate must run inside a Git repository. git rev-parse exited with ${String(result.code)}.${stderr ? ` ${stderr}` : ""}`
+  );
+}
+
 // src/path-policy/index.ts
 var import_ignore = __toESM(require_ignore(), 1);
-import { spawn as spawn4 } from "node:child_process";
 var ChangedFilePolicyError = class extends Error {
   /** Stable machine-readable error code for callers to render. */
   code;
@@ -16019,8 +16142,8 @@ async function resolveChangedFiles(options) {
     diffRange
   ];
   const [nameStatusOutput, numstatOutput] = await Promise.all([
-    runGitChecked(repoRoot, nameStatusArgs),
-    runGitChecked(repoRoot, numstatArgs)
+    readChangedFilesGitOutput(repoRoot, nameStatusArgs),
+    readChangedFilesGitOutput(repoRoot, numstatArgs)
   ]);
   const diffStats = parseDiffStats(numstatOutput, numstatArgs);
   const files = filterIgnoredChangedFiles(
@@ -16046,9 +16169,9 @@ function selectToolChangedFilePaths(files, extensions) {
 }
 async function resolveTargetCommit(repoRoot, targetRef) {
   const args = ["rev-parse", "--verify", "--quiet", `${targetRef}^{commit}`];
-  const result = await runGit(repoRoot, args);
+  const result = await runChangedFilesGit(repoRoot, args);
   if (result.code === 0) {
-    return result.stdout.toString("utf8").trim();
+    return result.stdout.trim();
   }
   if (result.code === 1) {
     throw new MissingTargetRefError(targetRef);
@@ -16057,18 +16180,21 @@ async function resolveTargetCommit(repoRoot, targetRef) {
 }
 async function resolveDiffBase(repoRoot, targetRef, targetCommit) {
   const args = ["merge-base", targetCommit, "HEAD"];
-  const result = await runGit(repoRoot, args);
+  const result = await runChangedFilesGit(repoRoot, args);
   if (result.code === 0) {
-    return result.stdout.toString("utf8").trim();
+    return result.stdout.trim();
   }
-  throw new MissingDiffBaseError(targetRef, gitResultDetail(result));
+  throw new MissingDiffBaseError(targetRef, gitResultDetail2(result));
 }
-async function runGitChecked(repoRoot, args) {
-  const result = await runGit(repoRoot, args);
-  if (result.code !== 0) {
-    throw gitFailure(args, result);
+async function readChangedFilesGitOutput(repoRoot, args) {
+  try {
+    return await runGitChecked(repoRoot, args, { encoding: "buffer" });
+  } catch (error) {
+    if (error instanceof GitCommandError) {
+      throw gitFailure(args, error.result);
+    }
+    throw gitSpawnFailure(args, error);
   }
-  return result.stdout;
 }
 function parseChangedFiles(output, diffStats, gitArgs) {
   const fields = splitNullFields(output);
@@ -16213,46 +16339,25 @@ function malformedGitOutput(gitArgs, detail) {
   return new GitChangedFilesError(gitArgs, `Git returned malformed output: ${detail}.`);
 }
 function gitFailure(gitArgs, result) {
-  return new GitChangedFilesError(gitArgs, gitResultDetail(result));
+  return new GitChangedFilesError(gitArgs, gitResultDetail2(result));
 }
-function gitResultDetail(result) {
+function gitSpawnFailure(gitArgs, error) {
+  const detail = error instanceof Error ? error.message : String(error);
+  return new GitChangedFilesError(gitArgs, detail);
+}
+function gitResultDetail2(result) {
   const stderr = result.stderr.trim();
   if (stderr) {
     return stderr;
   }
   return `git exited with ${String(result.code)}.`;
 }
-function runGit(repoRoot, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn4("git", [...args], {
-      cwd: repoRoot,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    const stdout = [];
-    let stderr = "";
-    if (!child.stdout || !child.stderr) {
-      reject(new Error("Git changed-file inspection must capture output."));
-      return;
-    }
-    child.stdout.on("data", (data) => {
-      stdout.push(data);
-    });
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (data) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      resolve({
-        code,
-        stderr,
-        stdout: Buffer.concat(stdout)
-      });
-    });
-  }).catch((error) => {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw new GitChangedFilesError(args, detail);
-  });
+async function runChangedFilesGit(repoRoot, args) {
+  try {
+    return await runGit(repoRoot, args);
+  } catch (error) {
+    throw gitSpawnFailure(args, error);
+  }
 }
 
 // src/runner/deterministic.ts
@@ -16547,8 +16652,49 @@ function writeLine2(stream, line) {
 `);
 }
 
+// src/git/config.ts
+var GitConfigError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = new.target.name;
+  }
+};
+async function readGitBooleanConfig(repoRoot, key, env = process.env) {
+  let result;
+  try {
+    result = await runGit(repoRoot, ["config", "--bool", "--get", key], {
+      env
+    });
+  } catch (error) {
+    throw new GitConfigError(
+      `Failed to read Git config ${key}: ${errorMessage(error)}`
+    );
+  }
+  const trimmedStdout = result.stdout.trim();
+  const trimmedStderr = result.stderr.trim();
+  if (result.code === 0) {
+    if (trimmedStdout === "true") {
+      return true;
+    }
+    if (trimmedStdout === "false") {
+      return false;
+    }
+    throw new GitConfigError(
+      `Git config ${key} returned ${JSON.stringify(trimmedStdout)} instead of a boolean value.`
+    );
+  }
+  if (result.code === 1 && trimmedStderr === "") {
+    return false;
+  }
+  throw new GitConfigError(
+    `Could not read Git config ${key}. git config exited with ${String(result.code)}.${trimmedStderr ? ` ${trimmedStderr}` : ""}`
+  );
+}
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // src/skip-controls.ts
-import { spawn as spawn6 } from "node:child_process";
 var SKIP_ALL_CHECKS_CONFIG_KEY = "pushgate.skip-all-checks";
 var SKIP_AI_CHECK_CONFIG_KEY = "pushgate.skip-ai-check";
 var SkipControlError = class extends Error {
@@ -16568,7 +16714,7 @@ function buildGitPushArgs(pushArgs, state) {
   return gitArgs;
 }
 async function resolveSkipControlState(repoRoot, env = process.env) {
-  const skipAllChecks = await readGitBooleanConfig(
+  const skipAllChecks = await readSkipBooleanConfig(
     repoRoot,
     env,
     SKIP_ALL_CHECKS_CONFIG_KEY
@@ -16581,67 +16727,22 @@ async function resolveSkipControlState(repoRoot, env = process.env) {
   }
   return {
     skipAllChecks: false,
-    skipAiCheck: await readGitBooleanConfig(
+    skipAiCheck: await readSkipBooleanConfig(
       repoRoot,
       env,
       SKIP_AI_CHECK_CONFIG_KEY
     )
   };
 }
-function readGitBooleanConfig(repoRoot, env, key) {
-  return new Promise((resolve, reject) => {
-    const child = spawn6("git", ["config", "--bool", "--get", key], {
-      cwd: repoRoot,
-      env,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    let stderr = "";
-    let stdout = "";
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data) => {
-      stdout += data;
-    });
-    child.stderr?.on("data", (data) => {
-      stderr += data;
-    });
-    child.on("error", (error) => {
-      reject(
-        new SkipControlError(
-          `Failed to read Git config ${key}: ${error.message}`
-        )
-      );
-    });
-    child.on("close", (code) => {
-      const trimmedStdout = stdout.trim();
-      const trimmedStderr = stderr.trim();
-      if (code === 0) {
-        if (trimmedStdout === "true") {
-          resolve(true);
-          return;
-        }
-        if (trimmedStdout === "false") {
-          resolve(false);
-          return;
-        }
-        reject(
-          new SkipControlError(
-            `Git config ${key} returned ${JSON.stringify(trimmedStdout)} instead of a boolean value.`
-          )
-        );
-        return;
-      }
-      if (code === 1 && trimmedStderr === "") {
-        resolve(false);
-        return;
-      }
-      reject(
-        new SkipControlError(
-          `Could not read Git config ${key}. git config exited with ${String(code)}.${trimmedStderr ? ` ${trimmedStderr}` : ""}`
-        )
-      );
-    });
-  });
+async function readSkipBooleanConfig(repoRoot, env, key) {
+  try {
+    return await readGitBooleanConfig(repoRoot, key, env);
+  } catch (error) {
+    if (error instanceof GitConfigError) {
+      throw new SkipControlError(error.message);
+    }
+    throw error;
+  }
 }
 
 // src/cli.ts
@@ -16684,7 +16785,7 @@ async function main(argv = process.argv.slice(2), io = {
 async function runPrePush(io) {
   try {
     await drainStdin(io.stdin);
-    const repoRoot = await resolveRepoRoot(io.env);
+    const repoRoot = await resolveGitRepositoryRoot(io.env);
     const skipControls = await resolveSkipControlState(repoRoot, io.env);
     if (skipControls.skipAllChecks) {
       io.stdout.write(
@@ -16735,38 +16836,24 @@ async function runPrePush(io) {
 async function runPushCommand(args, io) {
   try {
     const parsed = parsePushCommandArgs(args);
-    return await new Promise((resolve, reject) => {
-      const child = spawn7(
-        "git",
-        buildGitPushArgs(parsed.gitPushArgs, {
-          skipAllChecks: parsed.skipAllChecks,
-          skipAiCheck: parsed.skipAiCheck
-        }),
-        {
-          env: io.env,
-          stdio: "inherit"
-        }
+    const result = await runGitPush(
+      buildGitPushArgs(parsed.gitPushArgs, {
+        skipAllChecks: parsed.skipAllChecks,
+        skipAiCheck: parsed.skipAiCheck
+      }),
+      { env: io.env }
+    ).catch((error) => {
+      const spawnError = error;
+      throw new SkipControlError(
+        spawnError.code === "ENOENT" ? "Git is required for `pushgate push`, but it was not found on PATH." : `Failed to run git push: ${error instanceof Error ? error.message : String(error)}`
       );
-      child.on("error", (error) => {
-        const spawnError = error;
-        reject(
-          new SkipControlError(
-            spawnError.code === "ENOENT" ? "Git is required for `pushgate push`, but it was not found on PATH." : `Failed to run git push: ${error.message}`
-          )
-        );
-      });
-      child.on("close", (code, signal) => {
-        if (code !== null) {
-          resolve(code);
-          return;
-        }
-        reject(
-          new SkipControlError(
-            `git push ended unexpectedly with signal ${signal ?? "unknown"}.`
-          )
-        );
-      });
     });
+    if (result.code !== null) {
+      return result.code;
+    }
+    throw new SkipControlError(
+      `git push ended unexpectedly with signal ${result.signal ?? "unknown"}.`
+    );
   } catch (error) {
     writePushgateError(io.stderr, error);
     return 1;
@@ -16823,36 +16910,6 @@ function drainStdin(stdin) {
     stdin.on("error", reject);
     stdin.on("end", resolve);
     stdin.resume();
-  });
-}
-function resolveRepoRoot(env) {
-  return new Promise((resolve, reject) => {
-    const child = spawn7("git", ["rev-parse", "--show-toplevel"], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    let stderr = "";
-    let stdout = "";
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data) => {
-      stdout += data;
-    });
-    child.stderr?.on("data", (data) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve(stdout.trim());
-        return;
-      }
-      reject(
-        new Error(
-          `Pushgate must run inside a Git repository. git rev-parse exited with ${String(code)}.${stderr.trim() ? ` ${stderr.trim()}` : ""}`
-        )
-      );
-    });
   });
 }
 function writePushgateError(stderr, error) {

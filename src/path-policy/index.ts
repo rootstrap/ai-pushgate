@@ -1,6 +1,11 @@
-import { spawn } from "node:child_process";
-
 import ignore from "ignore";
+
+import {
+  GitCommandError,
+  runGit,
+  runGitChecked,
+  type GitCommandResult,
+} from "../git/command.js";
 
 /** Git file states normalized for downstream Pushgate policy consumers. */
 export type ChangedFileStatus =
@@ -51,11 +56,7 @@ export interface ChangedFileResolution {
   targetRef: string;
 }
 
-interface GitRunResult {
-  code: number | null;
-  stderr: string;
-  stdout: Buffer;
-}
+type GitRunResult = Pick<GitCommandResult<Buffer | string>, "code" | "stderr">;
 
 interface ChangedFileDiffStats {
   additions: number | null;
@@ -161,8 +162,8 @@ export async function resolveChangedFiles(
     diffRange,
   ];
   const [nameStatusOutput, numstatOutput] = await Promise.all([
-    runGitChecked(repoRoot, nameStatusArgs),
-    runGitChecked(repoRoot, numstatArgs),
+    readChangedFilesGitOutput(repoRoot, nameStatusArgs),
+    readChangedFilesGitOutput(repoRoot, numstatArgs),
   ]);
   const diffStats = parseDiffStats(numstatOutput, numstatArgs);
   const files = filterIgnoredChangedFiles(
@@ -213,10 +214,10 @@ async function resolveTargetCommit(
   targetRef: string,
 ): Promise<string> {
   const args = ["rev-parse", "--verify", "--quiet", `${targetRef}^{commit}`];
-  const result = await runGit(repoRoot, args);
+  const result = await runChangedFilesGit(repoRoot, args);
 
   if (result.code === 0) {
-    return result.stdout.toString("utf8").trim();
+    return result.stdout.trim();
   }
 
   if (result.code === 1) {
@@ -232,26 +233,28 @@ async function resolveDiffBase(
   targetCommit: string,
 ): Promise<string> {
   const args = ["merge-base", targetCommit, "HEAD"];
-  const result = await runGit(repoRoot, args);
+  const result = await runChangedFilesGit(repoRoot, args);
 
   if (result.code === 0) {
-    return result.stdout.toString("utf8").trim();
+    return result.stdout.trim();
   }
 
   throw new MissingDiffBaseError(targetRef, gitResultDetail(result));
 }
 
-async function runGitChecked(
+async function readChangedFilesGitOutput(
   repoRoot: string,
   args: readonly string[],
 ): Promise<Buffer> {
-  const result = await runGit(repoRoot, args);
+  try {
+    return await runGitChecked(repoRoot, args, { encoding: "buffer" });
+  } catch (error) {
+    if (error instanceof GitCommandError) {
+      throw gitFailure(args, error.result);
+    }
 
-  if (result.code !== 0) {
-    throw gitFailure(args, result);
+    throw gitSpawnFailure(args, error);
   }
-
-  return result.stdout;
 }
 
 function parseChangedFiles(
@@ -476,6 +479,15 @@ function gitFailure(
   return new GitChangedFilesError(gitArgs, gitResultDetail(result));
 }
 
+function gitSpawnFailure(
+  gitArgs: readonly string[],
+  error: unknown,
+): GitChangedFilesError {
+  const detail = error instanceof Error ? error.message : String(error);
+
+  return new GitChangedFilesError(gitArgs, detail);
+}
+
 function gitResultDetail(result: GitRunResult): string {
   const stderr = result.stderr.trim();
 
@@ -486,38 +498,13 @@ function gitResultDetail(result: GitRunResult): string {
   return `git exited with ${String(result.code)}.`;
 }
 
-function runGit(repoRoot: string, args: readonly string[]): Promise<GitRunResult> {
-  return new Promise<GitRunResult>((resolve, reject) => {
-    const child = spawn("git", [...args], {
-      cwd: repoRoot,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const stdout: Buffer[] = [];
-    let stderr = "";
-
-    if (!child.stdout || !child.stderr) {
-      reject(new Error("Git changed-file inspection must capture output."));
-      return;
-    }
-
-    child.stdout.on("data", (data: Buffer) => {
-      stdout.push(data);
-    });
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (data: string) => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      resolve({
-        code,
-        stderr,
-        stdout: Buffer.concat(stdout),
-      });
-    });
-  }).catch((error: unknown) => {
-    const detail = error instanceof Error ? error.message : String(error);
-
-    throw new GitChangedFilesError(args, detail);
-  });
+async function runChangedFilesGit(
+  repoRoot: string,
+  args: readonly string[],
+): Promise<GitCommandResult<string>> {
+  try {
+    return await runGit(repoRoot, args);
+  } catch (error) {
+    throw gitSpawnFailure(args, error);
+  }
 }
