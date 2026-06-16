@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && pnpm run bundle",
     "bundle": "node scripts/build-runner.mjs",
+    "bundle:analyze": "node scripts/build-runner.mjs --analyze",
     "check:shell": "bash -n hook/pre-push && bash -n install.sh",
     "lint:shell": "shellcheck --severity=error hook/pre-push install.sh",
     "typecheck": "tsc --noEmit",
