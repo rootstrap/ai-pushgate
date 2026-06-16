@@ -1,0 +1,49 @@
+{
+  "projectRoot": "/Users/danielbrosio/aux-projects/pps/ai-pushgate",
+  "batchFiles": [
+    {
+      "path": "templates/base.yml",
+      "language": "yaml",
+      "sizeLines": 132,
+      "fileCategory": "config"
+    },
+    {
+      "path": "templates/nextjs.yml",
+      "language": "yaml",
+      "sizeLines": 51,
+      "fileCategory": "config"
+    },
+    {
+      "path": "templates/node.yml",
+      "language": "yaml",
+      "sizeLines": 44,
+      "fileCategory": "config"
+    },
+    {
+      "path": "templates/rails.yml",
+      "language": "yaml",
+      "sizeLines": 50,
+      "fileCategory": "config"
+    },
+    {
+      "path": "templates/ruby.yml",
+      "language": "yaml",
+      "sizeLines": 42,
+      "fileCategory": "config"
+    },
+    {
+      "path": "templates/typescript.yml",
+      "language": "yaml",
+      "sizeLines": 48,
+      "fileCategory": "config"
+    }
+  ],
+  "batchImportData": {
+    "templates/base.yml": [],
+    "templates/nextjs.yml": [],
+    "templates/node.yml": [],
+    "templates/rails.yml": [],
+    "templates/ruby.yml": [],
+    "templates/typescript.yml": []
+  }
+}

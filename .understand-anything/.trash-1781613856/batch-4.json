@@ -1,0 +1,676 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/config/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/config/index.ts",
+      "summary": "Loads, validates, and normalizes the v2 Pushgate YAML config, surfacing dedicated error types for missing, legacy, and invalid configuration states.",
+      "tags": [
+        "barrel",
+        "configuration",
+        "code"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/runner/deterministic.ts",
+      "type": "file",
+      "name": "deterministic.ts",
+      "filePath": "src/runner/deterministic.ts",
+      "summary": "Runs configured deterministic checks, expands changed-file arguments, captures tool output, and enforces blocking versus warning behavior.",
+      "tags": [
+        "deterministic-gate",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "type": "function",
+      "name": "runDeterministicChecks",
+      "filePath": "src/runner/deterministic.ts",
+      "summary": "Runs the deterministic checks path within deterministic.ts.",
+      "tags": [
+        "deterministic-checks",
+        "tool-runner",
+        "fail-fast",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/runner/policies.ts",
+      "type": "file",
+      "name": "policies.ts",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Implements built-in deterministic policies such as diff-size and forbidden-path checks used before external tools or AI review run.",
+      "tags": [
+        "deterministic-gate",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "function",
+      "name": "countBuiltInPolicies",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Counts built in policies for policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "function",
+      "name": "runBuiltInPolicies",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Runs the built in policies path within policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:runDiffSizePolicy",
+      "type": "function",
+      "name": "runDiffSizePolicy",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Runs the diff size policy path within policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "type": "function",
+      "name": "runForbiddenPathsPolicy",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Runs the forbidden paths policy path within policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:formatForbiddenPathMatches",
+      "type": "function",
+      "name": "formatForbiddenPathMatches",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Formats forbidden path matches values for policies.ts.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/policies.ts:violationResult",
+      "type": "function",
+      "name": "violationResult",
+      "filePath": "src/runner/policies.ts",
+      "summary": "Helper named violationResult that supports implements built-in deterministic policies such as diff-size and forbidden-path checks used before external tools or ai review run.",
+      "tags": [
+        "policy",
+        "validation",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/runner/summary.ts",
+      "type": "file",
+      "name": "summary.ts",
+      "filePath": "src/runner/summary.ts",
+      "summary": "Implements deterministic runner summary.ts logic for built-in and configured checks.",
+      "tags": [
+        "deterministic-gate",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/runner/summary.ts:summarizeDeterministicResults",
+      "type": "function",
+      "name": "summarizeDeterministicResults",
+      "filePath": "src/runner/summary.ts",
+      "summary": "Implements summarizeDeterministicResults behavior in summary.ts.",
+      "tags": [
+        "function",
+        "deterministic-gate"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/runner/tool-command.ts",
+      "type": "file",
+      "name": "tool-command.ts",
+      "filePath": "src/runner/tool-command.ts",
+      "summary": "Implements deterministic runner tool command.ts logic for built-in and configured checks.",
+      "tags": [
+        "deterministic-gate",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/tool-command.ts:runToolCommand",
+      "type": "function",
+      "name": "runToolCommand",
+      "filePath": "src/runner/tool-command.ts",
+      "summary": "Runs command or workflow logic in tool-command.ts.",
+      "tags": [
+        "function",
+        "deterministic-gate",
+        "process-execution"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/tool-command.ts:expandChangedFilesToken",
+      "type": "function",
+      "name": "expandChangedFilesToken",
+      "filePath": "src/runner/tool-command.ts",
+      "summary": "Implements expandChangedFilesToken behavior in tool-command.ts.",
+      "tags": [
+        "function",
+        "deterministic-gate"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/runner/transcript.ts",
+      "type": "file",
+      "name": "transcript.ts",
+      "filePath": "src/runner/transcript.ts",
+      "summary": "Implements deterministic runner transcript.ts logic for built-in and configured checks.",
+      "tags": [
+        "deterministic-gate",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/runner/transcript.ts:createDeterministicTranscript",
+      "type": "function",
+      "name": "createDeterministicTranscript",
+      "filePath": "src/runner/transcript.ts",
+      "summary": "Implements createDeterministicTranscript behavior in transcript.ts.",
+      "tags": [
+        "function",
+        "deterministic-gate"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:test/config.test.ts",
+      "type": "file",
+      "name": "config.test.ts",
+      "filePath": "test/config.test.ts",
+      "summary": "Config-loader test suite covering valid configs, schema validation failures, and legacy migration behavior.",
+      "tags": [
+        "test",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/config.test.ts:assertValidationError",
+      "type": "function",
+      "name": "assertValidationError",
+      "filePath": "test/config.test.ts",
+      "summary": "Typed error used by config.test.ts to report assert validation failures with clearer diagnostics.",
+      "tags": [
+        "test",
+        "configuration",
+        "validation",
+        "function",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/config.test.ts:withTempRepo",
+      "type": "function",
+      "name": "withTempRepo",
+      "filePath": "test/config.test.ts",
+      "summary": "Helper named withTempRepo that supports config-loader test suite covering valid configs, schema validation failures, and legacy migration behavior.",
+      "tags": [
+        "test",
+        "configuration",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:test/deterministic-runner.test.ts",
+      "type": "file",
+      "name": "deterministic-runner.test.ts",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:configWithTools",
+      "type": "function",
+      "name": "configWithTools",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Helper named configWithTools that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:tool",
+      "type": "function",
+      "name": "tool",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Helper named tool that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:withTempDir",
+      "type": "function",
+      "name": "withTempDir",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Helper named withTempDir that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:writeArgRecorder",
+      "type": "function",
+      "name": "writeArgRecorder",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Writes arg recorder output for deterministic-runner.test.ts.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/deterministic-runner.test.ts:captureOutput",
+      "type": "function",
+      "name": "captureOutput",
+      "filePath": "test/deterministic-runner.test.ts",
+      "summary": "Helper named captureOutput that supports deterministic-runner test suite covering tool execution, fail-fast handling, and built-in policy enforcement.",
+      "tags": [
+        "test",
+        "deterministic-checks",
+        "tool-runner",
+        "function"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/runner/policies.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/runner/summary.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/runner/tool-command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/deterministic.ts",
+      "target": "file:src/runner/transcript.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runDiffSizePolicy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:runForbiddenPathsPolicy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:formatForbiddenPathMatches",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "function:src/runner/policies.ts:violationResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/policies.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/summary.ts",
+      "target": "function:src/runner/summary.ts:summarizeDeterministicResults",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/summary.ts",
+      "target": "file:src/runner/deterministic.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/tool-command.ts",
+      "target": "function:src/runner/tool-command.ts:runToolCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/tool-command.ts",
+      "target": "function:src/runner/tool-command.ts:expandChangedFilesToken",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/tool-command.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/tool-command.ts",
+      "target": "file:src/process/timed-command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/transcript.ts",
+      "target": "function:src/runner/transcript.ts:createDeterministicTranscript",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/runner/transcript.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/transcript.ts",
+      "target": "file:src/runner/deterministic.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/transcript.ts",
+      "target": "file:src/runner/policies.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/runner/transcript.ts",
+      "target": "file:src/runner/summary.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/config.test.ts",
+      "target": "function:test/config.test.ts:assertValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/config.test.ts",
+      "target": "function:test/config.test.ts:withTempRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/config.test.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:configWithTools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:tool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:withTempDir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:writeArgRecorder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "function:test/deterministic-runner.test.ts:captureOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/runner/deterministic.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/runner/summary.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/deterministic-runner.test.ts",
+      "target": "file:src/runner/transcript.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/transcript.ts:createDeterministicTranscript",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/policies.ts:countBuiltInPolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/policies.ts:runBuiltInPolicies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/tool-command.ts:runToolCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/deterministic.ts:runDeterministicChecks",
+      "target": "function:src/runner/summary.ts:summarizeDeterministicResults",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/runner/tool-command.ts:runToolCommand",
+      "target": "function:src/process/timed-command.ts:runTimedCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "projectRoot": "/Users/danielbrosio/aux-projects/pps/ai-pushgate",
+  "batchFiles": [
+    {
+      "path": ".gitattributes",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "language": "markdown",
+      "sizeLines": 47,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".nvmrc",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "bin/pushgate.mjs",
+      "language": "javascript",
+      "sizeLines": 11484,
+      "fileCategory": "code"
+    },
+    {
+      "path": "hook/pre-push",
+      "language": "unknown",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "schemas/ai-review-output-v1.schema.json",
+      "language": "json",
+      "sizeLines": 66,
+      "fileCategory": "config"
+    },
+    {
+      "path": "schemas/pushgate-config-v2.schema.json",
+      "language": "json",
+      "sizeLines": 216,
+      "fileCategory": "config"
+    },
+    {
+      "path": "scripts/build-runner.mjs",
+      "language": "javascript",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/build-validators.mjs",
+      "language": "javascript",
+      "sizeLines": 148,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/md-loader.mjs",
+      "language": "javascript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/register-md-loader.mjs",
+      "language": "javascript",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/ai/prompts/review-prompt.d.ts",
+      "language": "typescript",
+      "sizeLines": 4,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/ai/prompts/review-prompt.md",
+      "language": "markdown",
+      "sizeLines": 85,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "src/generated/README.md",
+      "language": "markdown",
+      "sizeLines": 12,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "test/hook.test.ts",
+      "language": "typescript",
+      "sizeLines": 335,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/install.test.ts",
+      "language": "typescript",
+      "sizeLines": 270,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/runner.test.ts",
+      "language": "typescript",
+      "sizeLines": 710,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/support/hook-harness.ts",
+      "language": "typescript",
+      "sizeLines": 401,
+      "fileCategory": "code"
+    },
+    {
+      "path": "VERSION",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    ".gitattributes": [],
+    ".github/PULL_REQUEST_TEMPLATE.md": [],
+    ".nvmrc": [],
+    "bin/pushgate.mjs": [],
+    "hook/pre-push": [],
+    "schemas/ai-review-output-v1.schema.json": [],
+    "schemas/pushgate-config-v2.schema.json": [],
+    "scripts/build-runner.mjs": [],
+    "scripts/build-validators.mjs": [],
+    "scripts/md-loader.mjs": [],
+    "scripts/register-md-loader.mjs": [],
+    "src/ai/prompts/review-prompt.d.ts": [],
+    "src/ai/prompts/review-prompt.md": [],
+    "src/generated/README.md": [],
+    "test/hook.test.ts": [
+      "test/support/hook-harness.ts"
+    ],
+    "test/install.test.ts": [],
+    "test/runner.test.ts": [],
+    "test/support/hook-harness.ts": [],
+    "VERSION": []
+  }
+}

@@ -1,0 +1,184 @@
+[
+  {
+    "id": "layer:project-contract-and-release",
+    "name": "Project Contract And Release",
+    "description": "Package metadata, repository documentation, release automation, generated distribution entrypoints, and public project contract files.",
+    "nodeIds": [
+      "config:.release-please-manifest.json",
+      "config:package.json",
+      "config:pnpm-workspace.yaml",
+      "config:release-please-config.json",
+      "config:tsconfig.build.json",
+      "config:tsconfig.json",
+      "document:.github/PULL_REQUEST_TEMPLATE.md",
+      "document:CHANGELOG.md",
+      "document:CONTRIBUTING.md",
+      "document:README.md",
+      "file:.gitattributes",
+      "file:.nvmrc",
+      "file:VERSION",
+      "file:bin/pushgate.mjs",
+      "file:src/skip-controls.ts"
+    ]
+  },
+  {
+    "id": "layer:cli-and-push-workflow",
+    "name": "CLI And Push Workflow",
+    "description": "Command-line entrypoints, git hook integration, argument parsing, user-facing errors, and pre-push workflow orchestration.",
+    "nodeIds": [
+      "file:hook/pre-push",
+      "file:src/cli.ts",
+      "file:src/cli/errors.ts",
+      "file:src/cli/push-args.ts",
+      "file:src/workflows/pre-push.ts"
+    ]
+  },
+  {
+    "id": "layer:configuration-and-schema-validation",
+    "name": "Configuration And Schema Validation",
+    "description": "Configuration loading, normalization, constants, error reporting, schema validators, schemas, templates, and fixture inputs.",
+    "nodeIds": [
+      "config:schemas/ai-review-output-v1.schema.json",
+      "config:schemas/pushgate-config-v2.schema.json",
+      "config:templates/base.yml",
+      "config:templates/nextjs.yml",
+      "config:templates/node.yml",
+      "config:templates/rails.yml",
+      "config:templates/ruby.yml",
+      "config:templates/typescript.yml",
+      "document:src/generated/README.md",
+      "file:src/config/constants.ts",
+      "file:src/config/errors.ts",
+      "file:src/config/index.ts",
+      "file:src/config/load.ts",
+      "file:src/config/normalize.ts",
+      "file:src/config/types.ts",
+      "file:src/config/validation.ts",
+      "file:src/generated/ai-review-output-v1-validator.ts",
+      "file:src/generated/pushgate-config-v2-validator.ts"
+    ]
+  },
+  {
+    "id": "layer:path-policy-and-git-state",
+    "name": "Path Policy And Git State",
+    "description": "Changed-file detection, diff parsing, path filtering, git command helpers, and target branch resolution.",
+    "nodeIds": [
+      "file:src/git/command.ts",
+      "file:src/git/config.ts",
+      "file:src/git/push.ts",
+      "file:src/git/repository.ts",
+      "file:src/path-policy/diff-parsers.ts",
+      "file:src/path-policy/errors.ts",
+      "file:src/path-policy/filtering.ts",
+      "file:src/path-policy/git-resolution.ts",
+      "file:src/path-policy/index.ts",
+      "file:src/path-policy/types.ts"
+    ]
+  },
+  {
+    "id": "layer:process-execution",
+    "name": "Process Execution",
+    "description": "Reusable process execution helpers for inherited, timed, captured, and provider command invocation.",
+    "nodeIds": [
+      "file:src/process/inherited-command.ts",
+      "file:src/process/output.ts",
+      "file:src/process/run-command.ts",
+      "file:src/process/timed-command.ts"
+    ]
+  },
+  {
+    "id": "layer:local-ai-review",
+    "name": "Local AI Review",
+    "description": "Provider registry, Claude and Copilot adapters, review prompt/context construction, guardrails, transcripts, output normalization, and verdict rendering.",
+    "nodeIds": [
+      "document:src/ai/prompts/review-prompt.md",
+      "file:src/ai/guardrails.ts",
+      "file:src/ai/index.ts",
+      "file:src/ai/prompts/review-prompt.d.ts",
+      "file:src/ai/provider-registry.ts",
+      "file:src/ai/providers/claude.ts",
+      "file:src/ai/providers/config.ts",
+      "file:src/ai/providers/copilot.ts",
+      "file:src/ai/providers/normalize-review.ts",
+      "file:src/ai/providers/run-provider-command.ts",
+      "file:src/ai/review-context.ts",
+      "file:src/ai/review-output.ts",
+      "file:src/ai/review-prompt.ts",
+      "file:src/ai/transcript.ts",
+      "file:src/ai/types.ts",
+      "file:src/ai/verdict.ts"
+    ]
+  },
+  {
+    "id": "layer:deterministic-runner",
+    "name": "Deterministic Runner",
+    "description": "Deterministic push gates, configured tool commands, policy summaries, and transcript rendering.",
+    "nodeIds": [
+      "file:src/runner/deterministic.ts",
+      "file:src/runner/policies.ts",
+      "file:src/runner/summary.ts",
+      "file:src/runner/tool-command.ts",
+      "file:src/runner/transcript.ts"
+    ]
+  },
+  {
+    "id": "layer:documentation-and-refactor-plans",
+    "name": "Documentation And Refactor Plans",
+    "description": "Product docs, issue plans, and staged refactor plans that explain or guide Pushgate architecture changes.",
+    "nodeIds": [
+      "document:docs/distribution-runner.md",
+      "document:docs/issue-10-local-ai-provider-interface-plan.md",
+      "document:docs/issue-12-structured-ai-review-output-plan.md",
+      "document:docs/issue-18-local-skip-controls-plan.md",
+      "document:docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "document:docs/issue-2-config-schema-plan.md",
+      "document:docs/issue-3-hook-runner-test-harness-plan.md",
+      "document:docs/product-contract-plan.md",
+      "document:docs/refactor-01-process-git-helpers-plan.md",
+      "document:docs/refactor-02-cli-pre-push-workflow-plan.md",
+      "document:docs/refactor-03-path-policy-split-plan.md",
+      "document:docs/refactor-04-config-split-plan.md",
+      "document:docs/refactor-05-ai-provider-and-prompt-cleanup-plan.md",
+      "document:docs/refactor-06-distribution-module-plan.md",
+      "document:docs/refactor-07-schema-validator-precompile-plan.md",
+      "document:docs/refactor-08-process-execution-seam-plan.md",
+      "document:docs/refactor-09-deterministic-gate-deepening-plan.md",
+      "document:docs/refactor-10-local-ai-gate-split-plan.md",
+      "document:docs/refactor-11-review-context-split-plan.md",
+      "document:docs/v2-config-schema.md"
+    ]
+  },
+  {
+    "id": "layer:ci-distribution-and-automation",
+    "name": "CI Distribution And Automation",
+    "description": "GitHub Actions workflows, build scripts, installer support, and distribution automation.",
+    "nodeIds": [
+      "file:install.sh",
+      "file:scripts/build-runner.mjs",
+      "file:scripts/build-validators.mjs",
+      "file:scripts/md-loader.mjs",
+      "file:scripts/register-md-loader.mjs",
+      "pipeline:.github/workflows/ci.yml",
+      "pipeline:.github/workflows/release-please.yml"
+    ]
+  },
+  {
+    "id": "layer:test-suite",
+    "name": "Test Suite",
+    "description": "Node test suites, harnesses, fixtures, and test support files that verify Pushgate behavior.",
+    "nodeIds": [
+      "config:test/fixtures/config/defaults.yml",
+      "config:test/fixtures/config/invalid-provider.yml",
+      "config:test/fixtures/config/invalid-string-command.yml",
+      "config:test/fixtures/config/valid.yml",
+      "file:test/ai.test.ts",
+      "file:test/config.test.ts",
+      "file:test/deterministic-runner.test.ts",
+      "file:test/hook.test.ts",
+      "file:test/install.test.ts",
+      "file:test/path-policy.test.ts",
+      "file:test/runner.test.ts",
+      "file:test/support/hook-harness.ts"
+    ]
+  }
+]

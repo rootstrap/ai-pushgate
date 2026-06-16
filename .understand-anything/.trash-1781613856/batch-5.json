@@ -1,0 +1,569 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/config/constants.ts",
+      "type": "file",
+      "name": "constants.ts",
+      "filePath": "src/config/constants.ts",
+      "summary": "Implements Pushgate configuration constants.ts logic used by the CLI and pre-push workflow.",
+      "tags": [
+        "configuration",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/config/errors.ts",
+      "type": "file",
+      "name": "errors.ts",
+      "filePath": "src/config/errors.ts",
+      "summary": "Implements Pushgate configuration errors.ts logic used by the CLI and pre-push workflow.",
+      "tags": [
+        "configuration",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/config/errors.ts:ConfigError",
+      "type": "class",
+      "name": "ConfigError",
+      "filePath": "src/config/errors.ts",
+      "summary": "Defines ConfigError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/errors.ts:ConfigValidationError",
+      "type": "class",
+      "name": "ConfigValidationError",
+      "filePath": "src/config/errors.ts",
+      "summary": "Defines ConfigValidationError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/errors.ts:MissingConfigError",
+      "type": "class",
+      "name": "MissingConfigError",
+      "filePath": "src/config/errors.ts",
+      "summary": "Defines MissingConfigError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/config/errors.ts:LegacyConfigError",
+      "type": "class",
+      "name": "LegacyConfigError",
+      "filePath": "src/config/errors.ts",
+      "summary": "Defines LegacyConfigError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/config/load.ts",
+      "type": "file",
+      "name": "load.ts",
+      "filePath": "src/config/load.ts",
+      "summary": "Implements Pushgate configuration load.ts logic used by the CLI and pre-push workflow.",
+      "tags": [
+        "configuration",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/load.ts:loadConfig",
+      "type": "function",
+      "name": "loadConfig",
+      "filePath": "src/config/load.ts",
+      "summary": "Handles configuration-related logic in load.ts.",
+      "tags": [
+        "function",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/config/normalize.ts",
+      "type": "file",
+      "name": "normalize.ts",
+      "filePath": "src/config/normalize.ts",
+      "summary": "Implements Pushgate configuration normalize.ts logic used by the CLI and pre-push workflow.",
+      "tags": [
+        "configuration",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/config/normalize.ts:normalizeConfig",
+      "type": "function",
+      "name": "normalizeConfig",
+      "filePath": "src/config/normalize.ts",
+      "summary": "Handles configuration-related logic in normalize.ts.",
+      "tags": [
+        "function",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/normalize.ts:normalizePolicies",
+      "type": "function",
+      "name": "normalizePolicies",
+      "filePath": "src/config/normalize.ts",
+      "summary": "Implements normalizePolicies behavior in normalize.ts.",
+      "tags": [
+        "function",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/normalize.ts:cloneValue",
+      "type": "function",
+      "name": "cloneValue",
+      "filePath": "src/config/normalize.ts",
+      "summary": "Implements cloneValue behavior in normalize.ts.",
+      "tags": [
+        "function",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/config/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "src/config/types.ts",
+      "summary": "Defines the TypeScript contract for Pushgate v2 configuration, provider settings, tool execution, and built-in policy settings.",
+      "tags": [
+        "configuration",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/config/validation.ts",
+      "type": "file",
+      "name": "validation.ts",
+      "filePath": "src/config/validation.ts",
+      "summary": "Implements Pushgate configuration validation.ts logic used by the CLI and pre-push workflow.",
+      "tags": [
+        "configuration",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/config/validation.ts:parseConfigYaml",
+      "type": "function",
+      "name": "parseConfigYaml",
+      "filePath": "src/config/validation.ts",
+      "summary": "Handles configuration-related logic in validation.ts.",
+      "tags": [
+        "function",
+        "configuration",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/validation.ts:validateProviderSelection",
+      "type": "function",
+      "name": "validateProviderSelection",
+      "filePath": "src/config/validation.ts",
+      "summary": "Implements validateProviderSelection behavior in validation.ts.",
+      "tags": [
+        "function",
+        "configuration",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/config/validation.ts:formatSchemaError",
+      "type": "function",
+      "name": "formatSchemaError",
+      "filePath": "src/config/validation.ts",
+      "summary": "Implements formatSchemaError behavior in validation.ts.",
+      "tags": [
+        "function",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/generated/pushgate-config-v2-validator.ts",
+      "type": "file",
+      "name": "pushgate-config-v2-validator.ts",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements pushgate config v2 validator.ts behavior in the Pushgate codebase.",
+      "tags": [
+        "generated",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:ucs2length",
+      "type": "function",
+      "name": "ucs2length",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements ucs2length behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:validate12",
+      "type": "function",
+      "name": "validate12",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements validate12 behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:validate14",
+      "type": "function",
+      "name": "validate14",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements validate14 behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:validate11",
+      "type": "function",
+      "name": "validate11",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements validate11 behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:validate17",
+      "type": "function",
+      "name": "validate17",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements validate17 behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:validate10",
+      "type": "function",
+      "name": "validate10",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements validate10 behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:normalizeErrors",
+      "type": "function",
+      "name": "normalizeErrors",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Implements normalizeErrors behavior in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/generated/pushgate-config-v2-validator.ts:validatePushgateConfig",
+      "type": "function",
+      "name": "validatePushgateConfig",
+      "filePath": "src/generated/pushgate-config-v2-validator.ts",
+      "summary": "Handles configuration-related logic in pushgate-config-v2-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation",
+        "configuration"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/config/errors.ts",
+      "target": "class:src/config/errors.ts:ConfigError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/errors.ts",
+      "target": "class:src/config/errors.ts:ConfigValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/errors.ts",
+      "target": "class:src/config/errors.ts:MissingConfigError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/errors.ts",
+      "target": "class:src/config/errors.ts:LegacyConfigError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/errors.ts",
+      "target": "file:src/config/constants.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/load.ts",
+      "target": "function:src/config/load.ts:loadConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/load.ts",
+      "target": "file:src/config/constants.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/load.ts",
+      "target": "file:src/config/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/load.ts",
+      "target": "file:src/config/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/load.ts",
+      "target": "file:src/config/validation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/normalize.ts",
+      "target": "function:src/config/normalize.ts:normalizeConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/normalize.ts",
+      "target": "function:src/config/normalize.ts:normalizePolicies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/normalize.ts",
+      "target": "function:src/config/normalize.ts:cloneValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/normalize.ts",
+      "target": "file:src/config/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "function:src/config/validation.ts:parseConfigYaml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "function:src/config/validation.ts:validateProviderSelection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "function:src/config/validation.ts:formatSchemaError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "file:src/config/constants.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "file:src/config/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "file:src/config/normalize.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "file:src/config/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/config/validation.ts",
+      "target": "file:src/generated/pushgate-config-v2-validator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:ucs2length",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validate12",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validate14",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validate11",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validate17",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validate10",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:normalizeErrors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/pushgate-config-v2-validator.ts",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validatePushgateConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "function:src/config/load.ts:loadConfig",
+      "target": "function:src/config/validation.ts:parseConfigYaml",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/config/validation.ts:parseConfigYaml",
+      "target": "function:src/generated/pushgate-config-v2-validator.ts:validatePushgateConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/config/validation.ts:parseConfigYaml",
+      "target": "function:src/config/normalize.ts:normalizeConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

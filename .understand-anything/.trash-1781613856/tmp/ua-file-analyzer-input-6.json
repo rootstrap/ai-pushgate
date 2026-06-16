@@ -1,0 +1,65 @@
+{
+  "projectRoot": "/Users/danielbrosio/aux-projects/pps/ai-pushgate",
+  "batchFiles": [
+    {
+      "path": "src/ai/guardrails.ts",
+      "language": "typescript",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/ai/index.ts",
+      "language": "typescript",
+      "sizeLines": 182,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/ai/transcript.ts",
+      "language": "typescript",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/ai/verdict.ts",
+      "language": "typescript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/ai.test.ts",
+      "language": "typescript",
+      "sizeLines": 850,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "src/ai/guardrails.ts": [
+      "src/path-policy/index.ts"
+    ],
+    "src/ai/index.ts": [
+      "src/ai/guardrails.ts",
+      "src/ai/provider-registry.ts",
+      "src/ai/review-context.ts",
+      "src/ai/transcript.ts",
+      "src/ai/types.ts",
+      "src/ai/verdict.ts",
+      "src/config/index.ts",
+      "src/path-policy/index.ts"
+    ],
+    "src/ai/transcript.ts": [
+      "src/ai/types.ts"
+    ],
+    "src/ai/verdict.ts": [
+      "src/ai/types.ts",
+      "src/config/index.ts"
+    ],
+    "test/ai.test.ts": [
+      "src/ai/guardrails.ts",
+      "src/ai/index.ts",
+      "src/ai/providers/copilot.ts",
+      "src/ai/transcript.ts",
+      "src/ai/verdict.ts",
+      "src/path-policy/index.ts"
+    ]
+  }
+}

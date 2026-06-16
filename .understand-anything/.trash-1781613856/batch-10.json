@@ -1,0 +1,83 @@
+{
+  "nodes": [
+    {
+      "id": "config:templates/base.yml",
+      "type": "config",
+      "name": "base.yml",
+      "filePath": "templates/base.yml",
+      "summary": "Starter Pushgate configuration template for Base repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "template",
+        "configuration",
+        "config"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:templates/nextjs.yml",
+      "type": "config",
+      "name": "nextjs.yml",
+      "filePath": "templates/nextjs.yml",
+      "summary": "Starter Pushgate configuration template for Nextjs repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "template",
+        "configuration",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/node.yml",
+      "type": "config",
+      "name": "node.yml",
+      "filePath": "templates/node.yml",
+      "summary": "Starter Pushgate configuration template for Node repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "template",
+        "configuration",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/rails.yml",
+      "type": "config",
+      "name": "rails.yml",
+      "filePath": "templates/rails.yml",
+      "summary": "Starter Pushgate configuration template for Rails repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "template",
+        "configuration",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/ruby.yml",
+      "type": "config",
+      "name": "ruby.yml",
+      "filePath": "templates/ruby.yml",
+      "summary": "Starter Pushgate configuration template for Ruby repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "template",
+        "configuration",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:templates/typescript.yml",
+      "type": "config",
+      "name": "typescript.yml",
+      "filePath": "templates/typescript.yml",
+      "summary": "Starter Pushgate configuration template for Typescript repositories, preloading tools and ignore-path defaults for that stack.",
+      "tags": [
+        "template",
+        "configuration",
+        "config"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

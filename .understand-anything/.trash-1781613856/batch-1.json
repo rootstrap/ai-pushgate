@@ -1,0 +1,914 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/ai/provider-registry.ts",
+      "type": "file",
+      "name": "provider-registry.ts",
+      "filePath": "src/ai/provider-registry.ts",
+      "summary": "Implements local AI review provider registry.ts logic used by the pre-push gate.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/provider-registry.ts:resolveProvider",
+      "type": "function",
+      "name": "resolveProvider",
+      "filePath": "src/ai/provider-registry.ts",
+      "summary": "Implements resolveProvider behavior in provider-registry.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/providers/claude.ts",
+      "type": "file",
+      "name": "claude.ts",
+      "filePath": "src/ai/providers/claude.ts",
+      "summary": "Adapter for running Claude Code CLI reviews and converting command failures or malformed output into Pushgate provider results.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/providers/claude.ts:buildClaudeArgs",
+      "type": "function",
+      "name": "buildClaudeArgs",
+      "filePath": "src/ai/providers/claude.ts",
+      "summary": "Builds claude args data for claude.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/claude.ts:isClaudeUnauthenticated",
+      "type": "function",
+      "name": "isClaudeUnauthenticated",
+      "filePath": "src/ai/providers/claude.ts",
+      "summary": "Checks whether claude unauthenticated within claude.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "claude",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/providers/config.ts",
+      "type": "file",
+      "name": "config.ts",
+      "filePath": "src/ai/providers/config.ts",
+      "summary": "Implements local AI provider config.ts logic behind the provider registry abstraction.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/config.ts:selectProviderModel",
+      "type": "function",
+      "name": "selectProviderModel",
+      "filePath": "src/ai/providers/config.ts",
+      "summary": "Implements selectProviderModel behavior in config.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/providers/copilot.ts",
+      "type": "file",
+      "name": "copilot.ts",
+      "filePath": "src/ai/providers/copilot.ts",
+      "summary": "Adapter for running the standalone GitHub Copilot CLI review flow and normalizing authentication, timeout, and output parsing failures.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/providers/copilot.ts:buildCopilotArgs",
+      "type": "function",
+      "name": "buildCopilotArgs",
+      "filePath": "src/ai/providers/copilot.ts",
+      "summary": "Builds copilot args data for copilot.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/copilot.ts:isCopilotAuthFailure",
+      "type": "function",
+      "name": "isCopilotAuthFailure",
+      "filePath": "src/ai/providers/copilot.ts",
+      "summary": "Checks whether copilot auth failure within copilot.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "copilot",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/providers/normalize-review.ts",
+      "type": "file",
+      "name": "normalize-review.ts",
+      "filePath": "src/ai/providers/normalize-review.ts",
+      "summary": "Implements local AI provider normalize review.ts logic behind the provider registry abstraction.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/providers/normalize-review.ts:normalizeProviderReviewOutput",
+      "type": "function",
+      "name": "normalizeProviderReviewOutput",
+      "filePath": "src/ai/providers/normalize-review.ts",
+      "summary": "Handles local AI review-related logic in normalize-review.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/ai/providers/run-provider-command.ts",
+      "type": "file",
+      "name": "run-provider-command.ts",
+      "filePath": "src/ai/providers/run-provider-command.ts",
+      "summary": "Centralizes execution of AI provider CLI commands with timeout, process output, and inherited environment handling.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/providers/run-provider-command.ts:runProviderCommand",
+      "type": "function",
+      "name": "runProviderCommand",
+      "filePath": "src/ai/providers/run-provider-command.ts",
+      "summary": "Runs command or workflow logic in run-provider-command.ts.",
+      "tags": [
+        "function",
+        "ai-review",
+        "process-execution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/review-output.ts",
+      "type": "file",
+      "name": "review-output.ts",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Parses provider JSON output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "type": "function",
+      "name": "parseAiReviewOutput",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Parses ai review output input for review-output.ts.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "parsing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:parseCandidate",
+      "type": "function",
+      "name": "parseCandidate",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Parses candidate input for review-output.ts.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:validateParsedReview",
+      "type": "function",
+      "name": "validateParsedReview",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Handles local AI review-related logic in review-output.ts.",
+      "tags": [
+        "function",
+        "ai-review",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:buildCandidates",
+      "type": "function",
+      "name": "buildCandidates",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Builds candidates data for review-output.ts.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "builder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:extractJsonObjectSlice",
+      "type": "function",
+      "name": "extractJsonObjectSlice",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Helper named extractJsonObjectSlice that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:unwrapSingleNestedObject",
+      "type": "function",
+      "name": "unwrapSingleNestedObject",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Helper named unwrapSingleNestedObject that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:validateFindingSemantics",
+      "type": "function",
+      "name": "validateFindingSemantics",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Helper named validateFindingSemantics that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:normalizeFinding",
+      "type": "function",
+      "name": "normalizeFinding",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Helper named normalizeFinding that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:summarizeFindings",
+      "type": "function",
+      "name": "summarizeFindings",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Helper named summarizeFindings that supports parses provider json output, normalizes wrapped or fenced responses, and validates finding categories and severities.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-output.ts:formatSchemaError",
+      "type": "function",
+      "name": "formatSchemaError",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Typed error used by review-output.ts to report format schema failures with clearer diagnostics.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "function",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/ai/review-output.ts:AiReviewOutputError",
+      "type": "class",
+      "name": "AiReviewOutputError",
+      "filePath": "src/ai/review-output.ts",
+      "summary": "Typed error used by review-output.ts to report ai review output failures with clearer diagnostics.",
+      "tags": [
+        "ai-review",
+        "json",
+        "validation",
+        "class",
+        "error-handling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "src/ai/types.ts",
+      "summary": "Declares shared types, enums, and schema-version constants for provider adapters and normalized AI review results.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/generated/ai-review-output-v1-validator.ts",
+      "type": "file",
+      "name": "ai-review-output-v1-validator.ts",
+      "filePath": "src/generated/ai-review-output-v1-validator.ts",
+      "summary": "Implements ai review output v1 validator.ts behavior in the Pushgate codebase.",
+      "tags": [
+        "generated",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/generated/ai-review-output-v1-validator.ts:ucs2length",
+      "type": "function",
+      "name": "ucs2length",
+      "filePath": "src/generated/ai-review-output-v1-validator.ts",
+      "summary": "Implements ucs2length behavior in ai-review-output-v1-validator.ts.",
+      "tags": [
+        "function",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/generated/ai-review-output-v1-validator.ts:validate10",
+      "type": "function",
+      "name": "validate10",
+      "filePath": "src/generated/ai-review-output-v1-validator.ts",
+      "summary": "Implements validate10 behavior in ai-review-output-v1-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/generated/ai-review-output-v1-validator.ts:normalizeErrors",
+      "type": "function",
+      "name": "normalizeErrors",
+      "filePath": "src/generated/ai-review-output-v1-validator.ts",
+      "summary": "Implements normalizeErrors behavior in ai-review-output-v1-validator.ts.",
+      "tags": [
+        "function",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/generated/ai-review-output-v1-validator.ts:validateAiReviewOutput",
+      "type": "function",
+      "name": "validateAiReviewOutput",
+      "filePath": "src/generated/ai-review-output-v1-validator.ts",
+      "summary": "Handles local AI review-related logic in ai-review-output-v1-validator.ts.",
+      "tags": [
+        "function",
+        "generated",
+        "validation",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/process/output.ts",
+      "type": "file",
+      "name": "output.ts",
+      "filePath": "src/process/output.ts",
+      "summary": "Provides reusable process execution helper logic for running external commands during Pushgate workflows.",
+      "tags": [
+        "process-execution",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/process/output.ts:appendCapped",
+      "type": "function",
+      "name": "appendCapped",
+      "filePath": "src/process/output.ts",
+      "summary": "Implements appendCapped behavior in output.ts.",
+      "tags": [
+        "function",
+        "process-execution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/process/output.ts:formatOutputTail",
+      "type": "function",
+      "name": "formatOutputTail",
+      "filePath": "src/process/output.ts",
+      "summary": "Implements formatOutputTail behavior in output.ts.",
+      "tags": [
+        "function",
+        "process-execution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/process/timed-command.ts",
+      "type": "file",
+      "name": "timed-command.ts",
+      "filePath": "src/process/timed-command.ts",
+      "summary": "Provides reusable process execution helper logic for running external commands during Pushgate workflows.",
+      "tags": [
+        "process-execution",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/process/timed-command.ts:runTimedCommand",
+      "type": "function",
+      "name": "runTimedCommand",
+      "filePath": "src/process/timed-command.ts",
+      "summary": "Runs command or workflow logic in timed-command.ts.",
+      "tags": [
+        "function",
+        "process-execution"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/ai/provider-registry.ts",
+      "target": "function:src/ai/provider-registry.ts:resolveProvider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/provider-registry.ts",
+      "target": "file:src/ai/providers/claude.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/provider-registry.ts",
+      "target": "file:src/ai/providers/copilot.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/provider-registry.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/claude.ts:buildClaudeArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/claude.ts:isClaudeUnauthenticated",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/ai/providers/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/ai/providers/normalize-review.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/ai/providers/run-provider-command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "file:src/process/run-command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/config.ts",
+      "target": "function:src/ai/providers/config.ts:selectProviderModel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/config.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/copilot.ts:buildCopilotArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/copilot.ts:isCopilotAuthFailure",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:src/ai/providers/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:src/ai/providers/normalize-review.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:src/ai/providers/run-provider-command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/normalize-review.ts",
+      "target": "function:src/ai/providers/normalize-review.ts:normalizeProviderReviewOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/normalize-review.ts",
+      "target": "file:src/ai/review-output.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/normalize-review.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/run-provider-command.ts",
+      "target": "function:src/ai/providers/run-provider-command.ts:runProviderCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/providers/run-provider-command.ts",
+      "target": "file:src/process/timed-command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:parseCandidate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:validateParsedReview",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:buildCandidates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:extractJsonObjectSlice",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:unwrapSingleNestedObject",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:validateFindingSemantics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:normalizeFinding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:summarizeFindings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "function:src/ai/review-output.ts:formatSchemaError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "class:src/ai/review-output.ts:AiReviewOutputError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-output.ts",
+      "target": "file:src/generated/ai-review-output-v1-validator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/types.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/types.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/generated/ai-review-output-v1-validator.ts",
+      "target": "function:src/generated/ai-review-output-v1-validator.ts:ucs2length",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/ai-review-output-v1-validator.ts",
+      "target": "function:src/generated/ai-review-output-v1-validator.ts:validate10",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/ai-review-output-v1-validator.ts",
+      "target": "function:src/generated/ai-review-output-v1-validator.ts:normalizeErrors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/generated/ai-review-output-v1-validator.ts",
+      "target": "function:src/generated/ai-review-output-v1-validator.ts:validateAiReviewOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/process/output.ts",
+      "target": "function:src/process/output.ts:appendCapped",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/process/output.ts",
+      "target": "function:src/process/output.ts:formatOutputTail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/process/timed-command.ts",
+      "target": "function:src/process/timed-command.ts:runTimedCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/process/timed-command.ts",
+      "target": "file:src/process/output.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/config.ts:selectProviderModel",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/run-provider-command.ts:runProviderCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/claude.ts",
+      "target": "function:src/ai/providers/normalize-review.ts:normalizeProviderReviewOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/providers/claude.ts:isClaudeUnauthenticated",
+      "target": "function:src/process/run-command.ts:runCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/config.ts:selectProviderModel",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/run-provider-command.ts:runProviderCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/ai/providers/copilot.ts",
+      "target": "function:src/ai/providers/normalize-review.ts:normalizeProviderReviewOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/providers/normalize-review.ts:normalizeProviderReviewOutput",
+      "target": "function:src/ai/review-output.ts:parseAiReviewOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/providers/run-provider-command.ts:runProviderCommand",
+      "target": "function:src/process/timed-command.ts:runTimedCommand",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-output.ts:validateParsedReview",
+      "target": "function:src/generated/ai-review-output-v1-validator.ts:validateAiReviewOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/process/timed-command.ts",
+      "target": "function:src/process/output.ts:formatOutputTail",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/process/timed-command.ts:runTimedCommand",
+      "target": "function:src/process/output.ts:appendCapped",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

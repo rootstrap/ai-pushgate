@@ -1,0 +1,135 @@
+{
+  "nodes": [
+    {
+      "id": "config:.release-please-manifest.json",
+      "type": "config",
+      "name": ".release-please-manifest.json",
+      "filePath": ".release-please-manifest.json",
+      "summary": "Release Please manifest tracking published versions for the repository's releasable artifacts.",
+      "tags": [
+        "configuration",
+        "config",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:CHANGELOG.md",
+      "type": "document",
+      "name": "CHANGELOG.md",
+      "filePath": "CHANGELOG.md",
+      "summary": "Release history documenting shipped Pushgate versions and user-facing changes over time.",
+      "tags": [
+        "docs",
+        "project-file",
+        "supporting-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:CONTRIBUTING.md",
+      "type": "document",
+      "name": "CONTRIBUTING.md",
+      "filePath": "CONTRIBUTING.md",
+      "summary": "Contribution guide for extending Pushgate templates and working with the repository's development workflow.",
+      "tags": [
+        "docs",
+        "project-file",
+        "supporting-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Project entry document describing Pushgate's pre-push workflow, install path, configuration contract, templates, and skip controls.",
+      "tags": [
+        "entry-point",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:install.sh",
+      "type": "file",
+      "name": "install.sh",
+      "filePath": "install.sh",
+      "summary": "Installer script that downloads the managed runner, installs the pre-push hook, and seeds a template .pushgate.yml into the repository.",
+      "tags": [
+        "script",
+        "project-file",
+        "supporting-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Node package manifest defining Pushgate build, bundle, shell-check, typecheck, and test scripts along with runtime dependencies.",
+      "tags": [
+        "configuration",
+        "config",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:pnpm-workspace.yaml",
+      "type": "config",
+      "name": "pnpm-workspace.yaml",
+      "filePath": "pnpm-workspace.yaml",
+      "summary": "pnpm workspace configuration anchoring the repository's package-manager setup.",
+      "tags": [
+        "configuration",
+        "config",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:release-please-config.json",
+      "type": "config",
+      "name": "release-please-config.json",
+      "filePath": "release-please-config.json",
+      "summary": "Release Please configuration describing the repo's release strategy and changelog settings.",
+      "tags": [
+        "configuration",
+        "config",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.build.json",
+      "type": "config",
+      "name": "tsconfig.build.json",
+      "filePath": "tsconfig.build.json",
+      "summary": "TypeScript build configuration used for generating distributable JavaScript artifacts.",
+      "tags": [
+        "configuration",
+        "config",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "tsconfig.json",
+      "summary": "Base TypeScript compiler configuration for source development and typechecking.",
+      "tags": [
+        "configuration",
+        "config",
+        "project-file"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

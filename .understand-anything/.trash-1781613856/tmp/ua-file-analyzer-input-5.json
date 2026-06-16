@@ -1,0 +1,71 @@
+{
+  "projectRoot": "/Users/danielbrosio/aux-projects/pps/ai-pushgate",
+  "batchFiles": [
+    {
+      "path": "src/config/constants.ts",
+      "language": "typescript",
+      "sizeLines": 2,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config/errors.ts",
+      "language": "typescript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config/load.ts",
+      "language": "typescript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config/normalize.ts",
+      "language": "typescript",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config/types.ts",
+      "language": "typescript",
+      "sizeLines": 161,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config/validation.ts",
+      "language": "typescript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/generated/pushgate-config-v2-validator.ts",
+      "language": "typescript",
+      "sizeLines": 1012,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "src/config/constants.ts": [],
+    "src/config/errors.ts": [
+      "src/config/constants.ts"
+    ],
+    "src/config/load.ts": [
+      "src/config/constants.ts",
+      "src/config/errors.ts",
+      "src/config/types.ts",
+      "src/config/validation.ts"
+    ],
+    "src/config/normalize.ts": [
+      "src/config/types.ts"
+    ],
+    "src/config/types.ts": [],
+    "src/config/validation.ts": [
+      "src/config/constants.ts",
+      "src/config/errors.ts",
+      "src/config/normalize.ts",
+      "src/config/types.ts",
+      "src/generated/pushgate-config-v2-validator.ts"
+    ],
+    "src/generated/pushgate-config-v2-validator.ts": []
+  }
+}

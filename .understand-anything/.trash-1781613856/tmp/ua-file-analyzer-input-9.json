@@ -1,0 +1,147 @@
+{
+  "projectRoot": "/Users/danielbrosio/aux-projects/pps/ai-pushgate",
+  "batchFiles": [
+    {
+      "path": "docs/distribution-runner.md",
+      "language": "markdown",
+      "sizeLines": 42,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/issue-10-local-ai-provider-interface-plan.md",
+      "language": "markdown",
+      "sizeLines": 238,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/issue-12-structured-ai-review-output-plan.md",
+      "language": "markdown",
+      "sizeLines": 236,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/issue-18-local-skip-controls-plan.md",
+      "language": "markdown",
+      "sizeLines": 211,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "language": "markdown",
+      "sizeLines": 280,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/issue-2-config-schema-plan.md",
+      "language": "markdown",
+      "sizeLines": 216,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/issue-3-hook-runner-test-harness-plan.md",
+      "language": "markdown",
+      "sizeLines": 215,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/product-contract-plan.md",
+      "language": "markdown",
+      "sizeLines": 147,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-01-process-git-helpers-plan.md",
+      "language": "markdown",
+      "sizeLines": 120,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-02-cli-pre-push-workflow-plan.md",
+      "language": "markdown",
+      "sizeLines": 117,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-03-path-policy-split-plan.md",
+      "language": "markdown",
+      "sizeLines": 112,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-04-config-split-plan.md",
+      "language": "markdown",
+      "sizeLines": 122,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-05-ai-provider-and-prompt-cleanup-plan.md",
+      "language": "markdown",
+      "sizeLines": 143,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-06-distribution-module-plan.md",
+      "language": "markdown",
+      "sizeLines": 101,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-07-schema-validator-precompile-plan.md",
+      "language": "markdown",
+      "sizeLines": 116,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-08-process-execution-seam-plan.md",
+      "language": "markdown",
+      "sizeLines": 140,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-09-deterministic-gate-deepening-plan.md",
+      "language": "markdown",
+      "sizeLines": 106,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-10-local-ai-gate-split-plan.md",
+      "language": "markdown",
+      "sizeLines": 114,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/refactor-11-review-context-split-plan.md",
+      "language": "markdown",
+      "sizeLines": 117,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/v2-config-schema.md",
+      "language": "markdown",
+      "sizeLines": 226,
+      "fileCategory": "docs"
+    }
+  ],
+  "batchImportData": {
+    "docs/distribution-runner.md": [],
+    "docs/issue-10-local-ai-provider-interface-plan.md": [],
+    "docs/issue-12-structured-ai-review-output-plan.md": [],
+    "docs/issue-18-local-skip-controls-plan.md": [],
+    "docs/issue-19-github-copilot-provider-adapter-plan.md": [],
+    "docs/issue-2-config-schema-plan.md": [],
+    "docs/issue-3-hook-runner-test-harness-plan.md": [],
+    "docs/product-contract-plan.md": [],
+    "docs/refactor-01-process-git-helpers-plan.md": [],
+    "docs/refactor-02-cli-pre-push-workflow-plan.md": [],
+    "docs/refactor-03-path-policy-split-plan.md": [],
+    "docs/refactor-04-config-split-plan.md": [],
+    "docs/refactor-05-ai-provider-and-prompt-cleanup-plan.md": [],
+    "docs/refactor-06-distribution-module-plan.md": [],
+    "docs/refactor-07-schema-validator-precompile-plan.md": [],
+    "docs/refactor-08-process-execution-seam-plan.md": [],
+    "docs/refactor-09-deterministic-gate-deepening-plan.md": [],
+    "docs/refactor-10-local-ai-gate-split-plan.md": [],
+    "docs/refactor-11-review-context-split-plan.md": [],
+    "docs/v2-config-schema.md": []
+  }
+}

@@ -1,0 +1,30 @@
+Found 12 batch files (12 logical batches, 0 multi-part):
+  batch-1.json: 37 nodes, 59 edges
+  batch-2.json: 34 nodes, 61 edges
+  batch-3.json: 47 nodes, 76 edges
+  batch-4.json: 26 nodes, 45 edges
+  batch-5.json: 26 nodes, 33 edges
+  batch-6.json: 20 nodes, 40 edges
+  batch-7.json: 2 nodes, 0 edges
+  batch-8.json: 10 nodes, 0 edges
+  batch-9.json: 20 nodes, 0 edges
+  batch-10.json: 6 nodes, 0 edges
+  batch-11.json: 4 nodes, 0 edges
+  batch-12.json: 127 nodes, 110 edges
+
+Input: 359 nodes, 424 edges
+
+Could not fix (5 issues — needs agent review):
+  - Edge function:src/cli.ts:runPrePushCommand → function:src/workflows/pre-push.ts:runPrePushWorkflow (calls): dropped, missing source 'function:src/cli.ts:runPrePushCommand'
+  - Edge function:src/cli.ts:runPrePushCommand → function:src/cli/errors.ts:writePushgateError (calls): dropped, missing source 'function:src/cli.ts:runPrePushCommand'
+  - Edge function:src/path-policy/git-resolution.ts:resolveDiffBase → function:src/git/command.ts:gitResultDetail (calls): dropped, missing target 'function:src/git/command.ts:gitResultDetail'
+  - Edge function:src/ai/index.ts:renderVerdict → function:src/ai/verdict.ts:buildLocalAiVerdict (calls): dropped, missing source 'function:src/ai/index.ts:renderVerdict'
+  - Edge function:src/ai/index.ts:renderVerdict → function:src/ai/transcript.ts:renderLocalAiTranscript (calls): dropped, missing source 'function:src/ai/index.ts:renderVerdict'
+
+Output: 359 nodes, 419 edges
+
+Imports edge recovery:
+  Recovered 0 `imports` edges from importMap (112 entries scanned)
+  Skipped 1 importMap target paths with no `file:` node in graph
+
+Written to /Users/danielbrosio/aux-projects/pps/ai-pushgate/.understand-anything/intermediate/assembled-graph.json (220 KB)

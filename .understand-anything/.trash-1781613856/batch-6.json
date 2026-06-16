@@ -1,0 +1,542 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/ai/guardrails.ts",
+      "type": "file",
+      "name": "guardrails.ts",
+      "filePath": "src/ai/guardrails.ts",
+      "summary": "Implements local AI review guardrails.ts logic used by the pre-push gate.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/guardrails.ts:evaluateChangedFileGuardrails",
+      "type": "function",
+      "name": "evaluateChangedFileGuardrails",
+      "filePath": "src/ai/guardrails.ts",
+      "summary": "Implements evaluateChangedFileGuardrails behavior in guardrails.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/guardrails.ts:evaluatePromptGuardrail",
+      "type": "function",
+      "name": "evaluatePromptGuardrail",
+      "filePath": "src/ai/guardrails.ts",
+      "summary": "Implements evaluatePromptGuardrail behavior in guardrails.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/guardrails.ts:countChangedLines",
+      "type": "function",
+      "name": "countChangedLines",
+      "filePath": "src/ai/guardrails.ts",
+      "summary": "Implements countChangedLines behavior in guardrails.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/guardrails.ts:estimatePromptTokens",
+      "type": "function",
+      "name": "estimatePromptTokens",
+      "filePath": "src/ai/guardrails.ts",
+      "summary": "Implements estimatePromptTokens behavior in guardrails.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/ai/index.ts",
+      "summary": "Coordinates provider-backed local AI review, including prompt budgeting, provider selection, normalized findings, and blocking versus advisory outcomes.",
+      "tags": [
+        "barrel",
+        "ai-review",
+        "code"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/ai/index.ts:runLocalAiReview",
+      "type": "function",
+      "name": "runLocalAiReview",
+      "filePath": "src/ai/index.ts",
+      "summary": "Runs the local ai review path within index.ts.",
+      "tags": [
+        "ai-review",
+        "provider",
+        "orchestration",
+        "function"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/index.ts:transcriptEventForChangedFileGuardrail",
+      "type": "function",
+      "name": "transcriptEventForChangedFileGuardrail",
+      "filePath": "src/ai/index.ts",
+      "summary": "Implements transcriptEventForChangedFileGuardrail behavior in index.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/transcript.ts",
+      "type": "file",
+      "name": "transcript.ts",
+      "filePath": "src/ai/transcript.ts",
+      "summary": "Implements local AI review transcript.ts logic used by the pre-push gate.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/transcript.ts:renderLocalAiTranscript",
+      "type": "function",
+      "name": "renderLocalAiTranscript",
+      "filePath": "src/ai/transcript.ts",
+      "summary": "Implements renderLocalAiTranscript behavior in transcript.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/transcript.ts:renderLocalAiTranscriptEvent",
+      "type": "function",
+      "name": "renderLocalAiTranscriptEvent",
+      "filePath": "src/ai/transcript.ts",
+      "summary": "Implements renderLocalAiTranscriptEvent behavior in transcript.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/ai/verdict.ts",
+      "type": "file",
+      "name": "verdict.ts",
+      "filePath": "src/ai/verdict.ts",
+      "summary": "Implements local AI review verdict.ts logic used by the pre-push gate.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/verdict.ts:buildLocalAiVerdict",
+      "type": "function",
+      "name": "buildLocalAiVerdict",
+      "filePath": "src/ai/verdict.ts",
+      "summary": "Implements buildLocalAiVerdict behavior in verdict.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:test/ai.test.ts",
+      "type": "file",
+      "name": "ai.test.ts",
+      "filePath": "test/ai.test.ts",
+      "summary": "AI review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/ai.test.ts:withAiRepo",
+      "type": "function",
+      "name": "withAiRepo",
+      "filePath": "test/ai.test.ts",
+      "summary": "Helper named withAiRepo that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:checkedRun",
+      "type": "function",
+      "name": "checkedRun",
+      "filePath": "test/ai.test.ts",
+      "summary": "Helper named checkedRun that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/ai.test.ts",
+      "summary": "Writes repo file output for ai.test.ts.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:writeRepoBytes",
+      "type": "function",
+      "name": "writeRepoBytes",
+      "filePath": "test/ai.test.ts",
+      "summary": "Implements writeRepoBytes behavior in ai.test.ts.",
+      "tags": [
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:captureOutput",
+      "type": "function",
+      "name": "captureOutput",
+      "filePath": "test/ai.test.ts",
+      "summary": "Helper named captureOutput that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/ai.test.ts:minimalReviewPayload",
+      "type": "function",
+      "name": "minimalReviewPayload",
+      "filePath": "test/ai.test.ts",
+      "summary": "Helper named minimalReviewPayload that supports ai review test suite covering prompt rendering, provider normalization, and review-output parsing behavior.",
+      "tags": [
+        "test",
+        "ai-review",
+        "provider",
+        "function"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/ai/guardrails.ts",
+      "target": "function:src/ai/guardrails.ts:evaluateChangedFileGuardrails",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/guardrails.ts",
+      "target": "function:src/ai/guardrails.ts:evaluatePromptGuardrail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/guardrails.ts",
+      "target": "function:src/ai/guardrails.ts:countChangedLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/guardrails.ts",
+      "target": "function:src/ai/guardrails.ts:estimatePromptTokens",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/guardrails.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:runLocalAiReview",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "function:src/ai/index.ts:transcriptEventForChangedFileGuardrail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/guardrails.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/provider-registry.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/review-context.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/transcript.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/ai/verdict.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/index.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/transcript.ts",
+      "target": "function:src/ai/transcript.ts:renderLocalAiTranscript",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/transcript.ts",
+      "target": "function:src/ai/transcript.ts:renderLocalAiTranscriptEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/transcript.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/verdict.ts",
+      "target": "function:src/ai/verdict.ts:buildLocalAiVerdict",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/verdict.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/verdict.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:withAiRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:checkedRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:writeRepoBytes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:captureOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "function:test/ai.test.ts:minimalReviewPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/guardrails.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/providers/copilot.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/transcript.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/ai/verdict.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/ai.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/provider-registry.ts:resolveProvider",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/guardrails.ts:evaluateChangedFileGuardrails",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/transcript.ts:renderLocalAiTranscript",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/review-context.ts:buildLocalAiReviewPayload",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:runLocalAiReview",
+      "target": "function:src/ai/guardrails.ts:evaluatePromptGuardrail",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:renderVerdict",
+      "target": "function:src/ai/verdict.ts:buildLocalAiVerdict",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/index.ts:renderVerdict",
+      "target": "function:src/ai/transcript.ts:renderLocalAiTranscript",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

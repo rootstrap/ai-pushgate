@@ -1,0 +1,924 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 5,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "src/ai/guardrails.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 91,
+      "nonEmptyLines": 78,
+      "functions": [
+        {
+          "name": "evaluateChangedFileGuardrails",
+          "startLine": 28,
+          "endLine": 50,
+          "params": [
+            "options"
+          ]
+        },
+        {
+          "name": "evaluatePromptGuardrail",
+          "startLine": 52,
+          "endLine": 70,
+          "params": [
+            "options"
+          ]
+        },
+        {
+          "name": "countChangedLines",
+          "startLine": 72,
+          "endLine": 82,
+          "params": [
+            "changedFiles"
+          ]
+        },
+        {
+          "name": "estimatePromptTokens",
+          "startLine": 84,
+          "endLine": 91,
+          "params": [
+            "prompt"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "evaluateChangedFileGuardrails",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "evaluatePromptGuardrail",
+          "line": 52,
+          "isDefault": false
+        },
+        {
+          "name": "countChangedLines",
+          "line": 72,
+          "isDefault": false
+        },
+        {
+          "name": "estimatePromptTokens",
+          "line": 84,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "evaluateChangedFileGuardrails",
+          "callee": "countChangedLines",
+          "lineNumber": 36
+        },
+        {
+          "caller": "evaluatePromptGuardrail",
+          "callee": "estimatePromptTokens",
+          "lineNumber": 56
+        },
+        {
+          "caller": "countChangedLines",
+          "callee": "changedFiles.reduce",
+          "lineNumber": 75
+        },
+        {
+          "caller": "estimatePromptTokens",
+          "callee": "Math.ceil",
+          "lineNumber": 90
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/ai/index.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 182,
+      "nonEmptyLines": 168,
+      "functions": [
+        {
+          "name": "runLocalAiReview",
+          "startLine": 55,
+          "endLine": 155,
+          "params": [
+            "options"
+          ]
+        },
+        {
+          "name": "renderVerdict",
+          "startLine": 157,
+          "endLine": 165,
+          "params": [
+            "aiMode",
+            "result",
+            "stdout"
+          ]
+        },
+        {
+          "name": "transcriptEventForChangedFileGuardrail",
+          "startLine": 167,
+          "endLine": 182,
+          "params": [
+            "decision"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "buildLocalAiReviewPayload",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "collectLocalAiReviewContext",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "BASE_REVIEW_PROMPT",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "renderLocalAiPrompt",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "AiReviewOutputError",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "parseAiReviewOutput",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "AiFinding",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingCategory",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingConfidence",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingSeverity",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "AiFindingSource",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "AiReviewSummary",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiFullFileContext",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderAdapter",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderFailure",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderFailureCode",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderResult",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiProviderReview",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiReviewContext",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "LocalAiReviewPayload",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "RawAiFinding",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "RawAiReviewOutput",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "AI_BLOCKING_CATEGORIES",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "AI_FINDING_CATEGORIES",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "AI_FINDING_CONFIDENCE_LEVELS",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "AI_REVIEW_OUTPUT_SCHEMA_VERSION",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "AI_WARNING_CATEGORIES",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "runLocalAiReview",
+          "line": 55,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "runLocalAiReview",
+          "callee": "resolveProvider",
+          "lineNumber": 64
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "renderVerdict",
+          "lineNumber": 67
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "JSON.stringify",
+          "lineNumber": 73
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "evaluateChangedFileGuardrails",
+          "lineNumber": 79
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "renderLocalAiTranscript",
+          "lineNumber": 85
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "transcriptEventForChangedFileGuardrail",
+          "lineNumber": 86
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "buildLocalAiReviewPayload",
+          "lineNumber": 92
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "evaluatePromptGuardrail",
+          "lineNumber": 98
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "renderLocalAiTranscript",
+          "lineNumber": 104
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "renderLocalAiTranscript",
+          "lineNumber": 117
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "renderLocalAiTranscript",
+          "lineNumber": 129
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "renderVerdict",
+          "lineNumber": 141
+        },
+        {
+          "caller": "runLocalAiReview",
+          "callee": "provider.runReview",
+          "lineNumber": 143
+        },
+        {
+          "caller": "renderVerdict",
+          "callee": "buildLocalAiVerdict",
+          "lineNumber": 162
+        },
+        {
+          "caller": "renderVerdict",
+          "callee": "renderLocalAiTranscript",
+          "lineNumber": 163
+        }
+      ],
+      "metrics": {
+        "importCount": 8,
+        "exportCount": 28,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/ai/transcript.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 115,
+      "nonEmptyLines": 106,
+      "functions": [
+        {
+          "name": "renderLocalAiTranscript",
+          "startLine": 3,
+          "endLine": 10,
+          "params": [
+            "events",
+            "stdout"
+          ]
+        },
+        {
+          "name": "renderLocalAiTranscriptEvent",
+          "startLine": 12,
+          "endLine": 111,
+          "params": [
+            "event",
+            "stdout"
+          ]
+        },
+        {
+          "name": "writeLine",
+          "startLine": 113,
+          "endLine": 115,
+          "params": [
+            "stream",
+            "line"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "renderLocalAiTranscript",
+          "line": 3,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "renderLocalAiTranscript",
+          "callee": "renderLocalAiTranscriptEvent",
+          "lineNumber": 8
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 18
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 21
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 23
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 23
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 27
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 33
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 35
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 39
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 41
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 41
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 47
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "event.result.detail.split",
+          "lineNumber": 53
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 54
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 59
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "event.result.output.split",
+          "lineNumber": 61
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 62
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 69
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 72
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 81
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 85
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 86
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 90
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 92
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "String",
+          "lineNumber": 92
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 96
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 99
+        },
+        {
+          "caller": "renderLocalAiTranscriptEvent",
+          "callee": "writeLine",
+          "lineNumber": 105
+        },
+        {
+          "caller": "writeLine",
+          "callee": "stream.write",
+          "lineNumber": 114
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "src/ai/verdict.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 81,
+      "nonEmptyLines": 71,
+      "functions": [
+        {
+          "name": "buildLocalAiVerdict",
+          "startLine": 8,
+          "endLine": 81,
+          "params": [
+            "aiMode",
+            "result"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "buildLocalAiVerdict",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 22
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 29
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 39
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 46
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 49
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 56
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 69
+        },
+        {
+          "caller": "buildLocalAiVerdict",
+          "callee": "transcriptEvents.push",
+          "lineNumber": 76
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "test/ai.test.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 850,
+      "nonEmptyLines": 783,
+      "functions": [
+        {
+          "name": "withAiRepo",
+          "startLine": 709,
+          "endLine": 748,
+          "params": [
+            "callback"
+          ]
+        },
+        {
+          "name": "checkedRun",
+          "startLine": 750,
+          "endLine": 792,
+          "params": [
+            "command",
+            "args",
+            "options"
+          ]
+        },
+        {
+          "name": "writeRepoFile",
+          "startLine": 794,
+          "endLine": 803,
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ]
+        },
+        {
+          "name": "writeRepoBytes",
+          "startLine": 805,
+          "endLine": 814,
+          "params": [
+            "repoRoot",
+            "relativePath",
+            "content"
+          ]
+        },
+        {
+          "name": "readArgLines",
+          "startLine": 816,
+          "endLine": 818,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "captureOutput",
+          "startLine": 820,
+          "endLine": 838,
+          "params": []
+        },
+        {
+          "name": "minimalReviewPayload",
+          "startLine": 840,
+          "endLine": 850,
+          "params": [
+            "prompt"
+          ]
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "withAiRepo",
+          "callee": "mkdtemp",
+          "lineNumber": 712
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "join",
+          "lineNumber": 712
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "tmpdir",
+          "lineNumber": 712
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 715
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 718
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 721
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "writeRepoFile",
+          "lineNumber": 724
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "writeRepoFile",
+          "lineNumber": 725
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 726
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 727
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 730
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "writeRepoFile",
+          "lineNumber": 733
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "rm",
+          "lineNumber": 738
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "join",
+          "lineNumber": 738
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 739
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "checkedRun",
+          "lineNumber": 740
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "callback",
+          "lineNumber": 744
+        },
+        {
+          "caller": "withAiRepo",
+          "callee": "rm",
+          "lineNumber": 746
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "spawn",
+          "lineNumber": 762
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stdout?.setEncoding",
+          "lineNumber": 769
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stderr?.setEncoding",
+          "lineNumber": 770
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stdout?.on",
+          "lineNumber": 771
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.stderr?.on",
+          "lineNumber": 774
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.on",
+          "lineNumber": 777
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "child.on",
+          "lineNumber": 778
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "resolve",
+          "lineNumber": 779
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "[\n        `${command} ${args.join(\" \")} exited with ${String(result.code)}.`,\n        `stdout:\\n${result.stdout}`,\n        `stderr:\\n${result.stderr}`,\n      ].join",
+          "lineNumber": 785
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "args.join",
+          "lineNumber": 786
+        },
+        {
+          "caller": "checkedRun",
+          "callee": "String",
+          "lineNumber": 786
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "join",
+          "lineNumber": 799
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "mkdir",
+          "lineNumber": 801
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "dirname",
+          "lineNumber": 801
+        },
+        {
+          "caller": "writeRepoFile",
+          "callee": "writeFile",
+          "lineNumber": 802
+        },
+        {
+          "caller": "writeRepoBytes",
+          "callee": "join",
+          "lineNumber": 810
+        },
+        {
+          "caller": "writeRepoBytes",
+          "callee": "mkdir",
+          "lineNumber": 812
+        },
+        {
+          "caller": "writeRepoBytes",
+          "callee": "dirname",
+          "lineNumber": 812
+        },
+        {
+          "caller": "writeRepoBytes",
+          "callee": "writeFile",
+          "lineNumber": 813
+        },
+        {
+          "caller": "readArgLines",
+          "callee": "(await readFile(path, \"utf8\")).trimEnd().split",
+          "lineNumber": 817
+        },
+        {
+          "caller": "readArgLines",
+          "callee": "(await readFile(path, \"utf8\")).trimEnd",
+          "lineNumber": 817
+        },
+        {
+          "caller": "readArgLines",
+          "callee": "readFile",
+          "lineNumber": 817
+        },
+        {
+          "caller": "write",
+          "callee": "chunk.toString",
+          "lineNumber": 827
+        },
+        {
+          "caller": "write",
+          "callee": "callback",
+          "lineNumber": 828
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 0,
+        "functionCount": 7,
+        "classCount": 0
+      }
+    }
+  ]
+}

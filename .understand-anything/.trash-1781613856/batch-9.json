@@ -1,0 +1,265 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/distribution-runner.md",
+      "type": "document",
+      "name": "distribution-runner.md",
+      "filePath": "docs/distribution-runner.md",
+      "summary": "Documents Pushgate distribution runner.md behavior and product decisions.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:docs/issue-10-local-ai-provider-interface-plan.md",
+      "type": "document",
+      "name": "issue-10-local-ai-provider-interface-plan.md",
+      "filePath": "docs/issue-10-local-ai-provider-interface-plan.md",
+      "summary": "Planning document for the local ai provider interface plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-12-structured-ai-review-output-plan.md",
+      "type": "document",
+      "name": "issue-12-structured-ai-review-output-plan.md",
+      "filePath": "docs/issue-12-structured-ai-review-output-plan.md",
+      "summary": "Planning document for the structured ai review output plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-18-local-skip-controls-plan.md",
+      "type": "document",
+      "name": "issue-18-local-skip-controls-plan.md",
+      "filePath": "docs/issue-18-local-skip-controls-plan.md",
+      "summary": "Planning document for the local skip controls plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "type": "document",
+      "name": "issue-19-github-copilot-provider-adapter-plan.md",
+      "filePath": "docs/issue-19-github-copilot-provider-adapter-plan.md",
+      "summary": "Planning document for the github copilot provider adapter plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/issue-2-config-schema-plan.md",
+      "type": "document",
+      "name": "issue-2-config-schema-plan.md",
+      "filePath": "docs/issue-2-config-schema-plan.md",
+      "summary": "Planning document for the config schema plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/issue-3-hook-runner-test-harness-plan.md",
+      "type": "document",
+      "name": "issue-3-hook-runner-test-harness-plan.md",
+      "filePath": "docs/issue-3-hook-runner-test-harness-plan.md",
+      "summary": "Planning document for the hook runner test harness plan workstream in Pushgate, capturing intended behavior, design decisions, and rollout details.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/product-contract-plan.md",
+      "type": "document",
+      "name": "product-contract-plan.md",
+      "filePath": "docs/product-contract-plan.md",
+      "summary": "Planning document for the product-level Pushgate contract, expected behavior, and repository boundary decisions.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-01-process-git-helpers-plan.md",
+      "type": "document",
+      "name": "refactor-01-process-git-helpers-plan.md",
+      "filePath": "docs/refactor-01-process-git-helpers-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 01 process git helpers plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-02-cli-pre-push-workflow-plan.md",
+      "type": "document",
+      "name": "refactor-02-cli-pre-push-workflow-plan.md",
+      "filePath": "docs/refactor-02-cli-pre-push-workflow-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 02 cli pre push workflow plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-03-path-policy-split-plan.md",
+      "type": "document",
+      "name": "refactor-03-path-policy-split-plan.md",
+      "filePath": "docs/refactor-03-path-policy-split-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 03 path policy split plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-04-config-split-plan.md",
+      "type": "document",
+      "name": "refactor-04-config-split-plan.md",
+      "filePath": "docs/refactor-04-config-split-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 04 config split plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-05-ai-provider-and-prompt-cleanup-plan.md",
+      "type": "document",
+      "name": "refactor-05-ai-provider-and-prompt-cleanup-plan.md",
+      "filePath": "docs/refactor-05-ai-provider-and-prompt-cleanup-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 05 ai provider and prompt cleanup plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-06-distribution-module-plan.md",
+      "type": "document",
+      "name": "refactor-06-distribution-module-plan.md",
+      "filePath": "docs/refactor-06-distribution-module-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 06 distribution module plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-07-schema-validator-precompile-plan.md",
+      "type": "document",
+      "name": "refactor-07-schema-validator-precompile-plan.md",
+      "filePath": "docs/refactor-07-schema-validator-precompile-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 07 schema validator precompile plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-08-process-execution-seam-plan.md",
+      "type": "document",
+      "name": "refactor-08-process-execution-seam-plan.md",
+      "filePath": "docs/refactor-08-process-execution-seam-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 08 process execution seam plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-09-deterministic-gate-deepening-plan.md",
+      "type": "document",
+      "name": "refactor-09-deterministic-gate-deepening-plan.md",
+      "filePath": "docs/refactor-09-deterministic-gate-deepening-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 09 deterministic gate deepening plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-10-local-ai-gate-split-plan.md",
+      "type": "document",
+      "name": "refactor-10-local-ai-gate-split-plan.md",
+      "filePath": "docs/refactor-10-local-ai-gate-split-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 10 local ai gate split plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/refactor-11-review-context-split-plan.md",
+      "type": "document",
+      "name": "refactor-11-review-context-split-plan.md",
+      "filePath": "docs/refactor-11-review-context-split-plan.md",
+      "summary": "Documents a staged refactor plan for refactor 11 review context split plan.md.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/v2-config-schema.md",
+      "type": "document",
+      "name": "v2-config-schema.md",
+      "filePath": "docs/v2-config-schema.md",
+      "summary": "Detailed design document for the v2 Pushgate config schema, migration boundary, and changed-file review contract.",
+      "tags": [
+        "documentation",
+        "docs",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": []
+}

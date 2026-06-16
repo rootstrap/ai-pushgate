@@ -1,0 +1,35 @@
+{
+  "projectRoot": "/Users/danielbrosio/aux-projects/pps/ai-pushgate",
+  "batchFiles": [
+    {
+      "path": "test/fixtures/config/defaults.yml",
+      "language": "yaml",
+      "sizeLines": 6,
+      "fileCategory": "config"
+    },
+    {
+      "path": "test/fixtures/config/invalid-provider.yml",
+      "language": "yaml",
+      "sizeLines": 6,
+      "fileCategory": "config"
+    },
+    {
+      "path": "test/fixtures/config/invalid-string-command.yml",
+      "language": "yaml",
+      "sizeLines": 8,
+      "fileCategory": "config"
+    },
+    {
+      "path": "test/fixtures/config/valid.yml",
+      "language": "yaml",
+      "sizeLines": 52,
+      "fileCategory": "config"
+    }
+  ],
+  "batchImportData": {
+    "test/fixtures/config/defaults.yml": [],
+    "test/fixtures/config/invalid-provider.yml": [],
+    "test/fixtures/config/invalid-string-command.yml": [],
+    "test/fixtures/config/valid.yml": []
+  }
+}

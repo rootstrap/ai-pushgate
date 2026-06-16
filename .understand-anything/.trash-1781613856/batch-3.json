@@ -1,0 +1,1140 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/ai/review-context.ts",
+      "type": "file",
+      "name": "review-context.ts",
+      "filePath": "src/ai/review-context.ts",
+      "summary": "Builds the local AI review context from git metadata, changed files, diffs, and policy state before provider invocation.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-context.ts:buildLocalAiReviewPayload",
+      "type": "function",
+      "name": "buildLocalAiReviewPayload",
+      "filePath": "src/ai/review-context.ts",
+      "summary": "Handles local AI review-related logic in review-context.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-context.ts:collectLocalAiReviewContext",
+      "type": "function",
+      "name": "collectLocalAiReviewContext",
+      "filePath": "src/ai/review-context.ts",
+      "summary": "Handles local AI review-related logic in review-context.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-context.ts:collectReviewDiff",
+      "type": "function",
+      "name": "collectReviewDiff",
+      "filePath": "src/ai/review-context.ts",
+      "summary": "Handles local AI review-related logic in review-context.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-context.ts:collectFullFiles",
+      "type": "function",
+      "name": "collectFullFiles",
+      "filePath": "src/ai/review-context.ts",
+      "summary": "Implements collectFullFiles behavior in review-context.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-context.ts:countTextLines",
+      "type": "function",
+      "name": "countTextLines",
+      "filePath": "src/ai/review-context.ts",
+      "summary": "Implements countTextLines behavior in review-context.ts.",
+      "tags": [
+        "function",
+        "ai-review"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/ai/review-prompt.ts",
+      "type": "file",
+      "name": "review-prompt.ts",
+      "filePath": "src/ai/review-prompt.ts",
+      "summary": "Builds the local AI review payload from changed files, Git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "function",
+      "name": "renderLocalAiPrompt",
+      "filePath": "src/ai/review-prompt.ts",
+      "summary": "Helper named renderLocalAiPrompt that supports builds the local ai review payload from changed files, git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:describeChangedFile",
+      "type": "function",
+      "name": "describeChangedFile",
+      "filePath": "src/ai/review-prompt.ts",
+      "summary": "Helper named describeChangedFile that supports builds the local ai review payload from changed files, git diff context, and optional full-file snapshots.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "function",
+      "name": "formatFullFiles",
+      "filePath": "src/ai/review-prompt.ts",
+      "summary": "Formats full files values for review-prompt.ts.",
+      "tags": [
+        "ai-review",
+        "prompt",
+        "git-diff",
+        "function",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/diff-parsers.ts",
+      "type": "file",
+      "name": "diff-parsers.ts",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements path-policy diff parsers.ts logic for changed-file detection and ignore-path filtering.",
+      "tags": [
+        "path-policy",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:parseChangedFiles",
+      "type": "function",
+      "name": "parseChangedFiles",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements parseChangedFiles behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:parseDiffStats",
+      "type": "function",
+      "name": "parseDiffStats",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements parseDiffStats behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:parseNumstatLineCounts",
+      "type": "function",
+      "name": "parseNumstatLineCounts",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements parseNumstatLineCounts behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:statsForPath",
+      "type": "function",
+      "name": "statsForPath",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements statsForPath behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:splitNullFields",
+      "type": "function",
+      "name": "splitNullFields",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements splitNullFields behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:normalizeGitStatus",
+      "type": "function",
+      "name": "normalizeGitStatus",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements normalizeGitStatus behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:requiredPath",
+      "type": "function",
+      "name": "requiredPath",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements requiredPath behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/diff-parsers.ts:requiredField",
+      "type": "function",
+      "name": "requiredField",
+      "filePath": "src/path-policy/diff-parsers.ts",
+      "summary": "Implements requiredField behavior in diff-parsers.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/errors.ts",
+      "type": "file",
+      "name": "errors.ts",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Implements path-policy errors.ts logic for changed-file detection and ignore-path filtering.",
+      "tags": [
+        "path-policy",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/path-policy/errors.ts:malformedGitOutput",
+      "type": "function",
+      "name": "malformedGitOutput",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Implements malformedGitOutput behavior in errors.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/errors.ts:gitFailure",
+      "type": "function",
+      "name": "gitFailure",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Implements gitFailure behavior in errors.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/errors.ts:gitSpawnFailure",
+      "type": "function",
+      "name": "gitSpawnFailure",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Implements gitSpawnFailure behavior in errors.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/errors.ts:gitResultDetail",
+      "type": "function",
+      "name": "gitResultDetail",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Implements gitResultDetail behavior in errors.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/errors.ts:ChangedFilePolicyError",
+      "type": "class",
+      "name": "ChangedFilePolicyError",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Defines ChangedFilePolicyError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/errors.ts:MissingTargetRefError",
+      "type": "class",
+      "name": "MissingTargetRefError",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Defines MissingTargetRefError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/errors.ts:MissingDiffBaseError",
+      "type": "class",
+      "name": "MissingDiffBaseError",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Defines MissingDiffBaseError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/path-policy/errors.ts:GitChangedFilesError",
+      "type": "class",
+      "name": "GitChangedFilesError",
+      "filePath": "src/path-policy/errors.ts",
+      "summary": "Defines GitChangedFilesError, grouping 1 methods for errors.ts responsibilities.",
+      "tags": [
+        "class",
+        "type-definition",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/filtering.ts",
+      "type": "file",
+      "name": "filtering.ts",
+      "filePath": "src/path-policy/filtering.ts",
+      "summary": "Implements path-policy filtering.ts logic for changed-file detection and ignore-path filtering.",
+      "tags": [
+        "path-policy",
+        "code",
+        "project-file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/filtering.ts:filterIgnoredChangedFiles",
+      "type": "function",
+      "name": "filterIgnoredChangedFiles",
+      "filePath": "src/path-policy/filtering.ts",
+      "summary": "Implements filterIgnoredChangedFiles behavior in filtering.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/filtering.ts:selectToolChangedFilePaths",
+      "type": "function",
+      "name": "selectToolChangedFilePaths",
+      "filePath": "src/path-policy/filtering.ts",
+      "summary": "Implements selectToolChangedFilePaths behavior in filtering.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/filtering.ts:matchesExtension",
+      "type": "function",
+      "name": "matchesExtension",
+      "filePath": "src/path-policy/filtering.ts",
+      "summary": "Implements matchesExtension behavior in filtering.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/git-resolution.ts",
+      "type": "file",
+      "name": "git-resolution.ts",
+      "filePath": "src/path-policy/git-resolution.ts",
+      "summary": "Implements path-policy git resolution.ts logic for changed-file detection and ignore-path filtering.",
+      "tags": [
+        "path-policy",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/path-policy/git-resolution.ts:resolveTargetCommit",
+      "type": "function",
+      "name": "resolveTargetCommit",
+      "filePath": "src/path-policy/git-resolution.ts",
+      "summary": "Implements resolveTargetCommit behavior in git-resolution.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/git-resolution.ts:resolveDiffBase",
+      "type": "function",
+      "name": "resolveDiffBase",
+      "filePath": "src/path-policy/git-resolution.ts",
+      "summary": "Implements resolveDiffBase behavior in git-resolution.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/git-resolution.ts:readChangedFileDiffs",
+      "type": "function",
+      "name": "readChangedFileDiffs",
+      "filePath": "src/path-policy/git-resolution.ts",
+      "summary": "Implements readChangedFileDiffs behavior in git-resolution.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/git-resolution.ts:readChangedFilesGitOutput",
+      "type": "function",
+      "name": "readChangedFilesGitOutput",
+      "filePath": "src/path-policy/git-resolution.ts",
+      "summary": "Implements readChangedFilesGitOutput behavior in git-resolution.ts.",
+      "tags": [
+        "function",
+        "path-policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/path-policy/git-resolution.ts:runChangedFilesGit",
+      "type": "function",
+      "name": "runChangedFilesGit",
+      "filePath": "src/path-policy/git-resolution.ts",
+      "summary": "Runs command or workflow logic in git-resolution.ts.",
+      "tags": [
+        "function",
+        "path-policy",
+        "process-execution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/path-policy/index.ts",
+      "summary": "Resolves changed files from the configured Git diff range, applies ignore rules, and returns the normalized file metadata consumed by runner phases.",
+      "tags": [
+        "barrel",
+        "path-policy",
+        "code"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "function",
+      "name": "resolveChangedFiles",
+      "filePath": "src/path-policy/index.ts",
+      "summary": "Resolves changed files for index.ts.",
+      "tags": [
+        "git-diff",
+        "changed-files",
+        "filtering",
+        "function",
+        "resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/path-policy/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "src/path-policy/types.ts",
+      "summary": "Implements path-policy types.ts logic for changed-file detection and ignore-path filtering.",
+      "tags": [
+        "path-policy",
+        "code",
+        "project-file"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:test/path-policy.test.ts",
+      "type": "file",
+      "name": "path-policy.test.ts",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Changed-file resolution test suite covering Git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "code",
+        "project-file"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:withFeatureRepo",
+      "type": "function",
+      "name": "withFeatureRepo",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Helper named withFeatureRepo that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:withTempDir",
+      "type": "function",
+      "name": "withTempDir",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Helper named withTempDir that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "function",
+      "name": "writeRepoFile",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Writes repo file output for path-policy.test.ts.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:checkedGit",
+      "type": "function",
+      "name": "checkedGit",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Helper named checkedGit that supports changed-file resolution test suite covering git diff parsing and ignore-path filtering.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:test/path-policy.test.ts:runGit",
+      "type": "function",
+      "name": "runGit",
+      "filePath": "test/path-policy.test.ts",
+      "summary": "Runs the git path within path-policy.test.ts.",
+      "tags": [
+        "test",
+        "git-diff",
+        "changed-files",
+        "function",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "function:src/ai/review-context.ts:buildLocalAiReviewPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "function:src/ai/review-context.ts:collectLocalAiReviewContext",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "function:src/ai/review-context.ts:collectReviewDiff",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "function:src/ai/review-context.ts:collectFullFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "function:src/ai/review-context.ts:countTextLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "file:src/ai/review-prompt.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "file:src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "file:src/git/command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-context.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:describeChangedFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "function:src/ai/review-prompt.ts:formatFullFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "document:src/ai/prompts/review-prompt.md",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/ai/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/ai/review-prompt.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:parseChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:parseDiffStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:parseNumstatLineCounts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:statsForPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:splitNullFields",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:normalizeGitStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:requiredPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "function:src/path-policy/diff-parsers.ts:requiredField",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "file:src/path-policy/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/diff-parsers.ts",
+      "target": "file:src/path-policy/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "function:src/path-policy/errors.ts:malformedGitOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "function:src/path-policy/errors.ts:gitFailure",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "function:src/path-policy/errors.ts:gitSpawnFailure",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "function:src/path-policy/errors.ts:gitResultDetail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "class:src/path-policy/errors.ts:ChangedFilePolicyError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "class:src/path-policy/errors.ts:MissingTargetRefError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "class:src/path-policy/errors.ts:MissingDiffBaseError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "class:src/path-policy/errors.ts:GitChangedFilesError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/errors.ts",
+      "target": "file:src/path-policy/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/filtering.ts",
+      "target": "function:src/path-policy/filtering.ts:filterIgnoredChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/filtering.ts",
+      "target": "function:src/path-policy/filtering.ts:selectToolChangedFilePaths",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/filtering.ts",
+      "target": "function:src/path-policy/filtering.ts:matchesExtension",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/filtering.ts",
+      "target": "file:src/path-policy/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "function:src/path-policy/git-resolution.ts:resolveTargetCommit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "function:src/path-policy/git-resolution.ts:resolveDiffBase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "function:src/path-policy/git-resolution.ts:readChangedFileDiffs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "function:src/path-policy/git-resolution.ts:readChangedFilesGitOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "function:src/path-policy/git-resolution.ts:runChangedFilesGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "file:src/git/command.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/git-resolution.ts",
+      "target": "file:src/path-policy/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "file:src/path-policy/diff-parsers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "file:src/path-policy/filtering.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "file:src/path-policy/git-resolution.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/path-policy/index.ts",
+      "target": "file:src/path-policy/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:withFeatureRepo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:withTempDir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:writeRepoFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:checkedGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "function:test/path-policy.test.ts:runGit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:test/path-policy.test.ts",
+      "target": "file:src/path-policy/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/ai/review-context.ts:buildLocalAiReviewPayload",
+      "target": "function:src/ai/review-prompt.ts:renderLocalAiPrompt",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/ai/review-context.ts:collectReviewDiff",
+      "target": "function:src/git/command.ts:runGitChecked",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/diff-parsers.ts:parseDiffStats",
+      "target": "function:src/path-policy/errors.ts:malformedGitOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/diff-parsers.ts:parseNumstatLineCounts",
+      "target": "function:src/path-policy/errors.ts:malformedGitOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/diff-parsers.ts:requiredPath",
+      "target": "function:src/path-policy/errors.ts:malformedGitOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/diff-parsers.ts:requiredField",
+      "target": "function:src/path-policy/errors.ts:malformedGitOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:resolveTargetCommit",
+      "target": "function:src/path-policy/errors.ts:gitFailure",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:resolveDiffBase",
+      "target": "function:src/git/command.ts:gitResultDetail",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:resolveDiffBase",
+      "target": "function:src/path-policy/errors.ts:gitResultDetail",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:readChangedFilesGitOutput",
+      "target": "function:src/git/command.ts:runGitChecked",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:readChangedFilesGitOutput",
+      "target": "function:src/path-policy/errors.ts:gitFailure",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:readChangedFilesGitOutput",
+      "target": "function:src/path-policy/errors.ts:gitSpawnFailure",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:runChangedFilesGit",
+      "target": "function:src/git/command.ts:runGit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/git-resolution.ts:runChangedFilesGit",
+      "target": "function:src/path-policy/errors.ts:gitSpawnFailure",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/git-resolution.ts:resolveTargetCommit",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/git-resolution.ts:resolveDiffBase",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/git-resolution.ts:readChangedFileDiffs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/diff-parsers.ts:parseDiffStats",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/path-policy/index.ts:resolveChangedFiles",
+      "target": "function:src/path-policy/diff-parsers.ts:parseChangedFiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}
