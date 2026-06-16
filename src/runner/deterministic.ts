@@ -1,10 +1,9 @@
-import { spawn } from "node:child_process";
-
 import type { PushgateConfig, ToolConfig } from "../config/index.js";
 import {
   selectToolChangedFilePaths,
   type ChangedFile,
 } from "../path-policy/index.js";
+import { runTimedCommand } from "../process/timed-command.js";
 import {
   countBuiltInPolicies,
   runBuiltInPolicies,
@@ -166,85 +165,45 @@ async function runToolCommand(
     };
   }
 
-  return new Promise<ToolCommandResult>((resolve) => {
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    let settled = false;
-    let killTimer: NodeJS.Timeout | undefined;
-    let timeoutTimer: NodeJS.Timeout | undefined;
-    const child = spawn(executable, args, {
-      cwd: repoRoot,
-      env,
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    const finish = (result: ToolCommandResult) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      if (timeoutTimer) {
-        clearTimeout(timeoutTimer);
-      }
-
-      if (killTimer) {
-        clearTimeout(killTimer);
-      }
-
-      resolve(result);
-    };
-
-    timeoutTimer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-      killTimer = setTimeout(() => {
-        child.kill("SIGKILL");
-      }, TIMEOUT_KILL_GRACE_MS);
-    }, tool.timeout_seconds * 1_000);
-
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data: string) => {
-      stdout = appendCapped(stdout, data);
-    });
-    child.stderr?.on("data", (data: string) => {
-      stderr = appendCapped(stderr, data);
-    });
-    child.on("error", (error) => {
-      finish({
-        passed: false,
-        detail: `failed to start: ${error.message}`,
-        outputTail: formatOutputTail(stdout, stderr),
-      });
-    });
-    child.on("close", (code, signal) => {
-      if (timedOut) {
-        finish({
-          passed: false,
-          detail: `timed out after ${String(tool.timeout_seconds)}s`,
-          outputTail: formatOutputTail(stdout, stderr),
-        });
-        return;
-      }
-
-      if (code === 0) {
-        finish({ passed: true });
-        return;
-      }
-
-      finish({
-        passed: false,
-        detail:
-          code === null
-            ? `ended by signal ${signal ?? "unknown"}`
-            : `exited with code ${String(code)}`,
-        outputTail: formatOutputTail(stdout, stderr),
-      });
-    });
+  const commandResult = await runTimedCommand({
+    args,
+    command: executable,
+    cwd: repoRoot,
+    env,
+    killGraceMs: TIMEOUT_KILL_GRACE_MS,
+    outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
+    outputTailLimit: OUTPUT_TAIL_LIMIT,
+    timeoutSeconds: tool.timeout_seconds,
   });
+
+  if (commandResult.kind === "spawn-error") {
+    return {
+      passed: false,
+      detail: `failed to start: ${commandResult.error.message}`,
+      outputTail: commandResult.outputTail,
+    };
+  }
+
+  if (commandResult.kind === "timeout") {
+    return {
+      passed: false,
+      detail: `timed out after ${String(tool.timeout_seconds)}s`,
+      outputTail: commandResult.outputTail,
+    };
+  }
+
+  if (commandResult.code === 0) {
+    return { passed: true };
+  }
+
+  return {
+    passed: false,
+    detail:
+      commandResult.code === null
+        ? `ended by signal ${commandResult.signal ?? "unknown"}`
+        : `exited with code ${String(commandResult.code)}`,
+    outputTail: commandResult.outputTail,
+  };
 }
 
 function writeFailure(
@@ -283,30 +242,6 @@ function writePolicyResult(
     stdout,
     `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`,
   );
-}
-
-function appendCapped(current: string, next: string): string {
-  const combined = current + next;
-
-  if (combined.length <= OUTPUT_CAPTURE_LIMIT) {
-    return combined;
-  }
-
-  return combined.slice(-OUTPUT_CAPTURE_LIMIT);
-}
-
-function formatOutputTail(stdout: string, stderr: string): string | undefined {
-  const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
-
-  if (!output) {
-    return undefined;
-  }
-
-  if (output.length <= OUTPUT_TAIL_LIMIT) {
-    return output;
-  }
-
-  return output.slice(-OUTPUT_TAIL_LIMIT);
 }
 
 function writeLine(stream: NodeJS.WritableStream, line: string): void {

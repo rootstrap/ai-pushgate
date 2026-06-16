@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { runInheritedCommand } from "../process/inherited-command.js";
 
 export interface GitPushResult {
   code: number | null;
@@ -11,15 +11,9 @@ export function runGitPush(
     env: NodeJS.ProcessEnv;
   },
 ): Promise<GitPushResult> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("git", [...args], {
-      env: options.env,
-      stdio: "inherit",
-    });
-
-    child.on("error", reject);
-    child.on("close", (code, signal) => {
-      resolve({ code, signal });
-    });
+  return runInheritedCommand({
+    args,
+    command: "git",
+    env: options.env,
   });
 }

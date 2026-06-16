@@ -9482,11 +9482,12 @@ function parsePushCommandArgs(args) {
   };
 }
 
-// src/git/push.ts
+// src/process/inherited-command.ts
 import { spawn as spawn2 } from "node:child_process";
-function runGitPush(args, options) {
+function runInheritedCommand(options) {
   return new Promise((resolve, reject) => {
-    const child = spawn2("git", [...args], {
+    const child = spawn2(options.command, [...options.args], {
+      cwd: options.cwd,
       env: options.env,
       stdio: "inherit"
     });
@@ -9494,6 +9495,15 @@ function runGitPush(args, options) {
     child.on("close", (code, signal) => {
       resolve({ code, signal });
     });
+  });
+}
+
+// src/git/push.ts
+function runGitPush(args, options) {
+  return runInheritedCommand({
+    args,
+    command: "git",
+    env: options.env
   });
 }
 
@@ -9666,9 +9676,6 @@ function countTextLines(text) {
   }
   return text.endsWith("\n") ? newlineCount : newlineCount + 1;
 }
-
-// src/ai/providers/claude.ts
-import { spawn as spawn4 } from "node:child_process";
 
 // src/ai/providers/config.ts
 function selectProviderModel(providerConfig) {
@@ -10313,25 +10320,50 @@ function normalizeProviderReviewOutput(options) {
   }
 }
 
-// src/ai/providers/run-provider-command.ts
+// src/process/timed-command.ts
 import { spawn as spawn3 } from "node:child_process";
-var DEFAULT_OUTPUT_CAPTURE_LIMIT = 128 * 1024;
-var DEFAULT_OUTPUT_TAIL_LIMIT = 8 * 1024;
-function runProviderCommand(options) {
+
+// src/process/output.ts
+function appendCapped(current, next, outputCaptureLimit) {
+  const combined = current + next;
+  if (combined.length <= outputCaptureLimit) {
+    return combined;
+  }
+  return combined.slice(-outputCaptureLimit);
+}
+function formatOutputTail(stdout, stderr, outputTailLimit) {
+  const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
+  if (!output) {
+    return void 0;
+  }
+  if (output.length <= outputTailLimit) {
+    return output;
+  }
+  return output.slice(-outputTailLimit);
+}
+
+// src/process/timed-command.ts
+var DEFAULT_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
+var DEFAULT_OUTPUT_TAIL_LIMIT = 4 * 1024;
+var DEFAULT_KILL_GRACE_MS = 1e3;
+function runTimedCommand(options) {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
-    let settled = false;
     let timedOut = false;
+    let settled = false;
     let killTimer;
     let timeoutTimer;
     const outputCaptureLimit = options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT;
     const outputTailLimit = options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT;
-    const child = spawn3(options.command, options.args, {
+    const killGraceMs = options.killGraceMs ?? DEFAULT_KILL_GRACE_MS;
+    const child = spawn3(options.command, [...options.args], {
       cwd: options.cwd,
       env: options.env,
-      stdio: ["pipe", "pipe", "pipe"]
+      shell: false,
+      stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
     });
+    const capturedOutputTail = () => formatOutputTail(stdout, stderr, outputTailLimit);
     const finish = (result) => {
       if (settled) {
         return;
@@ -10350,55 +10382,95 @@ function runProviderCommand(options) {
       child.kill("SIGTERM");
       killTimer = setTimeout(() => {
         child.kill("SIGKILL");
-      }, 1e3);
+      }, killGraceMs);
     }, options.timeoutSeconds * 1e3);
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data) => {
+    if (!child.stdout || !child.stderr) {
+      finish({
+        error: new Error(`${options.command} output streams were not captured.`),
+        kind: "spawn-error",
+        outputTail: capturedOutputTail()
+      });
+      return;
+    }
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (data) => {
       stdout = appendCapped(stdout, data, outputCaptureLimit);
     });
-    child.stderr?.on("data", (data) => {
+    child.stderr.on("data", (data) => {
       stderr = appendCapped(stderr, data, outputCaptureLimit);
     });
-    child.on("error", () => {
-      finish({ kind: "spawn-error" });
+    child.on("error", (error) => {
+      finish({
+        error,
+        kind: "spawn-error",
+        outputTail: capturedOutputTail()
+      });
     });
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
       if (timedOut) {
         finish({
           kind: "timeout",
-          output: formatCombinedOutput(stdout, stderr, outputTailLimit)
+          outputTail: capturedOutputTail()
         });
         return;
       }
       finish({
         code,
         kind: "completed",
-        output: formatCombinedOutput(stdout, stderr, outputTailLimit),
+        outputTail: capturedOutputTail(),
+        signal,
+        stderr,
         stdout
       });
     });
-    child.stdin?.on("error", () => {
-    });
-    child.stdin?.end(options.prompt);
+    if (options.stdin !== void 0) {
+      if (!child.stdin) {
+        finish({
+          error: new Error(`${options.command} stdin was not piped.`),
+          kind: "spawn-error",
+          outputTail: capturedOutputTail()
+        });
+        return;
+      }
+      child.stdin.on("error", () => {
+      });
+      child.stdin.end(options.stdin);
+    }
   });
 }
-function appendCapped(current, next, outputCaptureLimit) {
-  const combined = current + next;
-  if (combined.length <= outputCaptureLimit) {
-    return combined;
+
+// src/ai/providers/run-provider-command.ts
+var DEFAULT_OUTPUT_CAPTURE_LIMIT2 = 128 * 1024;
+var DEFAULT_OUTPUT_TAIL_LIMIT2 = 8 * 1024;
+async function runProviderCommand(options) {
+  const commandResult = await runTimedCommand({
+    args: options.args,
+    command: options.command,
+    cwd: options.cwd,
+    env: options.env,
+    outputCaptureLimit: options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT2,
+    outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT2,
+    // Provider CLIs may exit before stdin fully drains; runTimedCommand still
+    // lets the close path report the real provider result.
+    stdin: options.prompt,
+    timeoutSeconds: options.timeoutSeconds
+  });
+  if (commandResult.kind === "spawn-error") {
+    return { kind: "spawn-error" };
   }
-  return combined.slice(-outputCaptureLimit);
-}
-function formatCombinedOutput(stdout, stderr, outputTailLimit) {
-  const combined = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
-  if (combined.length === 0) {
-    return void 0;
+  if (commandResult.kind === "timeout") {
+    return {
+      kind: "timeout",
+      output: commandResult.outputTail
+    };
   }
-  if (combined.length <= outputTailLimit) {
-    return combined;
-  }
-  return combined.slice(-outputTailLimit);
+  return {
+    code: commandResult.code,
+    kind: "completed",
+    output: commandResult.outputTail,
+    stdout: commandResult.stdout
+  };
 }
 
 // src/ai/providers/claude.ts
@@ -10483,19 +10555,17 @@ function buildClaudeArgs(repoRoot, model) {
   return args;
 }
 async function isClaudeUnauthenticated(repoRoot, env) {
-  return new Promise((resolve) => {
-    const child = spawn4("claude", ["auth", "status"], {
+  try {
+    const result = await runCommand({
+      args: ["auth", "status"],
+      command: "claude",
       cwd: repoRoot,
-      env,
-      stdio: ["ignore", "ignore", "ignore"]
+      env
     });
-    child.on("error", () => {
-      resolve(false);
-    });
-    child.on("close", (code) => {
-      resolve(code === 1);
-    });
-  });
+    return result.code === 1;
+  } catch {
+    return false;
+  }
 }
 
 // src/ai/providers/copilot.ts
@@ -10776,9 +10846,6 @@ async function resolveGitRepositoryRoot(env = process.env) {
   );
 }
 
-// src/runner/deterministic.ts
-import { spawn as spawn5 } from "node:child_process";
-
 // src/runner/policies.ts
 var import_ignore2 = __toESM(require_ignore(), 1);
 var FORBIDDEN_PATH_DETAIL_LIMIT = 5;
@@ -10952,74 +11019,38 @@ async function runToolCommand(tool, command, repoRoot, env) {
       detail: "command was empty"
     };
   }
-  return new Promise((resolve) => {
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    let settled = false;
-    let killTimer;
-    let timeoutTimer;
-    const child = spawn5(executable, args, {
-      cwd: repoRoot,
-      env,
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    const finish = (result) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      if (timeoutTimer) {
-        clearTimeout(timeoutTimer);
-      }
-      if (killTimer) {
-        clearTimeout(killTimer);
-      }
-      resolve(result);
-    };
-    timeoutTimer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-      killTimer = setTimeout(() => {
-        child.kill("SIGKILL");
-      }, TIMEOUT_KILL_GRACE_MS);
-    }, tool.timeout_seconds * 1e3);
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data) => {
-      stdout = appendCapped2(stdout, data);
-    });
-    child.stderr?.on("data", (data) => {
-      stderr = appendCapped2(stderr, data);
-    });
-    child.on("error", (error) => {
-      finish({
-        passed: false,
-        detail: `failed to start: ${error.message}`,
-        outputTail: formatOutputTail(stdout, stderr)
-      });
-    });
-    child.on("close", (code, signal) => {
-      if (timedOut) {
-        finish({
-          passed: false,
-          detail: `timed out after ${String(tool.timeout_seconds)}s`,
-          outputTail: formatOutputTail(stdout, stderr)
-        });
-        return;
-      }
-      if (code === 0) {
-        finish({ passed: true });
-        return;
-      }
-      finish({
-        passed: false,
-        detail: code === null ? `ended by signal ${signal ?? "unknown"}` : `exited with code ${String(code)}`,
-        outputTail: formatOutputTail(stdout, stderr)
-      });
-    });
+  const commandResult = await runTimedCommand({
+    args,
+    command: executable,
+    cwd: repoRoot,
+    env,
+    killGraceMs: TIMEOUT_KILL_GRACE_MS,
+    outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
+    outputTailLimit: OUTPUT_TAIL_LIMIT,
+    timeoutSeconds: tool.timeout_seconds
   });
+  if (commandResult.kind === "spawn-error") {
+    return {
+      passed: false,
+      detail: `failed to start: ${commandResult.error.message}`,
+      outputTail: commandResult.outputTail
+    };
+  }
+  if (commandResult.kind === "timeout") {
+    return {
+      passed: false,
+      detail: `timed out after ${String(tool.timeout_seconds)}s`,
+      outputTail: commandResult.outputTail
+    };
+  }
+  if (commandResult.code === 0) {
+    return { passed: true };
+  }
+  return {
+    passed: false,
+    detail: commandResult.code === null ? `ended by signal ${commandResult.signal ?? "unknown"}` : `exited with code ${String(commandResult.code)}`,
+    outputTail: commandResult.outputTail
+  };
 }
 function writeFailure(stdout, tool, result) {
   const label = result.status === "warning" ? "WARN" : "BLOCK";
@@ -11045,23 +11076,6 @@ function writePolicyResult(stdout, result) {
     stdout,
     `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
   );
-}
-function appendCapped2(current, next) {
-  const combined = current + next;
-  if (combined.length <= OUTPUT_CAPTURE_LIMIT) {
-    return combined;
-  }
-  return combined.slice(-OUTPUT_CAPTURE_LIMIT);
-}
-function formatOutputTail(stdout, stderr) {
-  const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
-  if (!output) {
-    return void 0;
-  }
-  if (output.length <= OUTPUT_TAIL_LIMIT) {
-    return output;
-  }
-  return output.slice(-OUTPUT_TAIL_LIMIT);
 }
 function writeLine2(stream, line) {
   stream.write(`${line}

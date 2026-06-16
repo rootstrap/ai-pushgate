@@ -1,5 +1,4 @@
-import { spawn } from "node:child_process";
-
+import { runCommand } from "../../process/run-command.js";
 import type { LocalAiProviderAdapter } from "../types.js";
 import { selectProviderModel } from "./config.js";
 import { normalizeProviderReviewOutput } from "./normalize-review.js";
@@ -100,18 +99,16 @@ async function isClaudeUnauthenticated(
   repoRoot: string,
   env: NodeJS.ProcessEnv,
 ): Promise<boolean> {
-  return new Promise((resolve) => {
-    const child = spawn("claude", ["auth", "status"], {
+  try {
+    const result = await runCommand({
+      args: ["auth", "status"],
+      command: "claude",
       cwd: repoRoot,
       env,
-      stdio: ["ignore", "ignore", "ignore"],
     });
 
-    child.on("error", () => {
-      resolve(false);
-    });
-    child.on("close", (code) => {
-      resolve(code === 1);
-    });
-  });
+    return result.code === 1;
+  } catch {
+    return false;
+  }
 }
