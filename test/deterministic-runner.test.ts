@@ -11,6 +11,8 @@ import {
   expandChangedFilesToken,
   runDeterministicChecks,
 } from "../src/runner/deterministic.js";
+import { summarizeDeterministicResults } from "../src/runner/summary.js";
+import { createDeterministicTranscript } from "../src/runner/transcript.js";
 
 const changedFiles: ChangedFile[] = [
   {
@@ -308,6 +310,74 @@ test("changed-file token expansion keeps non-token args unchanged", () => {
     "a.ts",
     "b.ts",
   ]), ["tool", "--", "a.ts", "b.ts"]);
+});
+
+test("summarizes deterministic result counts and exit code", () => {
+  assert.deepEqual(
+    summarizeDeterministicResults([
+      { name: "format", status: "passed" },
+      { name: "lint", status: "warning" },
+      { name: "test", status: "blocked" },
+      { name: "types", status: "skipped" },
+    ]),
+    {
+      blockedCount: 1,
+      exitCode: 1,
+      warningCount: 1,
+    },
+  );
+
+  assert.deepEqual(
+    summarizeDeterministicResults([
+      { name: "format", status: "passed" },
+      { name: "lint", status: "warning" },
+    ]),
+    {
+      blockedCount: 0,
+      exitCode: 0,
+      warningCount: 1,
+    },
+  );
+});
+
+test("renders deterministic transcript without running commands", () => {
+  const output = captureOutput();
+  const transcript = createDeterministicTranscript(output.stream);
+
+  transcript.writeStart(3);
+  transcript.writePolicyResult({
+    name: "policy:diff_size",
+    status: "passed",
+    detail: "5 changed line(s) within max_changed_lines 10",
+  });
+  transcript.writeToolResult(tool(), {
+    name: "check",
+    status: "blocked",
+    detail: "exited with code 2",
+    outputTail: "first line\nsecond line",
+  });
+  transcript.writeFailFast();
+  transcript.writeSummary({
+    blockedCount: 1,
+    exitCode: 1,
+    warningCount: 0,
+  });
+
+  assert.equal(
+    output.text(),
+    [
+      "[pushgate] Running 3 deterministic check(s).",
+      "[pushgate] PASS policy:diff_size: 5 changed line(s) within max_changed_lines 10.",
+      "[pushgate] BLOCK check: exited with code 2.",
+      "[pushgate] Command output:",
+      "[pushgate]   first line",
+      "[pushgate]   second line",
+      "[pushgate] Stopping deterministic checks after blocking failure because fail_fast is true.",
+      "[pushgate] Deterministic checks finished: 1 blocking failure(s), 0 warning(s).",
+      "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally.",
+      "",
+    ].join("\n"),
+  );
 });
 
 function configWithTools(tools: ToolConfig[]): PushgateConfig {

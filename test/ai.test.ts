@@ -8,11 +8,18 @@ import test from "node:test";
 
 import {
   buildLocalAiReviewPayload,
+  collectLocalAiReviewContext,
   parseAiReviewOutput,
   runLocalAiReview,
 } from "../src/ai/index.js";
 import type { LocalAiReviewPayload } from "../src/ai/index.js";
+import {
+  evaluateChangedFileGuardrails,
+  evaluatePromptGuardrail,
+} from "../src/ai/guardrails.js";
 import { copilotProvider } from "../src/ai/providers/copilot.js";
+import { renderLocalAiTranscript } from "../src/ai/transcript.js";
+import { buildLocalAiVerdict } from "../src/ai/verdict.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
 
 test("parses structured AI review output into findings and summary", () => {
@@ -111,6 +118,169 @@ test("builds a shared AI review payload with diff and full-file context", async 
     assert.ok(payload.diffLineCount > 0);
     assert.ok(payload.fullFiles.length > 0);
   });
+});
+
+test("collects local AI review context for omitted, truncated, and missing files", async () => {
+  const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-ai-context-"));
+
+  try {
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.email", "ai@example.test"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.name", "Pushgate AI"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "README.md", "base\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "baseline"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["switch", "--quiet", "-c", "feature"], {
+      cwd: repoRoot,
+    });
+    await writeRepoBytes(
+      repoRoot,
+      "assets/logo.bin",
+      Uint8Array.from([0, 1, 2, 3, 0, 4]),
+    );
+    await writeRepoFile(repoRoot, "src/large.txt", "x".repeat(50 * 1024 + 1));
+    await writeRepoFile(repoRoot, "src/missing.ts", "export const missing = true;\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
+      cwd: repoRoot,
+    });
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    await rm(join(repoRoot, "src", "missing.ts"));
+
+    const context = await collectLocalAiReviewContext({
+      changedFileResolution,
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+    });
+    const fullFilesByPath = new Map(
+      context.fullFiles.map((file) => [file.path, file]),
+    );
+
+    assert.equal(
+      fullFilesByPath.get("assets/logo.bin")?.note,
+      "binary file omitted",
+    );
+    assert.equal(fullFilesByPath.get("assets/logo.bin")?.truncated, false);
+    assert.equal(
+      fullFilesByPath.get("src/large.txt")?.note,
+      "truncated to 51200 bytes",
+    );
+    assert.equal(fullFilesByPath.get("src/large.txt")?.truncated, true);
+    assert.match(
+      fullFilesByPath.get("src/large.txt")?.content ?? "",
+      /\n\.\.\. \[file truncated\]\n$/,
+    );
+    assert.equal(
+      fullFilesByPath.get("src/missing.ts")?.note,
+      "file disappeared before local AI review",
+    );
+    assert.equal(fullFilesByPath.get("src/missing.ts")?.content, "");
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test("evaluates local AI guardrails without provider stubs", () => {
+  assert.deepEqual(
+    evaluateChangedFileGuardrails({
+      changedFiles: [],
+      maxChangedLines: 10,
+    }),
+    { kind: "skip-no-files" },
+  );
+  assert.deepEqual(
+    evaluateChangedFileGuardrails({
+      changedFiles: [
+        {
+          additions: 7,
+          binary: false,
+          deletions: 4,
+          path: "src/changed.ts",
+          status: "modified",
+        },
+        {
+          additions: null,
+          binary: true,
+          deletions: null,
+          path: "assets/logo.png",
+          status: "modified",
+        },
+      ],
+      maxChangedLines: 10,
+    }),
+    {
+      kind: "skip-changed-lines",
+      changedLineCount: 11,
+      maxChangedLines: 10,
+    },
+  );
+  assert.deepEqual(
+    evaluatePromptGuardrail({
+      maxPromptTokens: 2,
+      prompt: "123456789",
+    }),
+    {
+      kind: "skip-prompt-tokens",
+      estimatedPromptTokens: 3,
+      maxPromptTokens: 2,
+    },
+  );
+});
+
+test("builds and renders local AI verdict output without provider execution", () => {
+  const output = captureOutput();
+  const verdict = buildLocalAiVerdict("advisory", {
+    kind: "review",
+    provider: "claude",
+    findings: [
+      {
+        category: "logic_errors",
+        confidence: "high",
+        severity: "blocking",
+        file: "src/changed.ts",
+        line: "2",
+        message: "The branch returns the wrong value.",
+        source: {
+          provider: "claude",
+        },
+        suggestion: "Return the value selected by the branch.",
+      },
+    ],
+    normalizationNotes: ["Extracted the review JSON from a fenced code block."],
+    rawOutput: "{\"schema_version\":1,\"findings\":[]}",
+    summary: {
+      blockingCount: 1,
+      warningCount: 0,
+      verdict: "BLOCK",
+    },
+  });
+
+  assert.equal(verdict.exitCode, 0);
+  renderLocalAiTranscript(verdict.transcriptEvents, output.stream);
+
+  assert.match(
+    output.text(),
+    /Note: Extracted the review JSON from a fenced code block/,
+  );
+  assert.match(output.text(), /BLOCK AI logic_errors at src\/changed\.ts:2/);
+  assert.match(output.text(), /Continuing because ai\.mode is advisory/);
 });
 
 test("runs the Claude adapter through the provider interface with model selection", async () => {
@@ -625,6 +795,17 @@ async function writeRepoFile(
   repoRoot: string,
   relativePath: string,
   content: string,
+): Promise<void> {
+  const filePath = join(repoRoot, relativePath);
+
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content);
+}
+
+async function writeRepoBytes(
+  repoRoot: string,
+  relativePath: string,
+  content: Uint8Array,
 ): Promise<void> {
   const filePath = join(repoRoot, relativePath);
 

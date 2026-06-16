@@ -1,6 +1,4 @@
-import { spawn } from "node:child_process";
-
-import type { PushgateConfig, ToolConfig } from "../config/index.js";
+import type { PushgateConfig } from "../config/index.js";
 import {
   selectToolChangedFilePaths,
   type ChangedFile,
@@ -8,10 +6,15 @@ import {
 import {
   countBuiltInPolicies,
   runBuiltInPolicies,
-  type BuiltInPolicyResult,
 } from "./policies.js";
+import { summarizeDeterministicResults } from "./summary.js";
+import { createDeterministicTranscript } from "./transcript.js";
+import { runToolCommand } from "./tool-command.js";
 
-export const CHANGED_FILES_TOKEN = "{changed_files}" as const;
+export {
+  CHANGED_FILES_TOKEN,
+  expandChangedFilesToken,
+} from "./tool-command.js";
 
 export type ToolResultStatus = "passed" | "skipped" | "warning" | "blocked";
 
@@ -34,16 +37,6 @@ export interface DeterministicCheckOptions {
   stdout?: NodeJS.WritableStream;
 }
 
-interface ToolCommandResult {
-  passed: boolean;
-  detail?: string;
-  outputTail?: string;
-}
-
-const OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-const OUTPUT_TAIL_LIMIT = 4 * 1024;
-const TIMEOUT_KILL_GRACE_MS = 1_000;
-
 export async function runDeterministicChecks(
   config: PushgateConfig,
   changedFiles: readonly ChangedFile[],
@@ -53,25 +46,23 @@ export async function runDeterministicChecks(
   const repoRoot = options.repoRoot ?? process.cwd();
   const env = options.env ?? process.env;
   const results: ToolResult[] = [];
+  const transcript = createDeterministicTranscript(stdout);
   const policyCount = countBuiltInPolicies(config.policies);
   const checkCount = policyCount + config.tools.length;
 
   if (checkCount === 0) {
-    writeLine(stdout, "[pushgate] No deterministic checks configured.");
+    transcript.writeNoChecks();
     return { exitCode: 0, results };
   }
 
-  writeLine(
-    stdout,
-    `[pushgate] Running ${String(checkCount)} deterministic check(s).`,
-  );
+  transcript.writeStart(checkCount);
 
   for (const policyResult of runBuiltInPolicies(
     config.policies,
     changedFiles,
   )) {
     results.push(policyResult);
-    writePolicyResult(stdout, policyResult);
+    transcript.writePolicyResult(policyResult);
   }
 
   for (const tool of config.tools) {
@@ -88,16 +79,22 @@ export async function runDeterministicChecks(
       };
 
       results.push(result);
-      writeLine(stdout, `[pushgate] SKIP ${tool.name}: ${result.detail}.`);
+      transcript.writeToolResult(tool, result);
       continue;
     }
 
-    const command = expandChangedFilesToken(tool.command, selectedPaths);
-    const commandResult = await runToolCommand(tool, command, repoRoot, env);
+    const commandResult = await runToolCommand(
+      tool,
+      selectedPaths,
+      repoRoot,
+      env,
+    );
 
     if (commandResult.passed) {
-      results.push({ name: tool.name, status: "passed" });
-      writeLine(stdout, `[pushgate] PASS ${tool.name}.`);
+      const result: ToolResult = { name: tool.name, status: "passed" };
+
+      results.push(result);
+      transcript.writeToolResult(tool, result);
       continue;
     }
 
@@ -111,204 +108,16 @@ export async function runDeterministicChecks(
     };
 
     results.push(result);
-    writeFailure(stdout, tool, result);
+    transcript.writeToolResult(tool, result);
 
     if (status === "blocked" && tool.fail_fast) {
-      writeLine(
-        stdout,
-        "[pushgate] Stopping deterministic checks after blocking failure because fail_fast is true.",
-      );
+      transcript.writeFailFast();
       break;
     }
   }
 
-  const blockedCount = results.filter((result) => result.status === "blocked")
-    .length;
-  const warningCount = results.filter((result) => result.status === "warning")
-    .length;
+  const resultSummary = summarizeDeterministicResults(results);
 
-  writeLine(
-    stdout,
-    `[pushgate] Deterministic checks finished: ${String(blockedCount)} blocking failure(s), ${String(warningCount)} warning(s).`,
-  );
-
-  if (blockedCount > 0) {
-    writeLine(
-      stdout,
-      "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally.",
-    );
-  }
-
-  return { exitCode: blockedCount > 0 ? 1 : 0, results };
-}
-
-export function expandChangedFilesToken(
-  command: readonly string[],
-  changedFilePaths: readonly string[],
-): string[] {
-  return command.flatMap((token) =>
-    token === CHANGED_FILES_TOKEN ? [...changedFilePaths] : [token],
-  );
-}
-
-async function runToolCommand(
-  tool: ToolConfig,
-  command: readonly string[],
-  repoRoot: string,
-  env: NodeJS.ProcessEnv,
-): Promise<ToolCommandResult> {
-  const [executable, ...args] = command;
-
-  if (!executable) {
-    return {
-      passed: false,
-      detail: "command was empty",
-    };
-  }
-
-  return new Promise<ToolCommandResult>((resolve) => {
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    let settled = false;
-    let killTimer: NodeJS.Timeout | undefined;
-    let timeoutTimer: NodeJS.Timeout | undefined;
-    const child = spawn(executable, args, {
-      cwd: repoRoot,
-      env,
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    const finish = (result: ToolCommandResult) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      if (timeoutTimer) {
-        clearTimeout(timeoutTimer);
-      }
-
-      if (killTimer) {
-        clearTimeout(killTimer);
-      }
-
-      resolve(result);
-    };
-
-    timeoutTimer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-      killTimer = setTimeout(() => {
-        child.kill("SIGKILL");
-      }, TIMEOUT_KILL_GRACE_MS);
-    }, tool.timeout_seconds * 1_000);
-
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (data: string) => {
-      stdout = appendCapped(stdout, data);
-    });
-    child.stderr?.on("data", (data: string) => {
-      stderr = appendCapped(stderr, data);
-    });
-    child.on("error", (error) => {
-      finish({
-        passed: false,
-        detail: `failed to start: ${error.message}`,
-        outputTail: formatOutputTail(stdout, stderr),
-      });
-    });
-    child.on("close", (code, signal) => {
-      if (timedOut) {
-        finish({
-          passed: false,
-          detail: `timed out after ${String(tool.timeout_seconds)}s`,
-          outputTail: formatOutputTail(stdout, stderr),
-        });
-        return;
-      }
-
-      if (code === 0) {
-        finish({ passed: true });
-        return;
-      }
-
-      finish({
-        passed: false,
-        detail:
-          code === null
-            ? `ended by signal ${signal ?? "unknown"}`
-            : `exited with code ${String(code)}`,
-        outputTail: formatOutputTail(stdout, stderr),
-      });
-    });
-  });
-}
-
-function writeFailure(
-  stdout: NodeJS.WritableStream,
-  tool: ToolConfig,
-  result: ToolResult,
-): void {
-  const label = result.status === "warning" ? "WARN" : "BLOCK";
-
-  writeLine(
-    stdout,
-    `[pushgate] ${label} ${tool.name}: ${result.detail ?? "command failed"}.`,
-  );
-
-  if (result.outputTail) {
-    writeLine(stdout, "[pushgate] Command output:");
-
-    for (const line of result.outputTail.split("\n")) {
-      writeLine(stdout, `[pushgate]   ${line}`);
-    }
-  }
-}
-
-function writePolicyResult(
-  stdout: NodeJS.WritableStream,
-  result: BuiltInPolicyResult,
-): void {
-  const labelByStatus = {
-    blocked: "BLOCK",
-    passed: "PASS",
-    warning: "WARN",
-  } as const;
-  const detail = result.detail ? `: ${result.detail}` : "";
-
-  writeLine(
-    stdout,
-    `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`,
-  );
-}
-
-function appendCapped(current: string, next: string): string {
-  const combined = current + next;
-
-  if (combined.length <= OUTPUT_CAPTURE_LIMIT) {
-    return combined;
-  }
-
-  return combined.slice(-OUTPUT_CAPTURE_LIMIT);
-}
-
-function formatOutputTail(stdout: string, stderr: string): string | undefined {
-  const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
-
-  if (!output) {
-    return undefined;
-  }
-
-  if (output.length <= OUTPUT_TAIL_LIMIT) {
-    return output;
-  }
-
-  return output.slice(-OUTPUT_TAIL_LIMIT);
-}
-
-function writeLine(stream: NodeJS.WritableStream, line: string): void {
-  stream.write(`${line}\n`);
+  transcript.writeSummary(resultSummary);
+  return { exitCode: resultSummary.exitCode, results };
 }

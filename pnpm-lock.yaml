@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      ajv:
-        specifier: ^8.17.1
-        version: 8.20.0
       ignore:
         specifier: ^7.0.5
         version: 7.0.5
@@ -21,6 +18,9 @@ importers:
       '@types/node':
         specifier: ^22.18.9
         version: 22.19.19
+      ajv:
+        specifier: ^8.17.1
+        version: 8.20.0
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0

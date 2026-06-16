@@ -1,9 +1,3 @@
-import { Ajv, type ErrorObject, type ValidateFunction } from "ajv";
-
-import schema from "../../schemas/ai-review-output-v1.schema.json" with {
-  type: "json",
-};
-
 import {
   AI_BLOCKING_CATEGORIES,
   AI_WARNING_CATEGORIES,
@@ -13,6 +7,10 @@ import {
   type RawAiFinding,
   type RawAiReviewOutput,
 } from "./types.js";
+import {
+  type SchemaValidationError,
+  validateAiReviewOutput,
+} from "../generated/ai-review-output-v1-validator.js";
 
 interface ParsedCandidate {
   notes: string[];
@@ -20,9 +18,10 @@ interface ParsedCandidate {
   value: string;
 }
 
-const ajv = new Ajv({ allErrors: true, strict: true });
-const validateSchema: ValidateFunction<RawAiReviewOutput> =
-  ajv.compile<RawAiReviewOutput>(schema);
+interface ParsedReviewValidation {
+  errors: readonly SchemaValidationError[];
+  review: RawAiReviewOutput | null;
+}
 
 const BLOCKING_CATEGORY_SET = new Set<string>(AI_BLOCKING_CATEGORIES);
 const WARNING_CATEGORY_SET = new Set<string>(AI_WARNING_CATEGORIES);
@@ -106,37 +105,48 @@ function parseCandidate(
     return null;
   }
 
-  const directReview = validateParsedReview(parsed);
+  const directValidation = validateParsedReview(parsed);
 
-  if (directReview !== null) {
-    return directReview;
+  if (directValidation.review !== null) {
+    return directValidation.review;
   }
 
+  let schemaErrors = directValidation.errors;
   const unwrapped = unwrapSingleNestedObject(parsed);
 
   if (unwrapped !== null) {
-    const wrappedReview = validateParsedReview(unwrapped.value);
+    const wrappedValidation = validateParsedReview(unwrapped.value);
 
-    if (wrappedReview !== null) {
+    if (wrappedValidation.review !== null) {
       candidate.notes.push(
         `Normalized provider output from a top-level ${JSON.stringify(unwrapped.key)} wrapper.`,
       );
-      return wrappedReview;
+      return wrappedValidation.review;
     }
+
+    schemaErrors = wrappedValidation.errors;
   }
 
   diagnostics.push(
-    `${candidate.source}: ${formatSchemaDiagnostics(validateSchema.errors ?? [])}`,
+    `${candidate.source}: ${formatSchemaDiagnostics(schemaErrors)}`,
   );
   return null;
 }
 
-function validateParsedReview(parsed: unknown): RawAiReviewOutput | null {
-  if (!validateSchema(parsed)) {
-    return null;
+function validateParsedReview(parsed: unknown): ParsedReviewValidation {
+  const schemaValidation = validateAiReviewOutput(parsed);
+
+  if (!schemaValidation.valid) {
+    return {
+      errors: schemaValidation.errors ?? [],
+      review: null,
+    };
   }
 
-  return parsed;
+  return {
+    errors: [],
+    review: parsed as RawAiReviewOutput,
+  };
 }
 
 function buildCandidates(output: string): ParsedCandidate[] {
@@ -278,7 +288,9 @@ function summarizeFindings(findings: readonly AiFinding[]): AiReviewSummary {
   };
 }
 
-function formatSchemaDiagnostics(errors: readonly ErrorObject[]): string {
+function formatSchemaDiagnostics(
+  errors: readonly SchemaValidationError[],
+): string {
   if (errors.length === 0) {
     return "The JSON object did not match the Pushgate review schema.";
   }
@@ -286,7 +298,7 @@ function formatSchemaDiagnostics(errors: readonly ErrorObject[]): string {
   return errors.map(formatSchemaError).join(" ");
 }
 
-function formatSchemaError(error: ErrorObject): string {
+function formatSchemaError(error: SchemaValidationError): string {
   const path = error.instancePath || "/";
 
   switch (error.keyword) {

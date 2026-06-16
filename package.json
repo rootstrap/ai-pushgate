@@ -7,20 +7,22 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && pnpm run bundle",
-    "bundle": "node scripts/build-runner.mjs",
+    "build": "pnpm run build:validators && tsc -p tsconfig.build.json && node scripts/build-runner.mjs",
+    "build:validators": "node scripts/build-validators.mjs",
+    "bundle": "pnpm run build:validators && node scripts/build-runner.mjs",
+    "bundle:analyze": "pnpm run build:validators && node scripts/build-runner.mjs --analyze",
     "check:shell": "bash -n hook/pre-push && bash -n install.sh",
     "lint:shell": "shellcheck --severity=error hook/pre-push install.sh",
-    "typecheck": "tsc --noEmit",
-    "test": "pnpm run typecheck && pnpm run bundle && tsx --test test/*.test.ts"
+    "typecheck": "pnpm run build:validators && tsc --noEmit",
+    "test": "pnpm run typecheck && pnpm run bundle && node --import tsx --import ./scripts/register-md-loader.mjs --test test/*.test.ts"
   },
   "dependencies": {
-    "ajv": "^8.17.1",
     "ignore": "^7.0.5",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@types/node": "^22.18.9",
+    "ajv": "^8.17.1",
     "esbuild": "^0.28.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

@@ -1,4 +1,4 @@
-import type { ProviderConfig } from "../config/index.js";
+import type { AiMode, ProviderConfig } from "../config/index.js";
 import type { ChangedFile } from "../path-policy/index.js";
 
 export const AI_REVIEW_OUTPUT_SCHEMA_VERSION = 1 as const;
@@ -58,11 +58,14 @@ export interface LocalAiFullFileContext {
   truncated: boolean;
 }
 
-export interface LocalAiReviewPayload {
+export interface LocalAiReviewContext {
   changedFiles: readonly ChangedFile[];
   diff: string;
   diffLineCount: number;
   fullFiles: readonly LocalAiFullFileContext[];
+}
+
+export interface LocalAiReviewPayload extends LocalAiReviewContext {
   prompt: string;
 }
 
@@ -96,6 +99,65 @@ export interface LocalAiProviderReview {
 export type LocalAiProviderResult =
   | LocalAiProviderFailure
   | LocalAiProviderReview;
+
+export type LocalAiTranscriptEvent =
+  | {
+      kind: "skip-no-files";
+    }
+  | {
+      kind: "skip-changed-lines";
+      changedLineCount: number;
+      maxChangedLines: number;
+    }
+  | {
+      kind: "skip-prompt-tokens";
+      estimatedPromptTokens: number;
+      maxPromptTokens: number;
+    }
+  | {
+      kind: "review-start";
+      providerId: string;
+      changedFileCount: number;
+    }
+  | {
+      kind: "full-file-context";
+      diffLineCount: number;
+      fullFileCount: number;
+    }
+  | {
+      kind: "provider-failure";
+      aiMode: AiMode;
+      result: LocalAiProviderFailure;
+    }
+  | {
+      kind: "normalization-note";
+      note: string;
+    }
+  | {
+      kind: "review-passed";
+    }
+  | {
+      kind: "finding";
+      finding: AiFinding;
+    }
+  | {
+      kind: "review-summary";
+      summary: AiReviewSummary;
+    }
+  | {
+      kind: "advisory-continue";
+    }
+  | {
+      kind: "provider-blocked";
+    }
+  | {
+      kind: "review-blocked";
+    };
+
+export interface LocalAiVerdict {
+  exitCode: number;
+  transcriptEvents: readonly LocalAiTranscriptEvent[];
+}
 
 export interface LocalAiProviderRunOptions {
   env: NodeJS.ProcessEnv;
