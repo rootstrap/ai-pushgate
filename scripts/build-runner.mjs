@@ -11,6 +11,9 @@ await build({
   bundle: true,
   entryPoints: ["src/cli.ts"],
   format: "esm",
+  loader: {
+    ".md": "text",
+  },
   logLevel: "info",
   outfile: "bin/pushgate.mjs",
   platform: "node",
