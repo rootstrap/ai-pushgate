@@ -5,7 +5,7 @@ import {
   evaluatePromptGuardrail,
 } from "./guardrails.js";
 import { resolveProvider } from "./provider-registry.js";
-import { buildLocalAiReviewPayload } from "./review-prompt.js";
+import { buildLocalAiReviewPayload } from "./review-context.js";
 import { renderLocalAiTranscript } from "./transcript.js";
 import type {
   LocalAiProviderResult,
@@ -14,8 +14,11 @@ import type {
 import { buildLocalAiVerdict } from "./verdict.js";
 
 export {
-  BASE_REVIEW_PROMPT,
   buildLocalAiReviewPayload,
+  collectLocalAiReviewContext,
+} from "./review-context.js";
+export {
+  BASE_REVIEW_PROMPT,
   renderLocalAiPrompt,
 } from "./review-prompt.js";
 export { AiReviewOutputError, parseAiReviewOutput } from "./review-output.js";
@@ -32,6 +35,7 @@ export type {
   LocalAiProviderFailureCode,
   LocalAiProviderResult,
   LocalAiProviderReview,
+  LocalAiReviewContext,
   LocalAiReviewPayload,
   RawAiFinding,
   RawAiReviewOutput,

@@ -58,11 +58,14 @@ export interface LocalAiFullFileContext {
   truncated: boolean;
 }
 
-export interface LocalAiReviewPayload {
+export interface LocalAiReviewContext {
   changedFiles: readonly ChangedFile[];
   diff: string;
   diffLineCount: number;
   fullFiles: readonly LocalAiFullFileContext[];
+}
+
+export interface LocalAiReviewPayload extends LocalAiReviewContext {
   prompt: string;
 }
 
