@@ -12,7 +12,13 @@ import {
   runLocalAiReview,
 } from "../src/ai/index.js";
 import type { LocalAiReviewPayload } from "../src/ai/index.js";
+import {
+  evaluateChangedFileGuardrails,
+  evaluatePromptGuardrail,
+} from "../src/ai/guardrails.js";
 import { copilotProvider } from "../src/ai/providers/copilot.js";
+import { renderLocalAiTranscript } from "../src/ai/transcript.js";
+import { buildLocalAiVerdict } from "../src/ai/verdict.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
 
 test("parses structured AI review output into findings and summary", () => {
@@ -111,6 +117,92 @@ test("builds a shared AI review payload with diff and full-file context", async 
     assert.ok(payload.diffLineCount > 0);
     assert.ok(payload.fullFiles.length > 0);
   });
+});
+
+test("evaluates local AI guardrails without provider stubs", () => {
+  assert.deepEqual(
+    evaluateChangedFileGuardrails({
+      changedFiles: [],
+      maxChangedLines: 10,
+    }),
+    { kind: "skip-no-files" },
+  );
+  assert.deepEqual(
+    evaluateChangedFileGuardrails({
+      changedFiles: [
+        {
+          additions: 7,
+          binary: false,
+          deletions: 4,
+          path: "src/changed.ts",
+          status: "modified",
+        },
+        {
+          additions: null,
+          binary: true,
+          deletions: null,
+          path: "assets/logo.png",
+          status: "modified",
+        },
+      ],
+      maxChangedLines: 10,
+    }),
+    {
+      kind: "skip-changed-lines",
+      changedLineCount: 11,
+      maxChangedLines: 10,
+    },
+  );
+  assert.deepEqual(
+    evaluatePromptGuardrail({
+      maxPromptTokens: 2,
+      prompt: "123456789",
+    }),
+    {
+      kind: "skip-prompt-tokens",
+      estimatedPromptTokens: 3,
+      maxPromptTokens: 2,
+    },
+  );
+});
+
+test("builds and renders local AI verdict output without provider execution", () => {
+  const output = captureOutput();
+  const verdict = buildLocalAiVerdict("advisory", {
+    kind: "review",
+    provider: "claude",
+    findings: [
+      {
+        category: "logic_errors",
+        confidence: "high",
+        severity: "blocking",
+        file: "src/changed.ts",
+        line: "2",
+        message: "The branch returns the wrong value.",
+        source: {
+          provider: "claude",
+        },
+        suggestion: "Return the value selected by the branch.",
+      },
+    ],
+    normalizationNotes: ["Extracted the review JSON from a fenced code block."],
+    rawOutput: "{\"schema_version\":1,\"findings\":[]}",
+    summary: {
+      blockingCount: 1,
+      warningCount: 0,
+      verdict: "BLOCK",
+    },
+  });
+
+  assert.equal(verdict.exitCode, 0);
+  renderLocalAiTranscript(verdict.transcriptEvents, output.stream);
+
+  assert.match(
+    output.text(),
+    /Note: Extracted the review JSON from a fenced code block/,
+  );
+  assert.match(output.text(), /BLOCK AI logic_errors at src\/changed\.ts:2/);
+  assert.match(output.text(), /Continuing because ai\.mode is advisory/);
 });
 
 test("runs the Claude adapter through the provider interface with model selection", async () => {

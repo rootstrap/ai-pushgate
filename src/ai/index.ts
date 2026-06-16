@@ -1,12 +1,17 @@
 import type { AiConfig, ReviewConfig } from "../config/index.js";
 import type { ChangedFileResolution } from "../path-policy/index.js";
+import {
+  evaluateChangedFileGuardrails,
+  evaluatePromptGuardrail,
+} from "./guardrails.js";
+import { resolveProvider } from "./provider-registry.js";
 import { buildLocalAiReviewPayload } from "./review-prompt.js";
-import { claudeProvider } from "./providers/claude.js";
-import { copilotProvider } from "./providers/copilot.js";
+import { renderLocalAiTranscript } from "./transcript.js";
 import type {
-  LocalAiProviderAdapter,
   LocalAiProviderResult,
+  LocalAiTranscriptEvent,
 } from "./types.js";
+import { buildLocalAiVerdict } from "./verdict.js";
 
 export {
   BASE_REVIEW_PROMPT,
@@ -55,7 +60,7 @@ export async function runLocalAiReview(options: {
   const provider = resolveProvider(options.aiConfig.provider);
 
   if (provider === null) {
-    return handleProviderResult(
+    return renderVerdict(
       options.aiConfig.mode,
       {
         kind: "provider-error",
@@ -67,19 +72,15 @@ export async function runLocalAiReview(options: {
     );
   }
 
-  if (options.changedFileResolution.files.length === 0) {
-    writeLine(stdout, "[pushgate] No changed files to review with local AI.");
-    return { exitCode: 0 };
-  }
+  const changedFileGuardrail = evaluateChangedFileGuardrails({
+    changedFiles: options.changedFileResolution.files,
+    maxChangedLines: options.aiConfig.max_changed_lines,
+  });
 
-  const changedLineCount = countChangedLines(
-    options.changedFileResolution.files,
-  );
-
-  if (changedLineCount > options.aiConfig.max_changed_lines) {
-    writeLine(
+  if (changedFileGuardrail.kind !== "run") {
+    renderLocalAiTranscript(
+      [transcriptEventForChangedFileGuardrail(changedFileGuardrail)],
       stdout,
-      `[pushgate] Skipping local AI because ${String(changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(options.aiConfig.max_changed_lines)}.`,
     );
     return { exitCode: 0 };
   }
@@ -90,29 +91,50 @@ export async function runLocalAiReview(options: {
     repoRoot: options.repoRoot,
     reviewConfig: options.reviewConfig,
   });
-  const estimatedPromptTokens = estimatePromptTokens(payload.prompt);
+  const promptGuardrail = evaluatePromptGuardrail({
+    maxPromptTokens: options.aiConfig.max_prompt_tokens,
+    prompt: payload.prompt,
+  });
 
-  if (estimatedPromptTokens > options.aiConfig.max_prompt_tokens) {
-    writeLine(
+  if (promptGuardrail.kind !== "run") {
+    renderLocalAiTranscript(
+      [
+        {
+          kind: "skip-prompt-tokens",
+          estimatedPromptTokens: promptGuardrail.estimatedPromptTokens,
+          maxPromptTokens: promptGuardrail.maxPromptTokens,
+        },
+      ],
       stdout,
-      `[pushgate] Skipping local AI because the rendered prompt is approximately ${String(estimatedPromptTokens)} token(s), exceeding ai.max_prompt_tokens ${String(options.aiConfig.max_prompt_tokens)}.`,
     );
     return { exitCode: 0 };
   }
 
-  writeLine(
+  renderLocalAiTranscript(
+    [
+      {
+        kind: "review-start",
+        providerId: provider.id,
+        changedFileCount: payload.changedFiles.length,
+      },
+    ],
     stdout,
-    `[pushgate] Running local AI review with ${provider.id} on ${String(payload.changedFiles.length)} changed file(s).`,
   );
 
   if (payload.fullFiles.length > 0) {
-    writeLine(
+    renderLocalAiTranscript(
+      [
+        {
+          kind: "full-file-context",
+          diffLineCount: payload.diffLineCount,
+          fullFileCount: payload.fullFiles.length,
+        },
+      ],
       stdout,
-      `[pushgate] Local AI prompt includes ${String(payload.diffLineCount)} diff line(s) plus ${String(payload.fullFiles.length)} full file(s) for extra context.`,
     );
   }
 
-  return handleProviderResult(
+  return renderVerdict(
     options.aiConfig.mode,
     await provider.runReview({
       env: options.env ?? process.env,
@@ -128,127 +150,29 @@ export async function runLocalAiReview(options: {
   );
 }
 
-function resolveProvider(providerId?: string): LocalAiProviderAdapter | null {
-  switch (providerId) {
-    case "claude":
-      return claudeProvider;
-    case "copilot":
-      return copilotProvider;
-    default:
-      return null;
-  }
-}
-
-function handleProviderResult(
+function renderVerdict(
   aiMode: AiConfig["mode"],
   result: LocalAiProviderResult,
   stdout: NodeJS.WritableStream,
 ): LocalAiRunSummary {
-  if (result.kind === "provider-error") {
-    const label = aiMode === "advisory" ? "WARN" : "BLOCK";
-
-    writeLine(
-      stdout,
-      `[pushgate] ${label} local AI provider ${result.provider} failed: ${result.message}`,
-    );
-
-    if (result.detail) {
-      for (const line of result.detail.split("\n")) {
-        writeLine(stdout, `[pushgate] Detail: ${line}`);
-      }
-    }
-
-    if (result.output) {
-      writeLine(stdout, "[pushgate] Provider output:");
-
-      for (const line of result.output.split("\n")) {
-        writeLine(stdout, `[pushgate]   ${line}`);
-      }
-    }
-
-    if (aiMode === "advisory") {
-      writeLine(
-        stdout,
-        "[pushgate] Continuing because ai.mode is advisory.",
-      );
-      return { exitCode: 0 };
-    }
-
-    writeLine(
-      stdout,
-      "[pushgate] Local AI is blocking in this repository. Fix the provider issue or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push.",
-    );
-    return { exitCode: 1 };
-  }
-
-  for (const note of result.normalizationNotes) {
-    writeLine(stdout, `[pushgate] Note: ${note}`);
-  }
-
-  if (result.findings.length === 0) {
-    writeLine(stdout, "[pushgate] Local AI review passed with no findings.");
-  } else {
-    for (const finding of result.findings) {
-      const label = finding.severity === "blocking" ? "BLOCK" : "WARN";
-      const location =
-        finding.line === "N/A"
-          ? finding.file
-          : `${finding.file}:${finding.line}`;
-
-      writeLine(
-        stdout,
-        `[pushgate] ${label} AI ${finding.category} at ${location}.`,
-      );
-      writeLine(stdout, `[pushgate]   Message: ${finding.message}`);
-      writeLine(stdout, `[pushgate]   Suggestion: ${finding.suggestion}`);
-    }
-  }
-
-  writeLine(
-    stdout,
-    `[pushgate] Local AI review finished: ${String(result.summary.blockingCount)} blocking finding(s), ${String(result.summary.warningCount)} warning(s).`,
-  );
-
-  if (result.summary.blockingCount === 0) {
-    return { exitCode: 0 };
-  }
-
-  if (aiMode === "advisory") {
-    writeLine(
-      stdout,
-      "[pushgate] Continuing because ai.mode is advisory.",
-    );
-    return { exitCode: 0 };
-  }
-
-  writeLine(
-    stdout,
-    "[pushgate] Local AI review blocked the push. Fix the findings above or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push.",
-  );
-  return { exitCode: 1 };
+  const verdict = buildLocalAiVerdict(aiMode, result);
+  renderLocalAiTranscript(verdict.transcriptEvents, stdout);
+  return { exitCode: verdict.exitCode };
 }
 
-function writeLine(stream: NodeJS.WritableStream, line: string): void {
-  stream.write(`${line}\n`);
-}
-
-function countChangedLines(
-  changedFiles: ChangedFileResolution["files"],
-): number {
-  return changedFiles.reduce((total, file) => {
-    if (file.binary) {
-      return total;
-    }
-
-    return total + (file.additions ?? 0) + (file.deletions ?? 0);
-  }, 0);
-}
-
-function estimatePromptTokens(prompt: string): number {
-  if (prompt.length === 0) {
-    return 0;
+function transcriptEventForChangedFileGuardrail(
+  decision: Exclude<
+    ReturnType<typeof evaluateChangedFileGuardrails>,
+    { kind: "run" }
+  >,
+): LocalAiTranscriptEvent {
+  if (decision.kind === "skip-no-files") {
+    return { kind: "skip-no-files" };
   }
 
-  // Provider tokenizers vary, so keep this deliberately approximate and local.
-  return Math.ceil(prompt.length / 4);
+  return {
+    kind: "skip-changed-lines",
+    changedLineCount: decision.changedLineCount,
+    maxChangedLines: decision.maxChangedLines,
+  };
 }
