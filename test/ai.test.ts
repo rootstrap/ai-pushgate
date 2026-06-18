@@ -88,6 +88,97 @@ test("repairs fenced JSON output before validation", () => {
   ]);
 });
 
+test("repairs bullet-prefixed JSON output with raw newlines inside strings", () => {
+  const parsed = parseAiReviewOutput(
+    [
+      "● { \"schema_version\": 1, \"findings\": [",
+      "  {",
+      '    "category": "security",',
+      '    "confidence": "high",',
+      '    "severity": "blocking",',
+      '    "file": ".pushgate.yml",',
+      '    "line": "18-19",',
+      '    "message": "The forbidden path rules for .env files are root-scoped and can miss secrets',
+      'committed in subdirectories (for example, config/.env or services/api/.env.prod).",',
+      '    "suggestion": "Make these patterns recursive (for example **/.env and **/.env.*) so',
+      'environment files are blocked anywhere in the repository."',
+      "  }",
+      "] }",
+    ].join("\n"),
+    {
+      provider: "copilot",
+    },
+  );
+
+  assert.equal(parsed.findings.length, 1);
+  assert.equal(parsed.findings[0]?.category, "security");
+  assert.equal(parsed.findings[0]?.severity, "blocking");
+  assert.match(
+    parsed.findings[0]?.message ?? "",
+    /miss secrets\ncommitted in subdirectories/,
+  );
+  assert.deepEqual(parsed.normalizationNotes, [
+    "Stripped a leading list marker before the review JSON.",
+    "Escaped raw control characters inside JSON strings.",
+  ]);
+  assert.equal(parsed.summary.blockingCount, 1);
+  assert.equal(parsed.summary.verdict, "BLOCK");
+});
+
+test("extracts the review JSON when surrounding prose also contains braces", () => {
+  const parsed = parseAiReviewOutput(
+    [
+      "I checked an object-like example first: {not valid json}.",
+      "Final review:",
+      JSON.stringify({
+        schema_version: 1,
+        findings: [],
+      }),
+    ].join("\n"),
+    {
+      provider: "copilot",
+    },
+  );
+
+  assert.equal(parsed.findings.length, 0);
+  assert.equal(parsed.summary.verdict, "PASS");
+  assert.deepEqual(parsed.normalizationNotes, [
+    "Extracted the review JSON from surrounding provider prose.",
+  ]);
+});
+
+test("repairs trailing commas before schema validation", () => {
+  const parsed = parseAiReviewOutput(
+    [
+      "{",
+      '  "schema_version": 1,',
+      '  "findings": [',
+      "    {",
+      '      "category": "performance",',
+      '      "confidence": "medium",',
+      '      "severity": "warning",',
+      '      "file": "src/cache.ts",',
+      '      "line": "7",',
+      '      "message": "The lookup repeats work that can be cached.",',
+      '      "suggestion": "Cache the computed value before returning.",',
+      "    },",
+      "  ],",
+      "}",
+    ].join("\n"),
+    {
+      provider: "copilot",
+    },
+  );
+
+  assert.equal(parsed.findings.length, 1);
+  assert.equal(parsed.findings[0]?.category, "performance");
+  assert.equal(parsed.summary.warningCount, 1);
+  assert.equal(parsed.summary.verdict, "PASS");
+  assert.deepEqual(parsed.normalizationNotes, [
+    "Removed trailing commas from JSON objects/arrays.",
+  ]);
+});
+
 test("builds a shared AI review payload with diff and full-file context", async () => {
   await withAiRepo(async (repoRoot) => {
     const changedFileResolution = await resolveChangedFiles({
@@ -427,6 +518,62 @@ test("runs the Copilot adapter with non-interactive stdin prompt and model selec
       "--deny-tool=url",
       "--model=gpt-5.4",
     ]);
+  });
+});
+
+test("runs the Copilot adapter when the provider wraps JSON in a list marker", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        "● { \"schema_version\": 1, \"findings\": [",
+        "  {",
+        "    \"category\": \"security\",",
+        "    \"confidence\": \"high\",",
+        "    \"severity\": \"blocking\",",
+        "    \"file\": \".pushgate.yml\",",
+        "    \"line\": \"18-19\",",
+        "    \"message\": \"The forbidden path rules for .env files are root-scoped and can miss secrets",
+        "committed in subdirectories (for example, config/.env or services/api/.env.prod).\",",
+        "    \"suggestion\": \"Make these patterns recursive (for example **/.env and **/.env.*) so",
+        "environment files are blocked anywhere in the repository.\"",
+        "  }",
+        "] }",
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Copilot review result, got ${result.kind}.`);
+    }
+
+    assert.equal(result.findings.length, 1);
+    assert.equal(result.findings[0]?.category, "security");
+    assert.deepEqual(result.normalizationNotes, [
+      "Stripped a leading list marker before the review JSON.",
+      "Escaped raw control characters inside JSON strings.",
+    ]);
+    assert.equal(result.summary.blockingCount, 1);
+    assert.equal(result.summary.verdict, "BLOCK");
   });
 });
 

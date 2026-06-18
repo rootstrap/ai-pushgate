@@ -94,25 +94,23 @@ function parseCandidate(
   candidate: ParsedCandidate,
   diagnostics: string[],
 ): RawAiReviewOutput | null {
-  let parsed: unknown;
+  const parsedJson = parseJsonCandidate(candidate);
 
-  try {
-    parsed = JSON.parse(candidate.value);
-  } catch (error) {
-    diagnostics.push(
-      `${candidate.source}: failed to parse JSON (${formatUnknownError(error)}).`,
-    );
+  if (parsedJson.kind === "failure") {
+    diagnostics.push(...parsedJson.diagnostics);
     return null;
   }
 
-  const directValidation = validateParsedReview(parsed);
+  candidate.notes.push(...parsedJson.notes);
+
+  const directValidation = validateParsedReview(parsedJson.parsed);
 
   if (directValidation.review !== null) {
     return directValidation.review;
   }
 
   let schemaErrors = directValidation.errors;
-  const unwrapped = unwrapSingleNestedObject(parsed);
+  const unwrapped = unwrapSingleNestedObject(parsedJson.parsed);
 
   if (unwrapped !== null) {
     const wrappedValidation = validateParsedReview(unwrapped.value);
@@ -131,6 +129,56 @@ function parseCandidate(
     `${candidate.source}: ${formatSchemaDiagnostics(schemaErrors)}`,
   );
   return null;
+}
+
+function parseJsonCandidate(
+  candidate: ParsedCandidate,
+):
+  | {
+      kind: "failure";
+      diagnostics: string[];
+    }
+  | {
+      kind: "success";
+      notes: string[];
+      parsed: unknown;
+    } {
+  const diagnostics: string[] = [];
+  const attempts = [
+    {
+      notes: [] as string[],
+      source: candidate.source,
+      value: candidate.value,
+    },
+  ];
+  const repairedCandidate = repairJsonCandidate(candidate.value);
+
+  if (repairedCandidate !== null) {
+    attempts.push({
+      notes: repairedCandidate.notes,
+      source: `${candidate.source} (normalized JSON)`,
+      value: repairedCandidate.value,
+    });
+  }
+
+  for (const attempt of attempts) {
+    try {
+      return {
+        kind: "success",
+        notes: attempt.notes,
+        parsed: JSON.parse(attempt.value),
+      };
+    } catch (error) {
+      diagnostics.push(
+        `${attempt.source}: failed to parse JSON (${formatUnknownError(error)}).`,
+      );
+    }
+  }
+
+  return {
+    kind: "failure",
+    diagnostics,
+  };
 }
 
 function validateParsedReview(parsed: unknown): ParsedReviewValidation {
@@ -176,9 +224,7 @@ function buildCandidates(output: string): ParsedCandidate[] {
     ]);
   }
 
-  const objectSlice = extractJsonObjectSlice(output);
-
-  if (objectSlice !== null) {
+  for (const objectSlice of extractJsonObjectSlices(output)) {
     addCandidate(objectSlice, "embedded JSON object", [
       "Extracted the review JSON from surrounding provider prose.",
     ]);
@@ -193,17 +239,250 @@ function extractFencedJsonBlocks(output: string): string[] {
   return [...matches].map((match) => match[1] ?? "");
 }
 
-function extractJsonObjectSlice(output: string): string | null {
-  const firstBrace = output.indexOf("{");
-  const lastBrace = output.lastIndexOf("}");
+function extractJsonObjectSlices(output: string): string[] {
+  const slices: string[] = [];
 
-  if (firstBrace < 0 || lastBrace <= firstBrace) {
+  for (let index = 0; index < output.length; index += 1) {
+    if (output[index] !== "{") {
+      continue;
+    }
+
+    const endIndex = findJsonObjectEnd(output, index);
+
+    if (endIndex === null) {
+      continue;
+    }
+
+    const sliced = output.slice(index, endIndex + 1);
+
+    if (sliced !== output) {
+      slices.push(sliced);
+    }
+  }
+
+  return slices;
+}
+
+function findJsonObjectEnd(value: string, startIndex: number): number | null {
+  let depth = 0;
+  let escaped = false;
+  let inString = false;
+
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (character === "\"") {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (character === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (character === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (character === "}") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return null;
+}
+
+function repairJsonCandidate(
+  value: string,
+): { notes: string[]; value: string } | null {
+  let repaired = value;
+  const notes: string[] = [];
+
+  const strippedListMarker = stripLeadingJsonListMarker(repaired);
+
+  if (strippedListMarker !== repaired) {
+    repaired = strippedListMarker;
+    notes.push("Stripped a leading list marker before the review JSON.");
+  }
+
+  const escapedControlCharacters =
+    escapeControlCharactersInJsonStrings(repaired);
+
+  if (escapedControlCharacters !== repaired) {
+    repaired = escapedControlCharacters;
+    notes.push("Escaped raw control characters inside JSON strings.");
+  }
+
+  const removedTrailingCommas = removeTrailingCommasBeforeJsonClose(repaired);
+
+  if (removedTrailingCommas !== repaired) {
+    repaired = removedTrailingCommas;
+    notes.push("Removed trailing commas from JSON objects/arrays.");
+  }
+
+  if (notes.length === 0) {
     return null;
   }
 
-  const sliced = output.slice(firstBrace, lastBrace + 1);
+  return {
+    notes,
+    value: repaired,
+  };
+}
 
-  return sliced === output ? null : sliced;
+function stripLeadingJsonListMarker(value: string): string {
+  return value.replace(/^\s*[•●▪◦*-]\s*(?=\{)/u, "");
+}
+
+function escapeControlCharactersInJsonStrings(value: string): string {
+  let changed = false;
+  let escaped = false;
+  let inString = false;
+  let repaired = "";
+
+  for (const character of value) {
+    if (!inString) {
+      repaired += character;
+
+      if (character === "\"") {
+        inString = true;
+      }
+
+      continue;
+    }
+
+    if (escaped) {
+      repaired += character;
+      escaped = false;
+      continue;
+    }
+
+    if (character === "\\") {
+      repaired += character;
+      escaped = true;
+      continue;
+    }
+
+    if (character === "\"") {
+      repaired += character;
+      inString = false;
+      continue;
+    }
+
+    if (character.charCodeAt(0) < 0x20) {
+      changed = true;
+      repaired += escapeJsonControlCharacter(character);
+      continue;
+    }
+
+    repaired += character;
+  }
+
+  return changed ? repaired : value;
+}
+
+function escapeJsonControlCharacter(character: string): string {
+  switch (character) {
+    case "\b":
+      return "\\b";
+    case "\f":
+      return "\\f";
+    case "\n":
+      return "\\n";
+    case "\r":
+      return "\\r";
+    case "\t":
+      return "\\t";
+    default:
+      return `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`;
+  }
+}
+
+function removeTrailingCommasBeforeJsonClose(value: string): string {
+  let changed = false;
+  let escaped = false;
+  let inString = false;
+  let repaired = "";
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+
+    if (inString) {
+      repaired += character;
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (character === "\"") {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (character === "\"") {
+      repaired += character;
+      inString = true;
+      continue;
+    }
+
+    if (character === ",") {
+      const nextNonWhitespace = findNextNonJsonWhitespace(value, index + 1);
+
+      if (
+        nextNonWhitespace !== null &&
+        ["]", "}"].includes(value[nextNonWhitespace] ?? "")
+      ) {
+        changed = true;
+        continue;
+      }
+    }
+
+    repaired += character;
+  }
+
+  return changed ? repaired : value;
+}
+
+function findNextNonJsonWhitespace(
+  value: string,
+  startIndex: number,
+): number | null {
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+
+    if (![" ", "\n", "\r", "\t"].includes(character)) {
+      return index;
+    }
+  }
+
+  return null;
 }
 
 function unwrapSingleNestedObject(

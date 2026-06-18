@@ -44,6 +44,9 @@ Warning categories:
 
 Respond with one JSON object only. Do not add prose, markdown fences, or any
 text before or after the JSON.
+String values must be valid JSON strings: escape internal line breaks as `\n`
+instead of writing raw line breaks inside quotes.
+Do not prefix the JSON with bullets, list markers, or assistant status glyphs.
 
 Use this exact shape:
 
