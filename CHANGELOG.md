@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.1](https://github.com/rootstrap/ai-pushgate/compare/v3.3.0...v3.3.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* enhance JSON parsing and validation in AI review output ([#37](https://github.com/rootstrap/ai-pushgate/issues/37)) ([f4ec545](https://github.com/rootstrap/ai-pushgate/commit/f4ec545409a414fb75188effc8c27003faa21024))
+
 ## [3.3.0](https://github.com/rootstrap/ai-pushgate/compare/v3.2.0...v3.3.0) (2026-06-15)
 
 
