@@ -9937,6 +9937,17 @@ function validateAiReviewOutput(value) {
 
 // src/ai/review-output.ts
 var BLOCKING_CATEGORY_SET = new Set(AI_BLOCKING_CATEGORIES);
+var FINDING_REVIEW_KEYS = /* @__PURE__ */ new Set([
+  "category",
+  "confidence",
+  "severity",
+  "file",
+  "line",
+  "message",
+  "suggestion"
+]);
+var KEY_REPAIR_NORMALIZATION_NOTE = "Normalized whitespace around AI review JSON property names.";
+var TOP_LEVEL_REVIEW_KEYS = /* @__PURE__ */ new Set(["schema_version", "findings"]);
 var WARNING_CATEGORY_SET = new Set(AI_WARNING_CATEGORIES);
 var AiReviewOutputError = class extends Error {
   diagnostics;
@@ -9988,18 +9999,28 @@ function parseCandidate(candidate, diagnostics) {
     return null;
   }
   candidate.notes.push(...parsedJson.notes);
-  const directValidation = validateParsedReview(parsedJson.parsed);
-  if (directValidation.review !== null) {
+  const directValidation = validateRepairingReview(parsedJson.parsed);
+  if (directValidation.kind === "ambiguous") {
+    diagnostics.push(`${candidate.source}: ${directValidation.message}`);
+    return null;
+  }
+  if (directValidation.kind === "valid") {
+    candidate.notes.push(...directValidation.notes);
     return directValidation.review;
   }
   let schemaErrors = directValidation.errors;
   const unwrapped = unwrapSingleNestedObject(parsedJson.parsed);
   if (unwrapped !== null) {
-    const wrappedValidation = validateParsedReview(unwrapped.value);
-    if (wrappedValidation.review !== null) {
+    const wrappedValidation = validateRepairingReview(unwrapped.value);
+    if (wrappedValidation.kind === "ambiguous") {
+      diagnostics.push(`${candidate.source}: ${wrappedValidation.message}`);
+      return null;
+    }
+    if (wrappedValidation.kind === "valid") {
       candidate.notes.push(
         `Normalized provider output from a top-level ${JSON.stringify(unwrapped.key)} wrapper.`
       );
+      candidate.notes.push(...wrappedValidation.notes);
       return wrappedValidation.review;
     }
     schemaErrors = wrappedValidation.errors;
@@ -10044,6 +10065,24 @@ function parseJsonCandidate(candidate) {
     diagnostics
   };
 }
+function validateRepairingReview(parsed) {
+  const repairedKeys = repairWhitespaceCorruptedReviewKeys(parsed);
+  if (repairedKeys.kind === "ambiguous") {
+    return repairedKeys;
+  }
+  const validation = validateParsedReview(repairedKeys.value);
+  if (validation.review !== null) {
+    return {
+      kind: "valid",
+      notes: repairedKeys.notes,
+      review: validation.review
+    };
+  }
+  return {
+    errors: validation.errors,
+    kind: "invalid"
+  };
+}
 function validateParsedReview(parsed) {
   const schemaValidation = validateAiReviewOutput(parsed);
   if (!schemaValidation.valid) {
@@ -10056,6 +10095,105 @@ function validateParsedReview(parsed) {
     errors: [],
     review: parsed
   };
+}
+function repairWhitespaceCorruptedReviewKeys(value) {
+  if (!isPlainObject(value)) {
+    return {
+      kind: "success",
+      notes: [],
+      value
+    };
+  }
+  const topLevelRepair = repairKnownObjectKeys(
+    value,
+    TOP_LEVEL_REVIEW_KEYS,
+    "/"
+  );
+  if (topLevelRepair.kind === "ambiguous") {
+    return topLevelRepair;
+  }
+  let repairedReview = topLevelRepair.value;
+  let changed = topLevelRepair.changed;
+  if (Array.isArray(repairedReview.findings)) {
+    const repairedFindings = [];
+    let changedFindings = false;
+    for (let index = 0; index < repairedReview.findings.length; index += 1) {
+      const finding = repairedReview.findings[index];
+      if (!isPlainObject(finding)) {
+        repairedFindings.push(finding);
+        continue;
+      }
+      const findingRepair = repairKnownObjectKeys(
+        finding,
+        FINDING_REVIEW_KEYS,
+        `/findings/${String(index)}`
+      );
+      if (findingRepair.kind === "ambiguous") {
+        return findingRepair;
+      }
+      changedFindings = changedFindings || findingRepair.changed;
+      repairedFindings.push(findingRepair.value);
+    }
+    if (changedFindings) {
+      repairedReview = {
+        ...repairedReview,
+        findings: repairedFindings
+      };
+      changed = true;
+    }
+  }
+  return {
+    kind: "success",
+    notes: changed ? [KEY_REPAIR_NORMALIZATION_NOTE] : [],
+    value: changed ? repairedReview : value
+  };
+}
+function repairKnownObjectKeys(value, allowedKeys, path) {
+  const repairedEntries = [];
+  const originalKeysByRepairedKey = /* @__PURE__ */ new Map();
+  let changed = false;
+  for (const [key, childValue] of Object.entries(value)) {
+    const repairedKey = repairKnownReviewKey(key, allowedKeys);
+    const existingOriginalKey = originalKeysByRepairedKey.get(repairedKey);
+    if (existingOriginalKey !== void 0) {
+      return {
+        kind: "ambiguous",
+        message: [
+          `Cannot normalize whitespace around AI review JSON property names at ${path}:`,
+          `${JSON.stringify(existingOriginalKey)} and ${JSON.stringify(key)}`,
+          `both resolve to ${JSON.stringify(repairedKey)}.`
+        ].join(" ")
+      };
+    }
+    if (repairedKey !== key) {
+      changed = true;
+    }
+    originalKeysByRepairedKey.set(repairedKey, key);
+    repairedEntries.push([repairedKey, childValue]);
+  }
+  return {
+    changed,
+    kind: "success",
+    value: changed ? Object.fromEntries(repairedEntries) : value
+  };
+}
+function repairKnownReviewKey(key, allowedKeys) {
+  const trimmedKey = trimAsciiWhitespaceAndControlCharacters(key);
+  return trimmedKey !== key && allowedKeys.has(trimmedKey) ? trimmedKey : key;
+}
+function trimAsciiWhitespaceAndControlCharacters(value) {
+  let start = 0;
+  let end = value.length;
+  while (start < end && isAsciiWhitespaceOrControlCharacter(value.charCodeAt(start))) {
+    start += 1;
+  }
+  while (end > start && isAsciiWhitespaceOrControlCharacter(value.charCodeAt(end - 1))) {
+    end -= 1;
+  }
+  return value.slice(start, end);
+}
+function isAsciiWhitespaceOrControlCharacter(charCode) {
+  return charCode <= 32 || charCode === 127;
 }
 function buildCandidates(output) {
   const seen = /* @__PURE__ */ new Set();

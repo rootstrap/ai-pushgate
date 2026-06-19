@@ -7,6 +7,7 @@ import { Writable } from "node:stream";
 import test from "node:test";
 
 import {
+  AiReviewOutputError,
   buildLocalAiReviewPayload,
   collectLocalAiReviewContext,
   parseAiReviewOutput,
@@ -177,6 +178,142 @@ test("repairs trailing commas before schema validation", () => {
   assert.deepEqual(parsed.normalizationNotes, [
     "Removed trailing commas from JSON objects/arrays.",
   ]);
+});
+
+test("repairs whitespace-corrupted review property names before validation", () => {
+  const parsed = parseAiReviewOutput(
+    JSON.stringify({
+      "\n schema_version\t": 1,
+      "findings\n": [
+        {
+          category: "security",
+          confidence: "high",
+          severity: "blocking",
+          "\n  file": "scripts/demo_command_injection.py",
+          line: "7",
+          message: "Shell command construction uses user-controlled input.",
+          suggestion: "Pass arguments without shell interpolation.",
+        },
+      ],
+    }),
+    {
+      provider: "copilot",
+    },
+  );
+
+  assert.equal(parsed.findings.length, 1);
+  assert.equal(
+    parsed.findings[0]?.file,
+    "scripts/demo_command_injection.py",
+  );
+  assert.deepEqual(parsed.normalizationNotes, [
+    "Normalized whitespace around AI review JSON property names.",
+  ]);
+  assert.equal(parsed.summary.blockingCount, 1);
+});
+
+test("repairs whitespace-corrupted review property names after unwrapping provider output", () => {
+  const parsed = parseAiReviewOutput(
+    JSON.stringify({
+      review: {
+        schema_version: 1,
+        findings: [
+          {
+            category: "security",
+            confidence: "high",
+            severity: "blocking",
+            "\n file": "scripts/demo_command_injection.py",
+            line: "7",
+            message: "Shell command construction uses user-controlled input.",
+            suggestion: "Pass arguments without shell interpolation.",
+          },
+        ],
+      },
+    }),
+    {
+      provider: "copilot",
+    },
+  );
+
+  assert.equal(parsed.findings.length, 1);
+  assert.equal(
+    parsed.findings[0]?.file,
+    "scripts/demo_command_injection.py",
+  );
+  assert.deepEqual(parsed.normalizationNotes, [
+    'Normalized provider output from a top-level "review" wrapper.',
+    "Normalized whitespace around AI review JSON property names.",
+  ]);
+});
+
+test("rejects ambiguous whitespace-corrupted review property names", () => {
+  const error = parseInvalidAiReviewOutput(
+    JSON.stringify({
+      schema_version: 1,
+      findings: [
+        {
+          category: "security",
+          confidence: "high",
+          severity: "blocking",
+          file: "src/safe.ts",
+          "\n file": "src/ambiguous.ts",
+          line: "7",
+          message: "Shell command construction uses user-controlled input.",
+          suggestion: "Pass arguments without shell interpolation.",
+        },
+      ],
+    }),
+  );
+
+  assert.match(error.diagnostics.join("\n"), /both resolve to "file"/);
+});
+
+test("rejects unsupported review fields after key repair boundaries", () => {
+  const misspelledKeyError = parseInvalidAiReviewOutput(
+    JSON.stringify({
+      schema_version: 1,
+      findings: [
+        {
+          category: "security",
+          confidence: "high",
+          severity: "blocking",
+          " file_name ": "src/unsafe.ts",
+          line: "7",
+          message: "Shell command construction uses user-controlled input.",
+          suggestion: "Pass arguments without shell interpolation.",
+        },
+      ],
+    }),
+  );
+  const misspelledDiagnostics = misspelledKeyError.diagnostics.join("\n");
+
+  assert.match(misspelledDiagnostics, /missing required property "file"/);
+  assert.match(misspelledDiagnostics, /unsupported property " file_name "/);
+
+  const nestedExtraError = parseInvalidAiReviewOutput(
+    JSON.stringify({
+      schema_version: 1,
+      findings: [
+        {
+          category: "security",
+          confidence: "high",
+          severity: "blocking",
+          file: "src/unsafe.ts",
+          line: "7",
+          message: "Shell command construction uses user-controlled input.",
+          metadata: {
+            "\n file": "src/nested.ts",
+          },
+          suggestion: "Pass arguments without shell interpolation.",
+        },
+      ],
+    }),
+  );
+
+  assert.match(
+    nestedExtraError.diagnostics.join("\n"),
+    /unsupported property "metadata"/,
+  );
 });
 
 test("builds a shared AI review payload with diff and full-file context", async () => {
@@ -571,6 +708,54 @@ test("runs the Copilot adapter when the provider wraps JSON in a list marker", a
     assert.deepEqual(result.normalizationNotes, [
       "Stripped a leading list marker before the review JSON.",
       "Escaped raw control characters inside JSON strings.",
+    ]);
+    assert.equal(result.summary.blockingCount, 1);
+    assert.equal(result.summary.verdict, "BLOCK");
+  });
+});
+
+test("runs the Copilot adapter when the provider emits a whitespace-corrupted finding key", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        '{"schema_version":1,"findings":[{"category":"security","confidence":"high","severity":"blocking","',
+        '  file":"scripts/demo_command_injection.py","line":"7","message":"Shell command construction uses user-controlled input.","suggestion":"Pass arguments without shell interpolation."}]}',
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Copilot review result, got ${result.kind}.`);
+    }
+
+    assert.equal(result.findings.length, 1);
+    assert.equal(
+      result.findings[0]?.file,
+      "scripts/demo_command_injection.py",
+    );
+    assert.deepEqual(result.normalizationNotes, [
+      "Escaped raw control characters inside JSON strings.",
+      "Normalized whitespace around AI review JSON property names.",
     ]);
     assert.equal(result.summary.blockingCount, 1);
     assert.equal(result.summary.verdict, "BLOCK");
@@ -982,6 +1167,19 @@ function captureOutput(): {
       return output;
     },
   };
+}
+
+function parseInvalidAiReviewOutput(rawOutput: string): AiReviewOutputError {
+  try {
+    parseAiReviewOutput(rawOutput, {
+      provider: "copilot",
+    });
+  } catch (error) {
+    assert.ok(error instanceof AiReviewOutputError);
+    return error;
+  }
+
+  assert.fail("Expected AI review output parsing to fail.");
 }
 
 function minimalReviewPayload(
