@@ -1,5 +1,6 @@
 import type { PushgateConfig } from "../config/index.js";
 import { countBuiltInPolicies } from "../runner/policies.js";
+import { countPluginChecks } from "../runner/plugins.js";
 import type { SkipControlState } from "../skip-controls.js";
 
 export type LocalAiSkipReason = "mode-off" | "skip-control";
@@ -17,7 +18,9 @@ export function buildPrePushRunPlan(
   skipControls: Pick<SkipControlState, "skipAiCheck">,
 ): PrePushRunPlan {
   const deterministicCheckCount =
-    config.tools.length + countBuiltInPolicies(config.policies);
+    config.tools.length +
+    countBuiltInPolicies(config.policies) +
+    countPluginChecks(config.plugins);
   const runDeterministic = deterministicCheckCount > 0;
   const localAiSkipReason = getLocalAiSkipReason(config, skipControls);
   const runLocalAi = localAiSkipReason === null;

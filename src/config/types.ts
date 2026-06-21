@@ -60,6 +60,41 @@ export interface BuiltInPoliciesConfig {
   forbidden_paths?: ForbiddenPathsPolicyConfig;
 }
 
+/** First-class external plugin adapters supported by the deterministic runner. */
+export interface PluginsConfig {
+  gitleaks?: GitleaksPluginConfig;
+}
+
+/** Gitleaks secret-scanner plugin configuration. */
+export interface GitleaksPluginConfig {
+  /** Whether the configured plugin should run. */
+  enabled: boolean;
+  /** Executable name or path used to invoke Gitleaks. */
+  command: string;
+  /** Maximum plugin runtime before Pushgate treats the scan as timed out. */
+  timeout_seconds: number;
+  /** Whether a leak or scanner failure blocks the push or only warns locally. */
+  mode: ToolMode;
+  /** Whether a blocking Gitleaks failure stops later deterministic checks. */
+  fail_fast: boolean;
+  /** Optional path to a Gitleaks TOML config file. */
+  config_path?: string;
+  /** Optional path to a Gitleaks JSON baseline report. */
+  baseline_path?: string;
+  /** Optional path to a .gitleaksignore file or containing folder. */
+  gitleaks_ignore_path?: string;
+  /** Redact detected secret values in Gitleaks output and reports. */
+  redact: boolean;
+  /** Optional Gitleaks decode recursion depth. */
+  max_decode_depth?: number;
+  /** Optional Gitleaks archive recursion depth. */
+  max_archive_depth?: number;
+  /** Optional file-size cap forwarded to Gitleaks. */
+  max_target_megabytes?: number;
+  /** Optional rule IDs to enable exclusively. */
+  enable_rules?: string[];
+}
+
 /** Provider-specific config extension block preserved for provider adapters. */
 export type ProviderConfig = Record<string, unknown>;
 
@@ -86,6 +121,7 @@ export interface PushgateConfig {
   review: ReviewConfig;
   tools: ToolConfig[];
   policies: BuiltInPoliciesConfig;
+  plugins: PluginsConfig;
   ai: AiConfig;
   ignore_paths: string[];
 }
@@ -135,6 +171,28 @@ export interface RawBuiltInPoliciesConfig {
   forbidden_paths?: RawForbiddenPathsPolicyConfig;
 }
 
+/** Raw Gitleaks plugin shape before defaults are normalized. */
+export interface RawGitleaksPluginConfig {
+  enabled?: boolean;
+  command?: string;
+  timeout_seconds?: number;
+  mode?: ToolMode;
+  fail_fast?: boolean;
+  config_path?: string;
+  baseline_path?: string;
+  gitleaks_ignore_path?: string;
+  redact?: boolean;
+  max_decode_depth?: number;
+  max_archive_depth?: number;
+  max_target_megabytes?: number;
+  enable_rules?: string[];
+}
+
+/** Raw plugin config before optional plugin defaults are normalized. */
+export interface RawPluginsConfig {
+  gitleaks?: RawGitleaksPluginConfig;
+}
+
 /** Raw AI shape before default mode and provider diagnostics are applied. */
 export interface RawAiConfig {
   mode?: AiMode;
@@ -156,6 +214,7 @@ export interface RawPushgateConfig {
   review?: RawReviewConfig;
   tools?: RawToolConfig[];
   policies?: RawBuiltInPoliciesConfig;
+  plugins?: RawPluginsConfig;
   ai?: RawAiConfig;
   ignore_paths?: string[];
 }

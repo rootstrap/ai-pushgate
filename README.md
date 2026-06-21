@@ -16,7 +16,7 @@ git push
                ▼
 ┌─────────────────────────────────────┐
 │  Run configured deterministic checks │
-│  (built-in policies, tools)          │
+│  (built-in policies, plugins, tools) │
 │  ✗ blocking failure → push blocked  │
 │  ! warning failure → push proceeds  │
 └──────────────┬──────────────────────┘
@@ -101,6 +101,7 @@ environments.
 | Ruby    | `ruby`, `rails` templates |
 | Python  | Python tools (manual config) |
 | Go      | Go tools (manual config) |
+| Gitleaks | `plugins.gitleaks` secret scanning |
 
 ## Configuration
 
@@ -159,6 +160,20 @@ policies:
       - "*.pem"
     mode: blocking       # block pushes that add or modify matching paths
 
+# Optional plugin adapters. Gitleaks scans the branch commit range before
+# push, catching secrets that were introduced anywhere in the commits being
+# pushed.
+plugins:
+  gitleaks:
+    enabled: true
+    command: gitleaks
+    timeout_seconds: 60
+    mode: blocking
+    fail_fast: true
+    config_path: .gitleaks.toml          # optional
+    baseline_path: .gitleaks/baseline.json # optional
+    gitleaks_ignore_path: .gitleaksignore  # optional
+
 # Gitignore-like repo-relative paths excluded from tool checks and AI review
 ignore_paths:
   - "*.lock"
@@ -166,7 +181,7 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. Pushgate currently supports `claude` and `copilot` provider IDs. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. `plugins.gitleaks` delegates secret scanning to the Gitleaks CLI using `gitleaks git --log-opts <merge-base>..HEAD` plus a temporary JSON report, while preserving Gitleaks' own config, baseline, and ignore-file mechanisms. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. Pushgate currently supports `claude` and `copilot` provider IDs. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. Providers that support native JSON Schema, strict tool calls, or JSON mode can use stronger generation-time constraints in future adapters; current Claude and Copilot CLI adapters are text fallback providers, so Pushgate prompts them for the schema, safely repairs a small set of low-risk formatting damage, and rejects output that still does not match the contract.
 

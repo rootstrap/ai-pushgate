@@ -7913,6 +7913,7 @@ function normalizeConfig(rawConfig) {
       fail_fast: tool.fail_fast ?? true
     })),
     policies: normalizePolicies(rawConfig),
+    plugins: normalizePlugins(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
       max_changed_lines: ai.max_changed_lines ?? 500,
@@ -7922,6 +7923,28 @@ function normalizeConfig(rawConfig) {
       providers: cloneValue(ai.providers ?? {})
     },
     ignore_paths: [...rawConfig.ignore_paths ?? []]
+  };
+}
+function normalizePlugins(rawConfig) {
+  const plugins = rawConfig.plugins ?? {};
+  return {
+    ...plugins.gitleaks ? {
+      gitleaks: {
+        enabled: plugins.gitleaks.enabled ?? true,
+        command: plugins.gitleaks.command ?? "gitleaks",
+        timeout_seconds: plugins.gitleaks.timeout_seconds ?? 60,
+        mode: plugins.gitleaks.mode ?? "blocking",
+        fail_fast: plugins.gitleaks.fail_fast ?? true,
+        ...plugins.gitleaks.config_path ? { config_path: plugins.gitleaks.config_path } : {},
+        ...plugins.gitleaks.baseline_path ? { baseline_path: plugins.gitleaks.baseline_path } : {},
+        ...plugins.gitleaks.gitleaks_ignore_path ? { gitleaks_ignore_path: plugins.gitleaks.gitleaks_ignore_path } : {},
+        redact: plugins.gitleaks.redact ?? true,
+        ...plugins.gitleaks.max_decode_depth !== void 0 ? { max_decode_depth: plugins.gitleaks.max_decode_depth } : {},
+        ...plugins.gitleaks.max_archive_depth !== void 0 ? { max_archive_depth: plugins.gitleaks.max_archive_depth } : {},
+        ...plugins.gitleaks.max_target_megabytes !== void 0 ? { max_target_megabytes: plugins.gitleaks.max_target_megabytes } : {},
+        ...plugins.gitleaks.enable_rules ? { enable_rules: [...plugins.gitleaks.enable_rules] } : {}
+      }
+    } : {}
   };
 }
 function normalizePolicies(rawConfig) {
@@ -8195,8 +8218,340 @@ function validate11(data, { instancePath = "", parentData, parentDataProperty, r
   validate11.errors = vErrors;
   return errors === 0;
 }
-var schema19 = { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string", "enum": ["blocking", "advisory", "off"], "default": "blocking" }, "max_changed_lines": { "description": "Maximum total added plus deleted text lines before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 500 }, "max_prompt_tokens": { "description": "Approximate rendered prompt token budget before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 12e3 }, "timeout_seconds": { "description": "Maximum local AI provider runtime before the provider is treated as timed out.", "type": "integer", "minimum": 1, "default": 120 }, "provider": { "type": "string", "minLength": 1 }, "providers": { "type": "object", "default": {}, "propertyNames": { "minLength": 1 }, "additionalProperties": { "$ref": "#/definitions/providerConfig" } } } };
+var schema20 = { "description": "Gitleaks secret-scanner plugin adapter.", "type": "object", "additionalProperties": false, "properties": { "enabled": { "description": "Whether the configured plugin should run.", "type": "boolean", "default": true }, "command": { "description": "Executable name or path used to invoke Gitleaks.", "type": "string", "minLength": 1, "default": "gitleaks" }, "timeout_seconds": { "description": "Maximum plugin runtime before Pushgate treats the scan as timed out.", "type": "integer", "minimum": 1, "default": 60 }, "mode": { "$ref": "#/definitions/policyMode" }, "fail_fast": { "description": "Whether a blocking Gitleaks failure stops later deterministic checks.", "type": "boolean", "default": true }, "config_path": { "description": "Optional path to a Gitleaks TOML config file.", "type": "string", "minLength": 1 }, "baseline_path": { "description": "Optional path to a Gitleaks JSON baseline report.", "type": "string", "minLength": 1 }, "gitleaks_ignore_path": { "description": "Optional path to a .gitleaksignore file or containing folder.", "type": "string", "minLength": 1 }, "redact": { "description": "Redact detected secret values in Gitleaks output and reports.", "type": "boolean", "default": true }, "max_decode_depth": { "description": "Optional Gitleaks decode recursion depth.", "type": "integer", "minimum": 0 }, "max_archive_depth": { "description": "Optional Gitleaks archive recursion depth.", "type": "integer", "minimum": 0 }, "max_target_megabytes": { "description": "Optional file-size cap forwarded to Gitleaks.", "type": "integer", "minimum": 1 }, "enable_rules": { "description": "Optional rule IDs to enable exclusively.", "type": "array", "items": { "type": "string", "minLength": 1 } } } };
+var func7 = Object.prototype.hasOwnProperty;
+function validate18(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
+  let vErrors = null;
+  let errors = 0;
+  if (data && typeof data == "object" && !Array.isArray(data)) {
+    for (const key0 in data) {
+      if (!func7.call(schema20.properties, key0)) {
+        const err0 = { instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" };
+        if (vErrors === null) {
+          vErrors = [err0];
+        } else {
+          vErrors.push(err0);
+        }
+        errors++;
+      }
+    }
+    if (data.enabled !== void 0) {
+      if (typeof data.enabled !== "boolean") {
+        const err1 = { instancePath: instancePath + "/enabled", schemaPath: "#/properties/enabled/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" };
+        if (vErrors === null) {
+          vErrors = [err1];
+        } else {
+          vErrors.push(err1);
+        }
+        errors++;
+      }
+    }
+    if (data.command !== void 0) {
+      let data1 = data.command;
+      if (typeof data1 === "string") {
+        if (func2(data1) < 1) {
+          const err2 = { instancePath: instancePath + "/command", schemaPath: "#/properties/command/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+          if (vErrors === null) {
+            vErrors = [err2];
+          } else {
+            vErrors.push(err2);
+          }
+          errors++;
+        }
+      } else {
+        const err3 = { instancePath: instancePath + "/command", schemaPath: "#/properties/command/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+        if (vErrors === null) {
+          vErrors = [err3];
+        } else {
+          vErrors.push(err3);
+        }
+        errors++;
+      }
+    }
+    if (data.timeout_seconds !== void 0) {
+      let data2 = data.timeout_seconds;
+      if (!(typeof data2 == "number" && (!(data2 % 1) && !isNaN(data2)) && isFinite(data2))) {
+        const err4 = { instancePath: instancePath + "/timeout_seconds", schemaPath: "#/properties/timeout_seconds/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+        if (vErrors === null) {
+          vErrors = [err4];
+        } else {
+          vErrors.push(err4);
+        }
+        errors++;
+      }
+      if (typeof data2 == "number" && isFinite(data2)) {
+        if (data2 < 1 || isNaN(data2)) {
+          const err5 = { instancePath: instancePath + "/timeout_seconds", schemaPath: "#/properties/timeout_seconds/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
+          if (vErrors === null) {
+            vErrors = [err5];
+          } else {
+            vErrors.push(err5);
+          }
+          errors++;
+        }
+      }
+    }
+    if (data.mode !== void 0) {
+      let data3 = data.mode;
+      if (typeof data3 !== "string") {
+        const err6 = { instancePath: instancePath + "/mode", schemaPath: "#/definitions/policyMode/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+        if (vErrors === null) {
+          vErrors = [err6];
+        } else {
+          vErrors.push(err6);
+        }
+        errors++;
+      }
+      if (!(data3 === "blocking" || data3 === "warning")) {
+        const err7 = { instancePath: instancePath + "/mode", schemaPath: "#/definitions/policyMode/enum", keyword: "enum", params: { allowedValues: schema16.enum }, message: "must be equal to one of the allowed values" };
+        if (vErrors === null) {
+          vErrors = [err7];
+        } else {
+          vErrors.push(err7);
+        }
+        errors++;
+      }
+    }
+    if (data.fail_fast !== void 0) {
+      if (typeof data.fail_fast !== "boolean") {
+        const err8 = { instancePath: instancePath + "/fail_fast", schemaPath: "#/properties/fail_fast/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" };
+        if (vErrors === null) {
+          vErrors = [err8];
+        } else {
+          vErrors.push(err8);
+        }
+        errors++;
+      }
+    }
+    if (data.config_path !== void 0) {
+      let data5 = data.config_path;
+      if (typeof data5 === "string") {
+        if (func2(data5) < 1) {
+          const err9 = { instancePath: instancePath + "/config_path", schemaPath: "#/properties/config_path/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+          if (vErrors === null) {
+            vErrors = [err9];
+          } else {
+            vErrors.push(err9);
+          }
+          errors++;
+        }
+      } else {
+        const err10 = { instancePath: instancePath + "/config_path", schemaPath: "#/properties/config_path/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+        if (vErrors === null) {
+          vErrors = [err10];
+        } else {
+          vErrors.push(err10);
+        }
+        errors++;
+      }
+    }
+    if (data.baseline_path !== void 0) {
+      let data6 = data.baseline_path;
+      if (typeof data6 === "string") {
+        if (func2(data6) < 1) {
+          const err11 = { instancePath: instancePath + "/baseline_path", schemaPath: "#/properties/baseline_path/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+          if (vErrors === null) {
+            vErrors = [err11];
+          } else {
+            vErrors.push(err11);
+          }
+          errors++;
+        }
+      } else {
+        const err12 = { instancePath: instancePath + "/baseline_path", schemaPath: "#/properties/baseline_path/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+        if (vErrors === null) {
+          vErrors = [err12];
+        } else {
+          vErrors.push(err12);
+        }
+        errors++;
+      }
+    }
+    if (data.gitleaks_ignore_path !== void 0) {
+      let data7 = data.gitleaks_ignore_path;
+      if (typeof data7 === "string") {
+        if (func2(data7) < 1) {
+          const err13 = { instancePath: instancePath + "/gitleaks_ignore_path", schemaPath: "#/properties/gitleaks_ignore_path/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+          if (vErrors === null) {
+            vErrors = [err13];
+          } else {
+            vErrors.push(err13);
+          }
+          errors++;
+        }
+      } else {
+        const err14 = { instancePath: instancePath + "/gitleaks_ignore_path", schemaPath: "#/properties/gitleaks_ignore_path/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+        if (vErrors === null) {
+          vErrors = [err14];
+        } else {
+          vErrors.push(err14);
+        }
+        errors++;
+      }
+    }
+    if (data.redact !== void 0) {
+      if (typeof data.redact !== "boolean") {
+        const err15 = { instancePath: instancePath + "/redact", schemaPath: "#/properties/redact/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" };
+        if (vErrors === null) {
+          vErrors = [err15];
+        } else {
+          vErrors.push(err15);
+        }
+        errors++;
+      }
+    }
+    if (data.max_decode_depth !== void 0) {
+      let data9 = data.max_decode_depth;
+      if (!(typeof data9 == "number" && (!(data9 % 1) && !isNaN(data9)) && isFinite(data9))) {
+        const err16 = { instancePath: instancePath + "/max_decode_depth", schemaPath: "#/properties/max_decode_depth/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+        if (vErrors === null) {
+          vErrors = [err16];
+        } else {
+          vErrors.push(err16);
+        }
+        errors++;
+      }
+      if (typeof data9 == "number" && isFinite(data9)) {
+        if (data9 < 0 || isNaN(data9)) {
+          const err17 = { instancePath: instancePath + "/max_decode_depth", schemaPath: "#/properties/max_decode_depth/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" };
+          if (vErrors === null) {
+            vErrors = [err17];
+          } else {
+            vErrors.push(err17);
+          }
+          errors++;
+        }
+      }
+    }
+    if (data.max_archive_depth !== void 0) {
+      let data10 = data.max_archive_depth;
+      if (!(typeof data10 == "number" && (!(data10 % 1) && !isNaN(data10)) && isFinite(data10))) {
+        const err18 = { instancePath: instancePath + "/max_archive_depth", schemaPath: "#/properties/max_archive_depth/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+        if (vErrors === null) {
+          vErrors = [err18];
+        } else {
+          vErrors.push(err18);
+        }
+        errors++;
+      }
+      if (typeof data10 == "number" && isFinite(data10)) {
+        if (data10 < 0 || isNaN(data10)) {
+          const err19 = { instancePath: instancePath + "/max_archive_depth", schemaPath: "#/properties/max_archive_depth/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" };
+          if (vErrors === null) {
+            vErrors = [err19];
+          } else {
+            vErrors.push(err19);
+          }
+          errors++;
+        }
+      }
+    }
+    if (data.max_target_megabytes !== void 0) {
+      let data11 = data.max_target_megabytes;
+      if (!(typeof data11 == "number" && (!(data11 % 1) && !isNaN(data11)) && isFinite(data11))) {
+        const err20 = { instancePath: instancePath + "/max_target_megabytes", schemaPath: "#/properties/max_target_megabytes/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+        if (vErrors === null) {
+          vErrors = [err20];
+        } else {
+          vErrors.push(err20);
+        }
+        errors++;
+      }
+      if (typeof data11 == "number" && isFinite(data11)) {
+        if (data11 < 1 || isNaN(data11)) {
+          const err21 = { instancePath: instancePath + "/max_target_megabytes", schemaPath: "#/properties/max_target_megabytes/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
+          if (vErrors === null) {
+            vErrors = [err21];
+          } else {
+            vErrors.push(err21);
+          }
+          errors++;
+        }
+      }
+    }
+    if (data.enable_rules !== void 0) {
+      let data12 = data.enable_rules;
+      if (Array.isArray(data12)) {
+        const len0 = data12.length;
+        for (let i0 = 0; i0 < len0; i0++) {
+          let data13 = data12[i0];
+          if (typeof data13 === "string") {
+            if (func2(data13) < 1) {
+              const err22 = { instancePath: instancePath + "/enable_rules/" + i0, schemaPath: "#/properties/enable_rules/items/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+              if (vErrors === null) {
+                vErrors = [err22];
+              } else {
+                vErrors.push(err22);
+              }
+              errors++;
+            }
+          } else {
+            const err23 = { instancePath: instancePath + "/enable_rules/" + i0, schemaPath: "#/properties/enable_rules/items/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+            if (vErrors === null) {
+              vErrors = [err23];
+            } else {
+              vErrors.push(err23);
+            }
+            errors++;
+          }
+        }
+      } else {
+        const err24 = { instancePath: instancePath + "/enable_rules", schemaPath: "#/properties/enable_rules/type", keyword: "type", params: { type: "array" }, message: "must be array" };
+        if (vErrors === null) {
+          vErrors = [err24];
+        } else {
+          vErrors.push(err24);
+        }
+        errors++;
+      }
+    }
+  } else {
+    const err25 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+    if (vErrors === null) {
+      vErrors = [err25];
+    } else {
+      vErrors.push(err25);
+    }
+    errors++;
+  }
+  validate18.errors = vErrors;
+  return errors === 0;
+}
 function validate17(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
+  let vErrors = null;
+  let errors = 0;
+  if (data && typeof data == "object" && !Array.isArray(data)) {
+    for (const key0 in data) {
+      if (!(key0 === "gitleaks")) {
+        const err0 = { instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" };
+        if (vErrors === null) {
+          vErrors = [err0];
+        } else {
+          vErrors.push(err0);
+        }
+        errors++;
+      }
+    }
+    if (data.gitleaks !== void 0) {
+      if (!validate18(data.gitleaks, { instancePath: instancePath + "/gitleaks", parentData: data, parentDataProperty: "gitleaks", rootData })) {
+        vErrors = vErrors === null ? validate18.errors : vErrors.concat(validate18.errors);
+        errors = vErrors.length;
+      }
+    }
+  } else {
+    const err1 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+    if (vErrors === null) {
+      vErrors = [err1];
+    } else {
+      vErrors.push(err1);
+    }
+    errors++;
+  }
+  validate17.errors = vErrors;
+  return errors === 0;
+}
+var schema22 = { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string", "enum": ["blocking", "advisory", "off"], "default": "blocking" }, "max_changed_lines": { "description": "Maximum total added plus deleted text lines before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 500 }, "max_prompt_tokens": { "description": "Approximate rendered prompt token budget before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 12e3 }, "timeout_seconds": { "description": "Maximum local AI provider runtime before the provider is treated as timed out.", "type": "integer", "minimum": 1, "default": 120 }, "provider": { "type": "string", "minLength": 1 }, "providers": { "type": "object", "default": {}, "propertyNames": { "minLength": 1 }, "additionalProperties": { "$ref": "#/definitions/providerConfig" } } } };
+function validate21(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
   let vErrors = null;
   let errors = 0;
   if (data && typeof data == "object" && !Array.isArray(data)) {
@@ -8223,7 +8578,7 @@ function validate17(data, { instancePath = "", parentData, parentDataProperty, r
         errors++;
       }
       if (!(data0 === "blocking" || data0 === "advisory" || data0 === "off")) {
-        const err2 = { instancePath: instancePath + "/mode", schemaPath: "#/properties/mode/enum", keyword: "enum", params: { allowedValues: schema19.properties.mode.enum }, message: "must be equal to one of the allowed values" };
+        const err2 = { instancePath: instancePath + "/mode", schemaPath: "#/properties/mode/enum", keyword: "enum", params: { allowedValues: schema22.properties.mode.enum }, message: "must be equal to one of the allowed values" };
         if (vErrors === null) {
           vErrors = [err2];
         } else {
@@ -8382,7 +8737,7 @@ function validate17(data, { instancePath = "", parentData, parentDataProperty, r
     }
     errors++;
   }
-  validate17.errors = vErrors;
+  validate21.errors = vErrors;
   return errors === 0;
 }
 function validate10(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
@@ -8400,7 +8755,7 @@ function validate10(data, { instancePath = "", parentData, parentDataProperty, r
       errors++;
     }
     for (const key0 in data) {
-      if (!(key0 === "version" || key0 === "review" || key0 === "tools" || key0 === "policies" || key0 === "ai" || key0 === "ignore_paths")) {
+      if (!(key0 === "version" || key0 === "review" || key0 === "tools" || key0 === "policies" || key0 === "plugins" || key0 === "ai" || key0 === "ignore_paths")) {
         const err1 = { instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" };
         if (vErrors === null) {
           vErrors = [err1];
@@ -8754,20 +9109,26 @@ function validate10(data, { instancePath = "", parentData, parentDataProperty, r
         errors = vErrors.length;
       }
     }
-    if (data.ai !== void 0) {
-      if (!validate17(data.ai, { instancePath: instancePath + "/ai", parentData: data, parentDataProperty: "ai", rootData })) {
+    if (data.plugins !== void 0) {
+      if (!validate17(data.plugins, { instancePath: instancePath + "/plugins", parentData: data, parentDataProperty: "plugins", rootData })) {
         vErrors = vErrors === null ? validate17.errors : vErrors.concat(validate17.errors);
         errors = vErrors.length;
       }
     }
+    if (data.ai !== void 0) {
+      if (!validate21(data.ai, { instancePath: instancePath + "/ai", parentData: data, parentDataProperty: "ai", rootData })) {
+        vErrors = vErrors === null ? validate21.errors : vErrors.concat(validate21.errors);
+        errors = vErrors.length;
+      }
+    }
     if (data.ignore_paths !== void 0) {
-      let data18 = data.ignore_paths;
-      if (Array.isArray(data18)) {
-        const len3 = data18.length;
+      let data19 = data.ignore_paths;
+      if (Array.isArray(data19)) {
+        const len3 = data19.length;
         for (let i3 = 0; i3 < len3; i3++) {
-          let data19 = data18[i3];
-          if (typeof data19 === "string") {
-            if (func2(data19) < 1) {
+          let data20 = data19[i3];
+          if (typeof data20 === "string") {
+            if (func2(data20) < 1) {
               const err32 = { instancePath: instancePath + "/ignore_paths/" + i3, schemaPath: "#/properties/ignore_paths/items/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
               if (vErrors === null) {
                 vErrors = [err32];
@@ -25773,6 +26134,175 @@ function violationResult(mode, name, detail) {
   };
 }
 
+// src/runner/plugins/gitleaks.ts
+import { mkdtemp, readFile as readFile3, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join as join3 } from "node:path";
+var OUTPUT_CAPTURE_LIMIT = 64 * 1024;
+var OUTPUT_TAIL_LIMIT = 4 * 1024;
+var TIMEOUT_KILL_GRACE_MS = 1e3;
+var FINDING_DETAIL_LIMIT = 5;
+async function runGitleaksPlugin(plugin, changedFileResolution, repoRoot, env) {
+  const tempDir = await mkdtemp(join3(tmpdir(), "pushgate-gitleaks-"));
+  const reportPath = join3(tempDir, "report.json");
+  try {
+    const commandResult = await runTimedCommand({
+      args: buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath),
+      command: plugin.command,
+      cwd: repoRoot,
+      env,
+      killGraceMs: TIMEOUT_KILL_GRACE_MS,
+      outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
+      outputTailLimit: OUTPUT_TAIL_LIMIT,
+      timeoutSeconds: plugin.timeout_seconds
+    });
+    if (commandResult.kind === "spawn-error") {
+      return {
+        passed: false,
+        detail: `failed to start Gitleaks: ${commandResult.error.message}`,
+        outputTail: commandResult.outputTail
+      };
+    }
+    if (commandResult.kind === "timeout") {
+      return {
+        passed: false,
+        detail: `Gitleaks timed out after ${String(plugin.timeout_seconds)}s`,
+        outputTail: commandResult.outputTail
+      };
+    }
+    const report = await readGitleaksReport(reportPath);
+    if (report.findings.length > 0) {
+      return {
+        passed: false,
+        detail: formatFindingDetail(report.findings),
+        outputTail: commandResult.outputTail
+      };
+    }
+    if (commandResult.code === 0) {
+      return { passed: true };
+    }
+    return {
+      passed: false,
+      detail: formatCommandFailure(commandResult, report),
+      outputTail: commandResult.outputTail
+    };
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+function buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath) {
+  const args = [
+    "git",
+    "--no-banner",
+    "--no-color",
+    "--redact",
+    "--report-format",
+    "json",
+    "--report-path",
+    reportPath,
+    "--exit-code",
+    "1",
+    "--timeout",
+    String(plugin.timeout_seconds),
+    "--log-opts",
+    `${changedFileResolution.diffBase}..HEAD`
+  ];
+  if (!plugin.redact) {
+    args.splice(args.indexOf("--redact"), 1);
+  }
+  if (plugin.config_path) {
+    args.push("--config", plugin.config_path);
+  }
+  if (plugin.baseline_path) {
+    args.push("--baseline-path", plugin.baseline_path);
+  }
+  if (plugin.gitleaks_ignore_path) {
+    args.push("--gitleaks-ignore-path", plugin.gitleaks_ignore_path);
+  }
+  if (plugin.max_decode_depth !== void 0) {
+    args.push("--max-decode-depth", String(plugin.max_decode_depth));
+  }
+  if (plugin.max_archive_depth !== void 0) {
+    args.push("--max-archive-depth", String(plugin.max_archive_depth));
+  }
+  if (plugin.max_target_megabytes !== void 0) {
+    args.push("--max-target-megabytes", String(plugin.max_target_megabytes));
+  }
+  for (const ruleId of plugin.enable_rules ?? []) {
+    args.push("--enable-rule", ruleId);
+  }
+  args.push(repoRoot);
+  return args;
+}
+async function readGitleaksReport(reportPath) {
+  let source;
+  try {
+    source = await readFile3(reportPath, "utf8");
+  } catch (error51) {
+    if (isMissingFileError(error51)) {
+      return { findings: [] };
+    }
+    throw error51;
+  }
+  if (source.trim() === "") {
+    return { findings: [] };
+  }
+  try {
+    const parsed = JSON.parse(source);
+    if (!Array.isArray(parsed)) {
+      return {
+        findings: [],
+        parseError: "Gitleaks JSON report was not an array"
+      };
+    }
+    return {
+      findings: parsed.filter(isGitleaksFinding)
+    };
+  } catch (error51) {
+    return {
+      findings: [],
+      parseError: error51 instanceof Error ? `could not parse Gitleaks JSON report: ${error51.message}` : "could not parse Gitleaks JSON report"
+    };
+  }
+}
+function isGitleaksFinding(value) {
+  return value !== null && typeof value === "object";
+}
+function isMissingFileError(error51) {
+  return error51 !== null && typeof error51 === "object" && "code" in error51 && error51.code === "ENOENT";
+}
+function formatFindingDetail(findings) {
+  const formatted = findings.slice(0, FINDING_DETAIL_LIMIT).map(formatFinding).join(", ");
+  const remaining = findings.length - FINDING_DETAIL_LIMIT;
+  const suffix = remaining > 0 ? `, ${String(remaining)} more` : "";
+  return [
+    `Gitleaks found ${String(findings.length)} potential secret leak(s):`,
+    `${formatted}${suffix}; rotate exposed credentials before pushing`,
+    "and use a Gitleaks baseline or .gitleaksignore only for verified false positives"
+  ].join(" ");
+}
+function formatFinding(finding) {
+  const path = stringValue(finding.File) ?? "unknown file";
+  const line = numberValue(finding.StartLine) ?? numberValue(finding.Line);
+  const rule = stringValue(finding.RuleID) ?? stringValue(finding.Description) ?? stringValue(finding.Fingerprint) ?? "unknown rule";
+  return `${path}${line === void 0 ? "" : `:${String(line)}`} (${rule})`;
+}
+function formatCommandFailure(commandResult, report) {
+  const exitDetail = commandResult.code === null ? `Gitleaks ended by signal ${commandResult.signal ?? "unknown"}` : `Gitleaks exited with code ${String(commandResult.code)}`;
+  return report.parseError ? `${exitDetail}; ${report.parseError}` : exitDetail;
+}
+function stringValue(value) {
+  return typeof value === "string" && value.length > 0 ? value : void 0;
+}
+function numberValue(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : void 0;
+}
+
+// src/runner/plugins.ts
+function countPluginChecks(plugins) {
+  return Number(Boolean(plugins.gitleaks?.enabled));
+}
+
 // src/runner/summary.ts
 function summarizeDeterministicResults(results) {
   const blockedCount = results.filter((result) => result.status === "blocked").length;
@@ -25808,6 +26338,9 @@ function createDeterministicTranscript(stdout) {
         `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
       );
     },
+    writePluginResult(name, result) {
+      writeRunnableResult(name, result);
+    },
     writeStart(checkCount) {
       writeLine2(
         stdout,
@@ -25827,27 +26360,30 @@ function createDeterministicTranscript(stdout) {
       }
     },
     writeToolResult(tool, result) {
-      if (result.status === "passed") {
-        writeLine2(stdout, `[pushgate] PASS ${tool.name}.`);
-        return;
-      }
-      if (result.status === "skipped") {
-        writeLine2(stdout, `[pushgate] SKIP ${tool.name}: ${result.detail}.`);
-        return;
-      }
-      const label = result.status === "warning" ? "WARN" : "BLOCK";
-      writeLine2(
-        stdout,
-        `[pushgate] ${label} ${tool.name}: ${result.detail ?? "command failed"}.`
-      );
-      if (result.outputTail) {
-        writeLine2(stdout, "[pushgate] Command output:");
-        for (const line of result.outputTail.split("\n")) {
-          writeLine2(stdout, `[pushgate]   ${line}`);
-        }
-      }
+      writeRunnableResult(tool.name, result);
     }
   };
+  function writeRunnableResult(name, result) {
+    if (result.status === "passed") {
+      writeLine2(stdout, `[pushgate] PASS ${name}.`);
+      return;
+    }
+    if (result.status === "skipped") {
+      writeLine2(stdout, `[pushgate] SKIP ${name}: ${result.detail}.`);
+      return;
+    }
+    const label = result.status === "warning" ? "WARN" : "BLOCK";
+    writeLine2(
+      stdout,
+      `[pushgate] ${label} ${name}: ${result.detail ?? "command failed"}.`
+    );
+    if (result.outputTail) {
+      writeLine2(stdout, "[pushgate] Command output:");
+      for (const line of result.outputTail.split("\n")) {
+        writeLine2(stdout, `[pushgate]   ${line}`);
+      }
+    }
+  }
 }
 function writeLine2(stream, line) {
   stream.write(`${line}
@@ -25856,9 +26392,9 @@ function writeLine2(stream, line) {
 
 // src/runner/tool-command.ts
 var CHANGED_FILES_TOKEN = "{changed_files}";
-var OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-var OUTPUT_TAIL_LIMIT = 4 * 1024;
-var TIMEOUT_KILL_GRACE_MS = 1e3;
+var OUTPUT_CAPTURE_LIMIT2 = 64 * 1024;
+var OUTPUT_TAIL_LIMIT2 = 4 * 1024;
+var TIMEOUT_KILL_GRACE_MS2 = 1e3;
 async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
   const command = expandChangedFilesToken(tool.command, changedFilePaths);
   const [executable, ...args] = command;
@@ -25873,9 +26409,9 @@ async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
     command: executable,
     cwd: repoRoot,
     env,
-    killGraceMs: TIMEOUT_KILL_GRACE_MS,
-    outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
-    outputTailLimit: OUTPUT_TAIL_LIMIT,
+    killGraceMs: TIMEOUT_KILL_GRACE_MS2,
+    outputCaptureLimit: OUTPUT_CAPTURE_LIMIT2,
+    outputTailLimit: OUTPUT_TAIL_LIMIT2,
     timeoutSeconds: tool.timeout_seconds
   });
   if (commandResult.kind === "spawn-error") {
@@ -25915,7 +26451,9 @@ async function runDeterministicChecks(config2, changedFiles, options = {}) {
   const results = [];
   const transcript = createDeterministicTranscript(stdout);
   const policyCount = countBuiltInPolicies(config2.policies);
-  const checkCount = policyCount + config2.tools.length;
+  const pluginCount = countPluginChecks(config2.plugins);
+  const checkCount = policyCount + pluginCount + config2.tools.length;
+  let stopAfterBlockingPlugin = false;
   if (checkCount === 0) {
     transcript.writeNoChecks();
     return { exitCode: 0, results };
@@ -25927,6 +26465,43 @@ async function runDeterministicChecks(config2, changedFiles, options = {}) {
   )) {
     results.push(policyResult);
     transcript.writePolicyResult(policyResult);
+  }
+  if (config2.plugins.gitleaks?.enabled) {
+    const plugin = config2.plugins.gitleaks;
+    const name = "plugin:gitleaks";
+    const commandResult = options.changedFileResolution ? await runGitleaksPlugin(
+      plugin,
+      options.changedFileResolution,
+      repoRoot,
+      env
+    ) : {
+      passed: false,
+      detail: "requires resolved Git diff metadata"
+    };
+    if (commandResult.passed) {
+      const result = { name, status: "passed" };
+      results.push(result);
+      transcript.writePluginResult(name, result);
+    } else {
+      const status = plugin.mode === "warning" ? "warning" : "blocked";
+      const result = {
+        name,
+        status,
+        detail: commandResult.detail,
+        outputTail: commandResult.outputTail
+      };
+      results.push(result);
+      transcript.writePluginResult(name, result);
+      if (status === "blocked" && plugin.fail_fast) {
+        transcript.writeFailFast();
+        stopAfterBlockingPlugin = true;
+      }
+    }
+  }
+  if (stopAfterBlockingPlugin) {
+    const resultSummary2 = summarizeDeterministicResults(results);
+    transcript.writeSummary(resultSummary2);
+    return { exitCode: resultSummary2.exitCode, results };
   }
   for (const tool of config2.tools) {
     const selectedPaths = selectToolChangedFilePaths(
@@ -25976,7 +26551,7 @@ async function runDeterministicChecks(config2, changedFiles, options = {}) {
 
 // src/workflows/run-plan.ts
 function buildPrePushRunPlan(config2, skipControls) {
-  const deterministicCheckCount = config2.tools.length + countBuiltInPolicies(config2.policies);
+  const deterministicCheckCount = config2.tools.length + countBuiltInPolicies(config2.policies) + countPluginChecks(config2.plugins);
   const runDeterministic = deterministicCheckCount > 0;
   const localAiSkipReason = getLocalAiSkipReason(config2, skipControls);
   const runLocalAi = localAiSkipReason === null;
@@ -26048,13 +26623,17 @@ async function runDeterministicPhase(config2, runPlan, changedFileResolution, op
   if (!runPlan.runDeterministic) {
     return runDeterministicChecks(config2, [], options);
   }
+  const resolvedChangedFiles = requireChangedFileResolution(
+    changedFileResolution,
+    "deterministic phase"
+  );
   return runDeterministicChecks(
     config2,
-    requireChangedFileResolution(
-      changedFileResolution,
-      "deterministic phase"
-    ).files,
-    options
+    resolvedChangedFiles.files,
+    {
+      ...options,
+      changedFileResolution: resolvedChangedFiles
+    }
   );
 }
 async function runLocalAiPhase(config2, runPlan, changedFileResolution, options) {

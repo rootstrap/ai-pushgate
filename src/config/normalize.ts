@@ -21,6 +21,7 @@ export function normalizeConfig(rawConfig: RawPushgateConfig): PushgateConfig {
       fail_fast: tool.fail_fast ?? true,
     })),
     policies: normalizePolicies(rawConfig),
+    plugins: normalizePlugins(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
       max_changed_lines: ai.max_changed_lines ?? 500,
@@ -30,6 +31,48 @@ export function normalizeConfig(rawConfig: RawPushgateConfig): PushgateConfig {
       providers: cloneValue(ai.providers ?? {}),
     },
     ignore_paths: [...(rawConfig.ignore_paths ?? [])],
+  };
+}
+
+function normalizePlugins(
+  rawConfig: RawPushgateConfig,
+): PushgateConfig["plugins"] {
+  const plugins = rawConfig.plugins ?? {};
+
+  return {
+    ...(plugins.gitleaks
+      ? {
+          gitleaks: {
+            enabled: plugins.gitleaks.enabled ?? true,
+            command: plugins.gitleaks.command ?? "gitleaks",
+            timeout_seconds: plugins.gitleaks.timeout_seconds ?? 60,
+            mode: plugins.gitleaks.mode ?? "blocking",
+            fail_fast: plugins.gitleaks.fail_fast ?? true,
+            ...(plugins.gitleaks.config_path
+              ? { config_path: plugins.gitleaks.config_path }
+              : {}),
+            ...(plugins.gitleaks.baseline_path
+              ? { baseline_path: plugins.gitleaks.baseline_path }
+              : {}),
+            ...(plugins.gitleaks.gitleaks_ignore_path
+              ? { gitleaks_ignore_path: plugins.gitleaks.gitleaks_ignore_path }
+              : {}),
+            redact: plugins.gitleaks.redact ?? true,
+            ...(plugins.gitleaks.max_decode_depth !== undefined
+              ? { max_decode_depth: plugins.gitleaks.max_decode_depth }
+              : {}),
+            ...(plugins.gitleaks.max_archive_depth !== undefined
+              ? { max_archive_depth: plugins.gitleaks.max_archive_depth }
+              : {}),
+            ...(plugins.gitleaks.max_target_megabytes !== undefined
+              ? { max_target_megabytes: plugins.gitleaks.max_target_megabytes }
+              : {}),
+            ...(plugins.gitleaks.enable_rules
+              ? { enable_rules: [...plugins.gitleaks.enable_rules] }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 

@@ -43,6 +43,55 @@ test("plans changed files for configured deterministic tools and policies", () =
   assert.equal(plan.needsChangedFiles, true);
 });
 
+test("plans changed files for enabled deterministic plugins", () => {
+  const plan = buildPrePushRunPlan(
+    baseConfig({
+      plugins: {
+        gitleaks: {
+          command: "gitleaks",
+          enabled: true,
+          fail_fast: true,
+          mode: "blocking",
+          redact: true,
+          timeout_seconds: 60,
+        },
+      },
+    }),
+    { skipAiCheck: false },
+  );
+
+  assert.equal(plan.deterministicCheckCount, 1);
+  assert.equal(plan.runDeterministic, true);
+  assert.equal(plan.runLocalAi, false);
+  assert.equal(plan.needsChangedFiles, true);
+});
+
+test("skips disabled deterministic plugins", () => {
+  const plan = buildPrePushRunPlan(
+    baseConfig({
+      plugins: {
+        gitleaks: {
+          command: "gitleaks",
+          enabled: false,
+          fail_fast: true,
+          mode: "blocking",
+          redact: true,
+          timeout_seconds: 60,
+        },
+      },
+    }),
+    { skipAiCheck: false },
+  );
+
+  assert.deepEqual(plan, {
+    deterministicCheckCount: 0,
+    localAiSkipReason: "mode-off",
+    needsChangedFiles: false,
+    runDeterministic: false,
+    runLocalAi: false,
+  });
+});
+
 test("plans changed files for active local AI without deterministic checks", () => {
   const plan = buildPrePushRunPlan(
     baseConfig({
@@ -98,6 +147,7 @@ function baseConfig(
     },
     ignore_paths: [],
     policies: {},
+    plugins: {},
     review: {
       context_lines: 10,
       max_lines_for_full_file: 300,

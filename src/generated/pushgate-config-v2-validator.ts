@@ -40,7 +40,7 @@ function ucs2length(str) {
   return length;
 }
 
-const schema11 = {"$schema":"http://json-schema.org/draft-07/schema#","$id":"https://github.com/rootstrap/ai-pushgate/schemas/pushgate-config-v2.schema.json","title":"Pushgate v2 config","description":"Versioned project config for .pushgate.yml.","type":"object","additionalProperties":false,"required":["version"],"properties":{"version":{"description":"Pushgate config schema version.","const":2},"review":{"$ref":"#/definitions/review"},"tools":{"description":"Deterministic checks for the later command runner.","type":"array","default":[],"items":{"$ref":"#/definitions/tool"}},"policies":{"$ref":"#/definitions/policies"},"ai":{"$ref":"#/definitions/ai"},"ignore_paths":{"description":"Gitignore-like repo-relative changed-file paths omitted by later Pushgate layers.","type":"array","default":[],"items":{"type":"string","minLength":1}}},"definitions":{"review":{"type":"object","additionalProperties":false,"properties":{"target_branch":{"type":"string","minLength":1,"default":"main"},"context_lines":{"type":"integer","minimum":0,"default":10},"max_lines_for_full_file":{"type":"integer","minimum":1,"default":300}}},"tool":{"type":"object","additionalProperties":false,"required":["name","command"],"properties":{"name":{"type":"string","minLength":1},"command":{"description":"Argv tokens for deterministic command execution.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"extensions":{"type":"array","items":{"type":"string","minLength":1}},"timeout_seconds":{"description":"Maximum runtime before the deterministic command is treated as timed out.","type":"integer","minimum":1,"default":60},"mode":{"description":"Whether command failures block the push or only warn locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"run":{"description":"Whether the command requires matching live changed files or always runs.","type":"string","enum":["changed_files","always"],"default":"changed_files"},"fail_fast":{"description":"Whether a blocking failure stops later deterministic command checks.","type":"boolean","default":true}}},"policies":{"description":"Optional built-in deterministic policy checks.","type":"object","additionalProperties":false,"default":{},"properties":{"diff_size":{"$ref":"#/definitions/diffSizePolicy"},"forbidden_paths":{"$ref":"#/definitions/forbiddenPathsPolicy"}}},"policyMode":{"description":"Whether a built-in policy violation blocks the push or only warns locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"diffSizePolicy":{"type":"object","additionalProperties":false,"required":["max_changed_lines"],"properties":{"max_changed_lines":{"description":"Maximum total added plus deleted text lines allowed in the changed diff.","type":"integer","minimum":1},"mode":{"$ref":"#/definitions/policyMode"}}},"forbiddenPathsPolicy":{"type":"object","additionalProperties":false,"required":["patterns"],"properties":{"patterns":{"description":"Gitignore-like repo-relative path patterns that must not be pushed.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"mode":{"$ref":"#/definitions/policyMode"}}},"ai":{"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review is skipped.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}},"providerConfig":{"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true}}};
+const schema11 = {"$schema":"http://json-schema.org/draft-07/schema#","$id":"https://github.com/rootstrap/ai-pushgate/schemas/pushgate-config-v2.schema.json","title":"Pushgate v2 config","description":"Versioned project config for .pushgate.yml.","type":"object","additionalProperties":false,"required":["version"],"properties":{"version":{"description":"Pushgate config schema version.","const":2},"review":{"$ref":"#/definitions/review"},"tools":{"description":"Deterministic checks for the later command runner.","type":"array","default":[],"items":{"$ref":"#/definitions/tool"}},"policies":{"$ref":"#/definitions/policies"},"plugins":{"$ref":"#/definitions/plugins"},"ai":{"$ref":"#/definitions/ai"},"ignore_paths":{"description":"Gitignore-like repo-relative changed-file paths omitted by later Pushgate layers.","type":"array","default":[],"items":{"type":"string","minLength":1}}},"definitions":{"review":{"type":"object","additionalProperties":false,"properties":{"target_branch":{"type":"string","minLength":1,"default":"main"},"context_lines":{"type":"integer","minimum":0,"default":10},"max_lines_for_full_file":{"type":"integer","minimum":1,"default":300}}},"tool":{"type":"object","additionalProperties":false,"required":["name","command"],"properties":{"name":{"type":"string","minLength":1},"command":{"description":"Argv tokens for deterministic command execution.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"extensions":{"type":"array","items":{"type":"string","minLength":1}},"timeout_seconds":{"description":"Maximum runtime before the deterministic command is treated as timed out.","type":"integer","minimum":1,"default":60},"mode":{"description":"Whether command failures block the push or only warn locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"run":{"description":"Whether the command requires matching live changed files or always runs.","type":"string","enum":["changed_files","always"],"default":"changed_files"},"fail_fast":{"description":"Whether a blocking failure stops later deterministic command checks.","type":"boolean","default":true}}},"policies":{"description":"Optional built-in deterministic policy checks.","type":"object","additionalProperties":false,"default":{},"properties":{"diff_size":{"$ref":"#/definitions/diffSizePolicy"},"forbidden_paths":{"$ref":"#/definitions/forbiddenPathsPolicy"}}},"policyMode":{"description":"Whether a built-in policy violation blocks the push or only warns locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"diffSizePolicy":{"type":"object","additionalProperties":false,"required":["max_changed_lines"],"properties":{"max_changed_lines":{"description":"Maximum total added plus deleted text lines allowed in the changed diff.","type":"integer","minimum":1},"mode":{"$ref":"#/definitions/policyMode"}}},"forbiddenPathsPolicy":{"type":"object","additionalProperties":false,"required":["patterns"],"properties":{"patterns":{"description":"Gitignore-like repo-relative path patterns that must not be pushed.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"mode":{"$ref":"#/definitions/policyMode"}}},"plugins":{"description":"Optional external plugin adapters managed by Pushgate.","type":"object","additionalProperties":false,"default":{},"properties":{"gitleaks":{"$ref":"#/definitions/gitleaksPlugin"}}},"gitleaksPlugin":{"description":"Gitleaks secret-scanner plugin adapter.","type":"object","additionalProperties":false,"properties":{"enabled":{"description":"Whether the configured plugin should run.","type":"boolean","default":true},"command":{"description":"Executable name or path used to invoke Gitleaks.","type":"string","minLength":1,"default":"gitleaks"},"timeout_seconds":{"description":"Maximum plugin runtime before Pushgate treats the scan as timed out.","type":"integer","minimum":1,"default":60},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking Gitleaks failure stops later deterministic checks.","type":"boolean","default":true},"config_path":{"description":"Optional path to a Gitleaks TOML config file.","type":"string","minLength":1},"baseline_path":{"description":"Optional path to a Gitleaks JSON baseline report.","type":"string","minLength":1},"gitleaks_ignore_path":{"description":"Optional path to a .gitleaksignore file or containing folder.","type":"string","minLength":1},"redact":{"description":"Redact detected secret values in Gitleaks output and reports.","type":"boolean","default":true},"max_decode_depth":{"description":"Optional Gitleaks decode recursion depth.","type":"integer","minimum":0},"max_archive_depth":{"description":"Optional Gitleaks archive recursion depth.","type":"integer","minimum":0},"max_target_megabytes":{"description":"Optional file-size cap forwarded to Gitleaks.","type":"integer","minimum":1},"enable_rules":{"description":"Optional rule IDs to enable exclusively.","type":"array","items":{"type":"string","minLength":1}}}},"ai":{"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review is skipped.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}},"providerConfig":{"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true}}};
 const schema12 = {"type":"object","additionalProperties":false,"properties":{"target_branch":{"type":"string","minLength":1,"default":"main"},"context_lines":{"type":"integer","minimum":0,"default":10},"max_lines_for_full_file":{"type":"integer","minimum":1,"default":300}}};
 const schema13 = {"type":"object","additionalProperties":false,"required":["name","command"],"properties":{"name":{"type":"string","minLength":1},"command":{"description":"Argv tokens for deterministic command execution.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"extensions":{"type":"array","items":{"type":"string","minLength":1}},"timeout_seconds":{"description":"Maximum runtime before the deterministic command is treated as timed out.","type":"integer","minimum":1,"default":60},"mode":{"description":"Whether command failures block the push or only warn locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"run":{"description":"Whether the command requires matching live changed files or always runs.","type":"string","enum":["changed_files","always"],"default":"changed_files"},"fail_fast":{"description":"Whether a blocking failure stops later deterministic command checks.","type":"boolean","default":true}}};
 const func2 = ucs2length;
@@ -298,10 +298,383 @@ validate11.errors = vErrors;
 return errors === 0;
 }
 
-const schema19 = {"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review is skipped.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}};
-const schema20 = {"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true};
+const schema19 = {"description":"Optional external plugin adapters managed by Pushgate.","type":"object","additionalProperties":false,"default":{},"properties":{"gitleaks":{"$ref":"#/definitions/gitleaksPlugin"}}};
+const schema20 = {"description":"Gitleaks secret-scanner plugin adapter.","type":"object","additionalProperties":false,"properties":{"enabled":{"description":"Whether the configured plugin should run.","type":"boolean","default":true},"command":{"description":"Executable name or path used to invoke Gitleaks.","type":"string","minLength":1,"default":"gitleaks"},"timeout_seconds":{"description":"Maximum plugin runtime before Pushgate treats the scan as timed out.","type":"integer","minimum":1,"default":60},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking Gitleaks failure stops later deterministic checks.","type":"boolean","default":true},"config_path":{"description":"Optional path to a Gitleaks TOML config file.","type":"string","minLength":1},"baseline_path":{"description":"Optional path to a Gitleaks JSON baseline report.","type":"string","minLength":1},"gitleaks_ignore_path":{"description":"Optional path to a .gitleaksignore file or containing folder.","type":"string","minLength":1},"redact":{"description":"Redact detected secret values in Gitleaks output and reports.","type":"boolean","default":true},"max_decode_depth":{"description":"Optional Gitleaks decode recursion depth.","type":"integer","minimum":0},"max_archive_depth":{"description":"Optional Gitleaks archive recursion depth.","type":"integer","minimum":0},"max_target_megabytes":{"description":"Optional file-size cap forwarded to Gitleaks.","type":"integer","minimum":1},"enable_rules":{"description":"Optional rule IDs to enable exclusively.","type":"array","items":{"type":"string","minLength":1}}}};
+const func7 = Object.prototype.hasOwnProperty;
+
+function validate18(data, {instancePath="", parentData, parentDataProperty, rootData=data}={}){
+let vErrors = null;
+let errors = 0;
+if(data && typeof data == "object" && !Array.isArray(data)){
+for(const key0 in data){
+if(!(func7.call(schema20.properties, key0))){
+const err0 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if(vErrors === null){
+vErrors = [err0];
+}
+else {
+vErrors.push(err0);
+}
+errors++;
+}
+}
+if(data.enabled !== undefined){
+if(typeof data.enabled !== "boolean"){
+const err1 = {instancePath:instancePath+"/enabled",schemaPath:"#/properties/enabled/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
+if(vErrors === null){
+vErrors = [err1];
+}
+else {
+vErrors.push(err1);
+}
+errors++;
+}
+}
+if(data.command !== undefined){
+let data1 = data.command;
+if(typeof data1 === "string"){
+if(func2(data1) < 1){
+const err2 = {instancePath:instancePath+"/command",schemaPath:"#/properties/command/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
+if(vErrors === null){
+vErrors = [err2];
+}
+else {
+vErrors.push(err2);
+}
+errors++;
+}
+}
+else {
+const err3 = {instancePath:instancePath+"/command",schemaPath:"#/properties/command/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err3];
+}
+else {
+vErrors.push(err3);
+}
+errors++;
+}
+}
+if(data.timeout_seconds !== undefined){
+let data2 = data.timeout_seconds;
+if(!(((typeof data2 == "number") && (!(data2 % 1) && !isNaN(data2))) && (isFinite(data2)))){
+const err4 = {instancePath:instancePath+"/timeout_seconds",schemaPath:"#/properties/timeout_seconds/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err4];
+}
+else {
+vErrors.push(err4);
+}
+errors++;
+}
+if((typeof data2 == "number") && (isFinite(data2))){
+if(data2 < 1 || isNaN(data2)){
+const err5 = {instancePath:instancePath+"/timeout_seconds",schemaPath:"#/properties/timeout_seconds/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err5];
+}
+else {
+vErrors.push(err5);
+}
+errors++;
+}
+}
+}
+if(data.mode !== undefined){
+let data3 = data.mode;
+if(typeof data3 !== "string"){
+const err6 = {instancePath:instancePath+"/mode",schemaPath:"#/definitions/policyMode/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err6];
+}
+else {
+vErrors.push(err6);
+}
+errors++;
+}
+if(!((data3 === "blocking") || (data3 === "warning"))){
+const err7 = {instancePath:instancePath+"/mode",schemaPath:"#/definitions/policyMode/enum",keyword:"enum",params:{allowedValues: schema16.enum},message:"must be equal to one of the allowed values"};
+if(vErrors === null){
+vErrors = [err7];
+}
+else {
+vErrors.push(err7);
+}
+errors++;
+}
+}
+if(data.fail_fast !== undefined){
+if(typeof data.fail_fast !== "boolean"){
+const err8 = {instancePath:instancePath+"/fail_fast",schemaPath:"#/properties/fail_fast/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
+if(vErrors === null){
+vErrors = [err8];
+}
+else {
+vErrors.push(err8);
+}
+errors++;
+}
+}
+if(data.config_path !== undefined){
+let data5 = data.config_path;
+if(typeof data5 === "string"){
+if(func2(data5) < 1){
+const err9 = {instancePath:instancePath+"/config_path",schemaPath:"#/properties/config_path/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
+if(vErrors === null){
+vErrors = [err9];
+}
+else {
+vErrors.push(err9);
+}
+errors++;
+}
+}
+else {
+const err10 = {instancePath:instancePath+"/config_path",schemaPath:"#/properties/config_path/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err10];
+}
+else {
+vErrors.push(err10);
+}
+errors++;
+}
+}
+if(data.baseline_path !== undefined){
+let data6 = data.baseline_path;
+if(typeof data6 === "string"){
+if(func2(data6) < 1){
+const err11 = {instancePath:instancePath+"/baseline_path",schemaPath:"#/properties/baseline_path/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
+if(vErrors === null){
+vErrors = [err11];
+}
+else {
+vErrors.push(err11);
+}
+errors++;
+}
+}
+else {
+const err12 = {instancePath:instancePath+"/baseline_path",schemaPath:"#/properties/baseline_path/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err12];
+}
+else {
+vErrors.push(err12);
+}
+errors++;
+}
+}
+if(data.gitleaks_ignore_path !== undefined){
+let data7 = data.gitleaks_ignore_path;
+if(typeof data7 === "string"){
+if(func2(data7) < 1){
+const err13 = {instancePath:instancePath+"/gitleaks_ignore_path",schemaPath:"#/properties/gitleaks_ignore_path/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
+if(vErrors === null){
+vErrors = [err13];
+}
+else {
+vErrors.push(err13);
+}
+errors++;
+}
+}
+else {
+const err14 = {instancePath:instancePath+"/gitleaks_ignore_path",schemaPath:"#/properties/gitleaks_ignore_path/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err14];
+}
+else {
+vErrors.push(err14);
+}
+errors++;
+}
+}
+if(data.redact !== undefined){
+if(typeof data.redact !== "boolean"){
+const err15 = {instancePath:instancePath+"/redact",schemaPath:"#/properties/redact/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
+if(vErrors === null){
+vErrors = [err15];
+}
+else {
+vErrors.push(err15);
+}
+errors++;
+}
+}
+if(data.max_decode_depth !== undefined){
+let data9 = data.max_decode_depth;
+if(!(((typeof data9 == "number") && (!(data9 % 1) && !isNaN(data9))) && (isFinite(data9)))){
+const err16 = {instancePath:instancePath+"/max_decode_depth",schemaPath:"#/properties/max_decode_depth/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err16];
+}
+else {
+vErrors.push(err16);
+}
+errors++;
+}
+if((typeof data9 == "number") && (isFinite(data9))){
+if(data9 < 0 || isNaN(data9)){
+const err17 = {instancePath:instancePath+"/max_decode_depth",schemaPath:"#/properties/max_decode_depth/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
+if(vErrors === null){
+vErrors = [err17];
+}
+else {
+vErrors.push(err17);
+}
+errors++;
+}
+}
+}
+if(data.max_archive_depth !== undefined){
+let data10 = data.max_archive_depth;
+if(!(((typeof data10 == "number") && (!(data10 % 1) && !isNaN(data10))) && (isFinite(data10)))){
+const err18 = {instancePath:instancePath+"/max_archive_depth",schemaPath:"#/properties/max_archive_depth/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err18];
+}
+else {
+vErrors.push(err18);
+}
+errors++;
+}
+if((typeof data10 == "number") && (isFinite(data10))){
+if(data10 < 0 || isNaN(data10)){
+const err19 = {instancePath:instancePath+"/max_archive_depth",schemaPath:"#/properties/max_archive_depth/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
+if(vErrors === null){
+vErrors = [err19];
+}
+else {
+vErrors.push(err19);
+}
+errors++;
+}
+}
+}
+if(data.max_target_megabytes !== undefined){
+let data11 = data.max_target_megabytes;
+if(!(((typeof data11 == "number") && (!(data11 % 1) && !isNaN(data11))) && (isFinite(data11)))){
+const err20 = {instancePath:instancePath+"/max_target_megabytes",schemaPath:"#/properties/max_target_megabytes/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err20];
+}
+else {
+vErrors.push(err20);
+}
+errors++;
+}
+if((typeof data11 == "number") && (isFinite(data11))){
+if(data11 < 1 || isNaN(data11)){
+const err21 = {instancePath:instancePath+"/max_target_megabytes",schemaPath:"#/properties/max_target_megabytes/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err21];
+}
+else {
+vErrors.push(err21);
+}
+errors++;
+}
+}
+}
+if(data.enable_rules !== undefined){
+let data12 = data.enable_rules;
+if(Array.isArray(data12)){
+const len0 = data12.length;
+for(let i0=0; i0<len0; i0++){
+let data13 = data12[i0];
+if(typeof data13 === "string"){
+if(func2(data13) < 1){
+const err22 = {instancePath:instancePath+"/enable_rules/" + i0,schemaPath:"#/properties/enable_rules/items/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
+if(vErrors === null){
+vErrors = [err22];
+}
+else {
+vErrors.push(err22);
+}
+errors++;
+}
+}
+else {
+const err23 = {instancePath:instancePath+"/enable_rules/" + i0,schemaPath:"#/properties/enable_rules/items/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err23];
+}
+else {
+vErrors.push(err23);
+}
+errors++;
+}
+}
+}
+else {
+const err24 = {instancePath:instancePath+"/enable_rules",schemaPath:"#/properties/enable_rules/type",keyword:"type",params:{type: "array"},message:"must be array"};
+if(vErrors === null){
+vErrors = [err24];
+}
+else {
+vErrors.push(err24);
+}
+errors++;
+}
+}
+}
+else {
+const err25 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err25];
+}
+else {
+vErrors.push(err25);
+}
+errors++;
+}
+validate18.errors = vErrors;
+return errors === 0;
+}
+
 
 function validate17(data, {instancePath="", parentData, parentDataProperty, rootData=data}={}){
+let vErrors = null;
+let errors = 0;
+if(data && typeof data == "object" && !Array.isArray(data)){
+for(const key0 in data){
+if(!(key0 === "gitleaks")){
+const err0 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if(vErrors === null){
+vErrors = [err0];
+}
+else {
+vErrors.push(err0);
+}
+errors++;
+}
+}
+if(data.gitleaks !== undefined){
+if(!(validate18(data.gitleaks, {instancePath:instancePath+"/gitleaks",parentData:data,parentDataProperty:"gitleaks",rootData}))){
+vErrors = vErrors === null ? validate18.errors : vErrors.concat(validate18.errors);
+errors = vErrors.length;
+}
+}
+}
+else {
+const err1 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err1];
+}
+else {
+vErrors.push(err1);
+}
+errors++;
+}
+validate17.errors = vErrors;
+return errors === 0;
+}
+
+const schema22 = {"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review is skipped.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}};
+const schema23 = {"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true};
+
+function validate21(data, {instancePath="", parentData, parentDataProperty, rootData=data}={}){
 let vErrors = null;
 let errors = 0;
 if(data && typeof data == "object" && !Array.isArray(data)){
@@ -330,7 +703,7 @@ vErrors.push(err1);
 errors++;
 }
 if(!(((data0 === "blocking") || (data0 === "advisory")) || (data0 === "off"))){
-const err2 = {instancePath:instancePath+"/mode",schemaPath:"#/properties/mode/enum",keyword:"enum",params:{allowedValues: schema19.properties.mode.enum},message:"must be equal to one of the allowed values"};
+const err2 = {instancePath:instancePath+"/mode",schemaPath:"#/properties/mode/enum",keyword:"enum",params:{allowedValues: schema22.properties.mode.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err2];
 }
@@ -507,7 +880,7 @@ vErrors.push(err15);
 }
 errors++;
 }
-validate17.errors = vErrors;
+validate21.errors = vErrors;
 return errors === 0;
 }
 
@@ -528,7 +901,7 @@ vErrors.push(err0);
 errors++;
 }
 for(const key0 in data){
-if(!((((((key0 === "version") || (key0 === "review")) || (key0 === "tools")) || (key0 === "policies")) || (key0 === "ai")) || (key0 === "ignore_paths"))){
+if(!(((((((key0 === "version") || (key0 === "review")) || (key0 === "tools")) || (key0 === "policies")) || (key0 === "plugins")) || (key0 === "ai")) || (key0 === "ignore_paths"))){
 const err1 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err1];
@@ -922,20 +1295,26 @@ vErrors = vErrors === null ? validate11.errors : vErrors.concat(validate11.error
 errors = vErrors.length;
 }
 }
-if(data.ai !== undefined){
-if(!(validate17(data.ai, {instancePath:instancePath+"/ai",parentData:data,parentDataProperty:"ai",rootData}))){
+if(data.plugins !== undefined){
+if(!(validate17(data.plugins, {instancePath:instancePath+"/plugins",parentData:data,parentDataProperty:"plugins",rootData}))){
 vErrors = vErrors === null ? validate17.errors : vErrors.concat(validate17.errors);
 errors = vErrors.length;
 }
 }
+if(data.ai !== undefined){
+if(!(validate21(data.ai, {instancePath:instancePath+"/ai",parentData:data,parentDataProperty:"ai",rootData}))){
+vErrors = vErrors === null ? validate21.errors : vErrors.concat(validate21.errors);
+errors = vErrors.length;
+}
+}
 if(data.ignore_paths !== undefined){
-let data18 = data.ignore_paths;
-if(Array.isArray(data18)){
-const len3 = data18.length;
+let data19 = data.ignore_paths;
+if(Array.isArray(data19)){
+const len3 = data19.length;
 for(let i3=0; i3<len3; i3++){
-let data19 = data18[i3];
-if(typeof data19 === "string"){
-if(func2(data19) < 1){
+let data20 = data19[i3];
+if(typeof data20 === "string"){
+if(func2(data20) < 1){
 const err32 = {instancePath:instancePath+"/ignore_paths/" + i3,schemaPath:"#/properties/ignore_paths/items/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
 if(vErrors === null){
 vErrors = [err32];
