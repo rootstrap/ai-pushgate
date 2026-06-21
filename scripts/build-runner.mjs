@@ -1,4 +1,4 @@
-import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { analyzeMetafile, build } from "esbuild";
 
 const entryPoint = "src/cli.ts";
@@ -35,6 +35,7 @@ const result = await build({
   target: "node20",
 });
 
+await stripTrailingWhitespace(outfile);
 await chmod(outfile, 0o755);
 
 if (shouldAnalyze && result.metafile) {
@@ -49,4 +50,13 @@ if (shouldAnalyze && result.metafile) {
 
   console.log(`Bundle metafile written to ${metafilePath}`);
   console.log(`Bundle analysis written to ${analysisPath}`);
+}
+
+async function stripTrailingWhitespace(path) {
+  const source = await readFile(path, "utf8");
+  const normalized = source.replace(/[ \t]+$/gm, "");
+
+  if (normalized !== source) {
+    await writeFile(path, normalized);
+  }
 }

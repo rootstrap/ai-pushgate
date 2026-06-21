@@ -213,6 +213,20 @@ severity, confidence, file, line, message, and suggestion fields; Pushgate
 attaches provider source metadata during normalization before rendering the
 result in the terminal.
 
+The canonical review-output contract lives in `src/ai/review-contract.ts` as a
+Zod schema. `schemas/ai-review-output-v1.schema.json` is generated from that
+contract for documentation, external integrations, and future native structured
+provider requests. Pushgate validates every provider response locally before it
+consumes findings.
+
+Provider enforcement strength follows this ladder: native JSON Schema when a
+provider supports constrained schema output, strict tool calls when that is the
+strongest available mechanism, JSON mode when it only guarantees JSON syntax,
+and text fallback when the provider exposes only a text channel. Text-only
+engines cannot provide generation-time schema guarantees, so Pushgate keeps the
+prompt exact, applies narrowly scoped safe repair, and rejects anything that
+does not validate against the local contract.
+
 The blocking and warning category vocabulary must stay aligned with that
 structured AI findings layer. If Pushgate supports project-specific prompt or
 category overrides later, that contract should be explicit in the AI schema

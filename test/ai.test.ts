@@ -7,21 +7,222 @@ import { Writable } from "node:stream";
 import test from "node:test";
 
 import {
+  AI_REVIEW_FINDING_KEYS,
   AiReviewOutputError,
+  AiReviewOutputSchema,
+  BASE_REVIEW_PROMPT,
   buildLocalAiReviewPayload,
   collectLocalAiReviewContext,
+  generateAiReviewOutputJsonSchema,
+  normalizeAiReviewObject,
   parseAiReviewOutput,
   runLocalAiReview,
+  validateAiReviewOutputContract,
 } from "../src/ai/index.js";
 import type { LocalAiReviewPayload } from "../src/ai/index.js";
 import {
   evaluateChangedFileGuardrails,
   evaluatePromptGuardrail,
 } from "../src/ai/guardrails.js";
+import { claudeProvider } from "../src/ai/providers/claude.js";
 import { copilotProvider } from "../src/ai/providers/copilot.js";
 import { renderLocalAiTranscript } from "../src/ai/transcript.js";
 import { buildLocalAiVerdict } from "../src/ai/verdict.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
+
+test("validates the canonical AI review contract with Zod", () => {
+  const result = AiReviewOutputSchema.safeParse(canonicalAiReviewOutput());
+
+  assert.equal(result.success, true);
+});
+
+test("reports readable contract diagnostics for invalid AI review output", () => {
+  const cases = [
+    {
+      expected: {
+        keyword: "required",
+        path: "/findings/0",
+      },
+      value: {
+        schema_version: 1,
+        findings: [
+          {
+            category: "security",
+            confidence: "high",
+            severity: "blocking",
+            line: "7",
+            message: "Shell command construction uses user input.",
+            suggestion: "Pass arguments without shell interpolation.",
+          },
+        ],
+      },
+    },
+    {
+      expected: {
+        keyword: "additionalProperties",
+        path: "/findings/0",
+      },
+      value: {
+        ...canonicalAiReviewOutput(),
+        findings: [
+          {
+            ...canonicalAiReviewOutput().findings[0],
+            metadata: "not allowed",
+          },
+        ],
+      },
+    },
+    {
+      expected: {
+        keyword: "enum",
+        path: "/findings/0/category",
+      },
+      value: {
+        ...canonicalAiReviewOutput(),
+        findings: [
+          {
+            ...canonicalAiReviewOutput().findings[0],
+            category: "security_and_logic",
+          },
+        ],
+      },
+    },
+    {
+      expected: {
+        keyword: "minLength",
+        path: "/findings/0/message",
+      },
+      value: {
+        ...canonicalAiReviewOutput(),
+        findings: [
+          {
+            ...canonicalAiReviewOutput().findings[0],
+            message: "",
+          },
+        ],
+      },
+    },
+    {
+      expected: {
+        keyword: "const",
+        path: "/schema_version",
+      },
+      value: {
+        ...canonicalAiReviewOutput(),
+        schema_version: 2,
+      },
+    },
+  ];
+
+  for (const { expected, value } of cases) {
+    const result = validateAiReviewOutputContract(value);
+
+    assert.equal(result.valid, false);
+
+    if (!result.valid) {
+      assert.ok(
+        result.errors.some(
+          (error) =>
+            error.keyword === expected.keyword &&
+            error.instancePath === expected.path,
+        ),
+        JSON.stringify(result.errors),
+      );
+    }
+  }
+});
+
+test("keeps checked-in AI review JSON Schema in sync with the Zod contract", async () => {
+  assert.deepEqual(
+    JSON.parse(await readFile("schemas/ai-review-output-v1.schema.json", "utf8")),
+    generateAiReviewOutputJsonSchema(),
+  );
+});
+
+test("keeps the prompt JSON example aligned with the Zod contract", () => {
+  const promptExample = JSON.parse(extractFirstJsonFence(BASE_REVIEW_PROMPT));
+  const parsed = AiReviewOutputSchema.safeParse(promptExample);
+  const documentedFindingFields = [
+    ...BASE_REVIEW_PROMPT.matchAll(/^- `([^`]+)`:/gm),
+  ].map((match) => match[1] ?? "");
+
+  assert.equal(parsed.success, true);
+  assert.deepEqual(
+    new Set(documentedFindingFields),
+    new Set(AI_REVIEW_FINDING_KEYS),
+  );
+  assert.equal(documentedFindingFields.length, AI_REVIEW_FINDING_KEYS.length);
+});
+
+test("normalizes parsed AI review objects for native structured providers", () => {
+  const normalized = normalizeAiReviewObject({
+    rawOutput: JSON.stringify(canonicalAiReviewOutput()),
+    source: {
+      model: "gpt-native-structured",
+      provider: "openai",
+    },
+    value: canonicalAiReviewOutput(),
+  });
+
+  assert.equal(normalized.findings.length, 1);
+  assert.equal(normalized.findings[0]?.source.provider, "openai");
+  assert.equal(normalized.findings[0]?.source.model, "gpt-native-structured");
+  assert.deepEqual(normalized.normalizationNotes, []);
+  assert.equal(normalized.summary.blockingCount, 1);
+  assert.equal(normalized.summary.verdict, "BLOCK");
+});
+
+test("repairs safe key damage in parsed AI review objects", () => {
+  const normalized = normalizeAiReviewObject({
+    source: {
+      provider: "native-provider",
+    },
+    value: {
+      "\n schema_version\t": 1,
+      findings: [
+        {
+          category: "security",
+          confidence: "high",
+          severity: "blocking",
+          "\n file": "src/unsafe.ts",
+          line: "7",
+          message: "Shell command construction uses user input.",
+          suggestion: "Pass arguments without shell interpolation.",
+        },
+      ],
+    },
+  });
+
+  assert.equal(normalized.findings[0]?.file, "src/unsafe.ts");
+  assert.deepEqual(normalized.normalizationNotes, [
+    "Normalized whitespace around AI review JSON property names.",
+  ]);
+});
+
+test("rejects ambiguous key repair in parsed AI review objects", () => {
+  const error = normalizeInvalidAiReviewObject({
+    schema_version: 1,
+    findings: [
+      {
+        category: "security",
+        confidence: "high",
+        severity: "blocking",
+        file: "src/safe.ts",
+        "\n file": "src/ambiguous.ts",
+        line: "7",
+        message: "Shell command construction uses user input.",
+        suggestion: "Pass arguments without shell interpolation.",
+      },
+    ],
+  });
+
+  assert.match(error.diagnostics.join("\n"), /both resolve to "file"/);
+});
+
+test("marks current CLI providers as text fallback structured-output adapters", () => {
+  assert.equal(claudeProvider.structuredOutputCapability, "text_fallback");
+  assert.equal(copilotProvider.structuredOutputCapability, "text_fallback");
+});
 
 test("parses structured AI review output into findings and summary", () => {
   const parsed = parseAiReviewOutput(
@@ -313,6 +514,44 @@ test("rejects unsupported review fields after key repair boundaries", () => {
   assert.match(
     nestedExtraError.diagnostics.join("\n"),
     /unsupported property "metadata"/,
+  );
+});
+
+test("rejects category and severity mismatches as semantic review errors", () => {
+  const blockingCategoryError = parseInvalidAiReviewOutput(
+    JSON.stringify({
+      ...canonicalAiReviewOutput(),
+      findings: [
+        {
+          ...canonicalAiReviewOutput().findings[0],
+          category: "security",
+          severity: "warning",
+        },
+      ],
+    }),
+  );
+
+  assert.match(
+    blockingCategoryError.diagnostics.join("\n"),
+    /Finding "security" must use severity "blocking"/,
+  );
+
+  const warningCategoryError = parseInvalidAiReviewOutput(
+    JSON.stringify({
+      ...canonicalAiReviewOutput(),
+      findings: [
+        {
+          ...canonicalAiReviewOutput().findings[0],
+          category: "performance",
+          severity: "blocking",
+        },
+      ],
+    }),
+  );
+
+  assert.match(
+    warningCategoryError.diagnostics.join("\n"),
+    /Finding "performance" must use severity "warning"/,
   );
 });
 
@@ -1180,6 +1419,57 @@ function parseInvalidAiReviewOutput(rawOutput: string): AiReviewOutputError {
   }
 
   assert.fail("Expected AI review output parsing to fail.");
+}
+
+function normalizeInvalidAiReviewObject(value: unknown): AiReviewOutputError {
+  try {
+    normalizeAiReviewObject({
+      source: {
+        provider: "native-provider",
+      },
+      value,
+    });
+  } catch (error) {
+    assert.ok(error instanceof AiReviewOutputError);
+    return error;
+  }
+
+  assert.fail("Expected AI review object normalization to fail.");
+}
+
+function canonicalAiReviewOutput(): {
+  findings: Array<{
+    category: "security";
+    confidence: "high";
+    file: string;
+    line: string;
+    message: string;
+    severity: "blocking";
+    suggestion: string;
+  }>;
+  schema_version: 1;
+} {
+  return {
+    schema_version: 1,
+    findings: [
+      {
+        category: "security",
+        confidence: "high",
+        severity: "blocking",
+        file: "src/unsafe.ts",
+        line: "7",
+        message: "Shell command construction uses user input.",
+        suggestion: "Pass arguments without shell interpolation.",
+      },
+    ],
+  };
+}
+
+function extractFirstJsonFence(value: string): string {
+  const match = value.match(/```json\s*([\s\S]*?)```/i);
+
+  assert.ok(match?.[1], "Expected prompt to contain a fenced JSON example.");
+  return match[1];
 }
 
 function minimalReviewPayload(

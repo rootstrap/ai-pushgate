@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "pnpm run build:validators && tsc -p tsconfig.build.json && node scripts/build-runner.mjs",
-    "build:validators": "node scripts/build-validators.mjs",
+    "build:validators": "node --import tsx scripts/build-validators.mjs",
     "bundle": "pnpm run build:validators && node scripts/build-runner.mjs",
     "bundle:analyze": "pnpm run build:validators && node scripts/build-runner.mjs --analyze",
     "check:shell": "bash -n hook/pre-push && bash -n install.sh",
@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "ignore": "^7.0.5",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.18.9",

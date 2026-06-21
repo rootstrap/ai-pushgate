@@ -4,7 +4,10 @@
   "title": "Pushgate AI Review Output v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "findings"],
+  "required": [
+    "schema_version",
+    "findings"
+  ],
   "properties": {
     "schema_version": {
       "type": "integer",
@@ -14,16 +17,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "category",
-          "confidence",
-          "severity",
-          "file",
-          "line",
-          "message",
-          "suggestion"
-        ],
         "properties": {
           "category": {
             "type": "string",
@@ -37,11 +30,18 @@
           },
           "confidence": {
             "type": "string",
-            "enum": ["low", "medium", "high"]
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
           },
           "severity": {
             "type": "string",
-            "enum": ["blocking", "warning"]
+            "enum": [
+              "blocking",
+              "warning"
+            ]
           },
           "file": {
             "type": "string",
@@ -59,7 +59,17 @@
             "type": "string",
             "minLength": 1
           }
-        }
+        },
+        "required": [
+          "category",
+          "confidence",
+          "severity",
+          "file",
+          "line",
+          "message",
+          "suggestion"
+        ],
+        "additionalProperties": false
       }
     }
   }
