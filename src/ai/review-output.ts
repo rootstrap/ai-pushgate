@@ -1,16 +1,18 @@
 import {
   AI_BLOCKING_CATEGORIES,
+  AI_REVIEW_FINDING_KEYS,
+  AI_REVIEW_TOP_LEVEL_KEYS,
   AI_WARNING_CATEGORIES,
+  type AiReviewContractValidationIssue,
+  validateAiReviewOutputContract,
+} from "./review-contract.js";
+import {
   type AiFinding,
   type AiFindingSource,
   type AiReviewSummary,
   type RawAiFinding,
   type RawAiReviewOutput,
 } from "./types.js";
-import {
-  type SchemaValidationError,
-  validateAiReviewOutput,
-} from "../generated/ai-review-output-v1-validator.js";
 
 interface ParsedCandidate {
   notes: string[];
@@ -18,8 +20,14 @@ interface ParsedCandidate {
   value: string;
 }
 
+export interface NormalizedAiReviewOutput {
+  findings: AiFinding[];
+  normalizationNotes: string[];
+  summary: AiReviewSummary;
+}
+
 interface ParsedReviewValidation {
-  errors: readonly SchemaValidationError[];
+  errors: readonly AiReviewContractValidationIssue[];
   review: RawAiReviewOutput | null;
 }
 
@@ -40,7 +48,7 @@ type RepairedReviewValidation =
       message: string;
     }
   | {
-      errors: readonly SchemaValidationError[];
+      errors: readonly AiReviewContractValidationIssue[];
       kind: "invalid";
     }
   | {
@@ -50,18 +58,10 @@ type RepairedReviewValidation =
     };
 
 const BLOCKING_CATEGORY_SET = new Set<string>(AI_BLOCKING_CATEGORIES);
-const FINDING_REVIEW_KEYS = new Set<string>([
-  "category",
-  "confidence",
-  "severity",
-  "file",
-  "line",
-  "message",
-  "suggestion",
-]);
+const FINDING_REVIEW_KEYS = new Set<string>(AI_REVIEW_FINDING_KEYS);
 const KEY_REPAIR_NORMALIZATION_NOTE =
   "Normalized whitespace around AI review JSON property names.";
-const TOP_LEVEL_REVIEW_KEYS = new Set<string>(["schema_version", "findings"]);
+const TOP_LEVEL_REVIEW_KEYS = new Set<string>(AI_REVIEW_TOP_LEVEL_KEYS);
 const WARNING_CATEGORY_SET = new Set<string>(AI_WARNING_CATEGORIES);
 
 export class AiReviewOutputError extends Error {
@@ -77,11 +77,7 @@ export class AiReviewOutputError extends Error {
 export function parseAiReviewOutput(
   rawOutput: string,
   source: AiFindingSource,
-): {
-  findings: AiFinding[];
-  normalizationNotes: string[];
-  summary: AiReviewSummary;
-} {
+): NormalizedAiReviewOutput {
   const trimmedOutput = rawOutput.replace(/\r/g, "").trim();
 
   if (trimmedOutput.length === 0) {
@@ -126,6 +122,53 @@ export function parseAiReviewOutput(
       ? dedupeDiagnostics(diagnostics)
       : ["The provider response did not contain a valid Pushgate review JSON object."],
   );
+}
+
+export function normalizeAiReviewObject(options: {
+  rawOutput?: string;
+  source: AiFindingSource;
+  value: unknown;
+}): NormalizedAiReviewOutput {
+  const validation = validateRepairingReview(options.value);
+  const diagnosticSource =
+    options.rawOutput === undefined
+      ? "provider response object"
+      : "parsed provider response";
+
+  if (validation.kind === "ambiguous") {
+    throw new AiReviewOutputError(
+      "Provider output is invalid.",
+      [`${diagnosticSource}: ${validation.message}`],
+    );
+  }
+
+  if (validation.kind === "invalid") {
+    throw new AiReviewOutputError(
+      "Provider output is invalid.",
+      [`${diagnosticSource}: ${formatSchemaDiagnostics(validation.errors)}`],
+    );
+  }
+
+  const semanticDiagnostics = validateFindingSemantics(
+    validation.review.findings,
+  );
+
+  if (semanticDiagnostics.length > 0) {
+    throw new AiReviewOutputError(
+      "Provider output is invalid.",
+      [`${diagnosticSource}: ${semanticDiagnostics.join(" ")}`],
+    );
+  }
+
+  const findings = validation.review.findings.map((finding) =>
+    normalizeFinding(finding, options.source),
+  );
+
+  return {
+    findings,
+    normalizationNotes: validation.notes,
+    summary: summarizeFindings(findings),
+  };
 }
 
 function parseCandidate(
@@ -255,18 +298,18 @@ function validateRepairingReview(parsed: unknown): RepairedReviewValidation {
 }
 
 function validateParsedReview(parsed: unknown): ParsedReviewValidation {
-  const schemaValidation = validateAiReviewOutput(parsed);
+  const schemaValidation = validateAiReviewOutputContract(parsed);
 
-  if (!schemaValidation.valid) {
+  if (schemaValidation.valid) {
     return {
-      errors: schemaValidation.errors ?? [],
-      review: null,
+      errors: [],
+      review: schemaValidation.data,
     };
   }
 
   return {
-    errors: [],
-    review: parsed as RawAiReviewOutput,
+    errors: schemaValidation.errors,
+    review: null,
   };
 }
 
@@ -789,7 +832,7 @@ function summarizeFindings(findings: readonly AiFinding[]): AiReviewSummary {
 }
 
 function formatSchemaDiagnostics(
-  errors: readonly SchemaValidationError[],
+  errors: readonly AiReviewContractValidationIssue[],
 ): string {
   if (errors.length === 0) {
     return "The JSON object did not match the Pushgate review schema.";
@@ -798,7 +841,7 @@ function formatSchemaDiagnostics(
   return errors.map(formatSchemaError).join(" ");
 }
 
-function formatSchemaError(error: SchemaValidationError): string {
+function formatSchemaError(error: AiReviewContractValidationIssue): string {
   const path = error.instancePath || "/";
 
   switch (error.keyword) {

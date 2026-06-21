@@ -4,18 +4,23 @@ import { dirname } from "node:path";
 import Ajv from "ajv";
 import standaloneCode from "ajv/dist/standalone/index.js";
 
+import { generateAiReviewOutputJsonSchema } from "../src/ai/review-contract.ts";
+
+const aiReviewSchemaPath = "schemas/ai-review-output-v1.schema.json";
+
 const validators = [
   {
     functionName: "validatePushgateConfig",
     outputPath: "src/generated/pushgate-config-v2-validator.ts",
     schemaPath: "schemas/pushgate-config-v2.schema.json",
   },
-  {
-    functionName: "validateAiReviewOutput",
-    outputPath: "src/generated/ai-review-output-v1-validator.ts",
-    schemaPath: "schemas/ai-review-output-v1.schema.json",
-  },
 ];
+
+await writeJsonFile(
+  aiReviewSchemaPath,
+  generateAiReviewOutputJsonSchema(),
+);
+console.log(`Generated ${aiReviewSchemaPath} from src/ai/review-contract.ts`);
 
 for (const validator of validators) {
   const source = await buildValidatorModule(validator);
@@ -26,6 +31,11 @@ for (const validator of validators) {
   console.log(
     `Generated ${validator.outputPath} from ${validator.schemaPath}`,
   );
+}
+
+async function writeJsonFile(path, value) {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 async function buildValidatorModule({ functionName, schemaPath }) {

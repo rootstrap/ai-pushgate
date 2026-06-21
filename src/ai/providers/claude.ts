@@ -6,6 +6,7 @@ import { runProviderCommand } from "./run-provider-command.js";
 
 export const claudeProvider: LocalAiProviderAdapter = {
   id: "claude",
+  structuredOutputCapability: "text_fallback",
   async runReview(options) {
     const model = selectProviderModel(options.providerConfig);
     const args = buildClaudeArgs(options.repoRoot, model);

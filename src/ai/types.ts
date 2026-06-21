@@ -1,33 +1,30 @@
 import type { AiMode, ProviderConfig } from "../config/index.js";
 import type { ChangedFile } from "../path-policy/index.js";
+import type {
+  AiFindingCategory,
+  AiFindingConfidence,
+  AiFindingSeverity,
+} from "./review-contract.js";
 
-export const AI_REVIEW_OUTPUT_SCHEMA_VERSION = 1 as const;
-
-export const AI_BLOCKING_CATEGORIES = [
-  "security",
-  "logic_errors",
-] as const;
-
-export const AI_WARNING_CATEGORIES = [
-  "test_coverage",
-  "performance",
-  "naming_and_readability",
-] as const;
-
-export const AI_FINDING_CATEGORIES = [
-  ...AI_BLOCKING_CATEGORIES,
-  ...AI_WARNING_CATEGORIES,
-] as const;
-
-export const AI_FINDING_CONFIDENCE_LEVELS = [
-  "low",
-  "medium",
-  "high",
-] as const;
-
-export type AiFindingSeverity = "blocking" | "warning";
-export type AiFindingCategory = (typeof AI_FINDING_CATEGORIES)[number];
-export type AiFindingConfidence = (typeof AI_FINDING_CONFIDENCE_LEVELS)[number];
+export {
+  AI_BLOCKING_CATEGORIES,
+  AI_FINDING_CATEGORIES,
+  AI_FINDING_CONFIDENCE_LEVELS,
+  AI_FINDING_SEVERITIES,
+  AI_REVIEW_FINDING_KEYS,
+  AI_REVIEW_OUTPUT_SCHEMA_ID,
+  AI_REVIEW_OUTPUT_SCHEMA_TITLE,
+  AI_REVIEW_OUTPUT_SCHEMA_VERSION,
+  AI_REVIEW_TOP_LEVEL_KEYS,
+  AI_WARNING_CATEGORIES,
+} from "./review-contract.js";
+export type {
+  AiFindingCategory,
+  AiFindingConfidence,
+  AiFindingSeverity,
+  RawAiFinding,
+  RawAiReviewOutput,
+} from "./review-contract.js";
 
 export interface AiFindingSource {
   model?: string;
@@ -167,24 +164,16 @@ export interface LocalAiProviderRunOptions {
   timeoutSeconds: number;
 }
 
+export type LocalAiProviderStructuredOutputCapability =
+  | "native_json_schema"
+  | "strict_tool_call"
+  | "json_mode"
+  | "text_fallback";
+
 export interface LocalAiProviderAdapter {
   id: string;
+  structuredOutputCapability: LocalAiProviderStructuredOutputCapability;
   runReview(
     options: LocalAiProviderRunOptions,
   ): Promise<LocalAiProviderResult>;
-}
-
-export interface RawAiFinding {
-  category: AiFindingCategory;
-  confidence: AiFindingConfidence;
-  severity: AiFindingSeverity;
-  file: string;
-  line: string;
-  message: string;
-  suggestion: string;
-}
-
-export interface RawAiReviewOutput {
-  findings: RawAiFinding[];
-  schema_version: typeof AI_REVIEW_OUTPUT_SCHEMA_VERSION;
 }

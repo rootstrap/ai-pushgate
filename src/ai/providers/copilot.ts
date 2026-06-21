@@ -5,6 +5,7 @@ import { runProviderCommand } from "./run-provider-command.js";
 
 export const copilotProvider: LocalAiProviderAdapter = {
   id: "copilot",
+  structuredOutputCapability: "text_fallback",
   async runReview(options) {
     const model = selectProviderModel(options.providerConfig);
     const args = buildCopilotArgs(model);

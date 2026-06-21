@@ -47,6 +47,10 @@ text before or after the JSON.
 String values must be valid JSON strings: escape internal line breaks as `\n`
 instead of writing raw line breaks inside quotes.
 Do not prefix the JSON with bullets, list markers, or assistant status glyphs.
+The object must match Pushgate's AI review schema exactly: required fields must
+be present, field names must be spelled exactly as shown, enum values must be
+one of the documented strings, string fields must not be empty, and extra fields
+are not allowed.
 
 Use this exact shape:
 
@@ -81,6 +85,7 @@ Each finding must include:
 
 Pushgate adds provider and source metadata during normalization, so do not add
 extra fields beyond the documented JSON shape.
+Pushgate validates this schema locally before consuming any findings.
 
 ## Review Input
 
