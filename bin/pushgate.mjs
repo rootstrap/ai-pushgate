@@ -25974,6 +25974,30 @@ async function runDeterministicChecks(config2, changedFiles, options = {}) {
   return { exitCode: resultSummary.exitCode, results };
 }
 
+// src/workflows/run-plan.ts
+function buildPrePushRunPlan(config2, skipControls) {
+  const deterministicCheckCount = config2.tools.length + countBuiltInPolicies(config2.policies);
+  const runDeterministic = deterministicCheckCount > 0;
+  const localAiSkipReason = getLocalAiSkipReason(config2, skipControls);
+  const runLocalAi = localAiSkipReason === null;
+  return {
+    deterministicCheckCount,
+    localAiSkipReason,
+    needsChangedFiles: runDeterministic || runLocalAi,
+    runDeterministic,
+    runLocalAi
+  };
+}
+function getLocalAiSkipReason(config2, skipControls) {
+  if (config2.ai.mode === "off") {
+    return "mode-off";
+  }
+  if (skipControls.skipAiCheck) {
+    return "skip-control";
+  }
+  return null;
+}
+
 // src/workflows/pre-push.ts
 async function runPrePushWorkflow(io) {
   await drainStdin(io.stdin);
@@ -25990,12 +26014,14 @@ async function runPrePushWorkflow(io) {
     io.stdout.write(`[pushgate] Warning: ${warning}
 `);
   }
+  const runPlan = buildPrePushRunPlan(loaded.config, skipControls);
   const changedFileResolution = await maybeResolveChangedFiles(loaded.config, {
     repoRoot,
-    skipControls
+    runPlan
   });
   const summary = await runDeterministicPhase(
     loaded.config,
+    runPlan,
     changedFileResolution,
     {
       env: io.env,
@@ -26009,8 +26035,8 @@ async function runPrePushWorkflow(io) {
   }
   return await runLocalAiPhase(
     loaded.config,
+    runPlan,
     changedFileResolution,
-    skipControls,
     {
       env: io.env,
       repoRoot,
@@ -26018,34 +26044,35 @@ async function runPrePushWorkflow(io) {
     }
   );
 }
-async function runDeterministicPhase(config2, changedFileResolution, options) {
-  if (config2.tools.length === 0 && countBuiltInPolicies(config2.policies) === 0) {
+async function runDeterministicPhase(config2, runPlan, changedFileResolution, options) {
+  if (!runPlan.runDeterministic) {
     return runDeterministicChecks(config2, [], options);
   }
   return runDeterministicChecks(
     config2,
-    changedFileResolution?.files ?? [],
+    requireChangedFileResolution(
+      changedFileResolution,
+      "deterministic phase"
+    ).files,
     options
   );
 }
-async function runLocalAiPhase(config2, changedFileResolution, skipControls, options) {
-  if (config2.ai.mode === "off") {
+async function runLocalAiPhase(config2, runPlan, changedFileResolution, options) {
+  if (runPlan.localAiSkipReason === "mode-off") {
     return 0;
   }
-  if (skipControls.skipAiCheck) {
+  if (runPlan.localAiSkipReason === "skip-control") {
     options.stdout.write(
       "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n"
     );
     return 0;
   }
-  if (changedFileResolution === null) {
-    throw new Error(
-      "Pushgate could not prepare changed files for the local AI phase."
-    );
-  }
   return (await runLocalAiReview({
     aiConfig: config2.ai,
-    changedFileResolution,
+    changedFileResolution: requireChangedFileResolution(
+      changedFileResolution,
+      "local AI phase"
+    ),
     env: options.env,
     repoRoot: options.repoRoot,
     reviewConfig: config2.review,
@@ -26053,9 +26080,7 @@ async function runLocalAiPhase(config2, changedFileResolution, skipControls, opt
   })).exitCode;
 }
 async function maybeResolveChangedFiles(config2, options) {
-  const deterministicCheckCount = config2.tools.length + countBuiltInPolicies(config2.policies);
-  const shouldRunAi = config2.ai.mode !== "off" && !options.skipControls.skipAiCheck;
-  if (deterministicCheckCount === 0 && !shouldRunAi) {
+  if (!options.runPlan.needsChangedFiles) {
     return null;
   }
   return await resolveChangedFiles({
@@ -26063,6 +26088,14 @@ async function maybeResolveChangedFiles(config2, options) {
     targetBranch: config2.review.target_branch,
     ignorePaths: config2.ignore_paths
   });
+}
+function requireChangedFileResolution(changedFileResolution, phaseName) {
+  if (changedFileResolution !== null) {
+    return changedFileResolution;
+  }
+  throw new Error(
+    `Pushgate could not prepare changed files for the ${phaseName}.`
+  );
 }
 function drainStdin(stdin) {
   return new Promise((resolve, reject) => {
