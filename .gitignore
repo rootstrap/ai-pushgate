@@ -1,5 +1,6 @@
 .DS_Store
 dist/
 node_modules/
-.understand-anything/
+.understand-anything/*
+!.understand-anything/.understandignore
 docs/ONBOARDING.md

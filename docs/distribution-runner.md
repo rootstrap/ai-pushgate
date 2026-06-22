@@ -34,6 +34,17 @@ tooling. The current bundle is dominated by esbuild runtime helpers, `ajv`,
 `yaml`, `ignore`, and Pushgate source modules, so large runner diffs are normal
 when dependency or schema code changes.
 
+## Architecture Analysis
+
+`bin/pushgate.mjs` remains tracked and tested because it is the
+installer-facing distribution artifact. Architecture graphs and documentation
+workflows should treat the TypeScript files under `src/` as the implementation
+truth, then collapse or exclude generated internals such as `bin/pushgate.mjs`
+and `src/generated/*-validator.ts`.
+
+Do not edit generated files by hand. Update the source modules, schemas, or
+build scripts, then regenerate the artifacts.
+
 ## Freshness
 
 `pnpm test` runs `pnpm run bundle` before executing the Node test suite, and
