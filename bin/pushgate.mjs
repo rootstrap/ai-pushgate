@@ -25543,7 +25543,7 @@ function buildLocalAiVerdict(aiMode, result) {
   };
 }
 
-// src/ai/index.ts
+// src/ai/local-ai-gate.ts
 async function runLocalAiReview(options) {
   const stdout = options.stdout ?? process.stdout;
   const provider = resolveProvider(options.aiConfig.provider);
