@@ -1190,6 +1190,52 @@ test("skips local AI before provider invocation when changed-line guardrail is e
   });
 });
 
+test("reports unsupported local AI providers through the public gate", async () => {
+  const output = captureOutput();
+  const result = await runLocalAiReview({
+    aiConfig: {
+      mode: "blocking",
+      max_changed_lines: 500,
+      max_prompt_tokens: 12_000,
+      timeout_seconds: 120,
+      provider: "openai",
+      providers: {
+        openai: {},
+      },
+    },
+    changedFileResolution: {
+      diffBase: "base",
+      files: [
+        {
+          additions: 1,
+          binary: false,
+          deletions: 0,
+          path: "src/changed.ts",
+          status: "modified",
+        },
+      ],
+      targetCommit: "target",
+      targetRef: "main",
+    },
+    repoRoot: process.cwd(),
+    reviewConfig: {
+      context_lines: 10,
+      max_lines_for_full_file: 300,
+      target_branch: "main",
+    },
+    stdout: output.stream,
+  });
+
+  assert.equal(result.exitCode, 1, output.text());
+  assert.match(output.text(), /BLOCK local AI provider openai failed/);
+  assert.match(
+    output.text(),
+    /does not implement the configured AI provider "openai" yet/,
+  );
+  assert.match(output.text(), /Local AI is blocking in this repository/);
+  assert.doesNotMatch(output.text(), /Running local AI review/);
+});
+
 test("skips local AI after prompt rendering when prompt token guardrail is exceeded", async () => {
   await withAiRepo(async (repoRoot) => {
     const changedFileResolution = await resolveChangedFiles({
