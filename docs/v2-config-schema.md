@@ -35,6 +35,17 @@ policies:
       - "secrets/**"
     mode: blocking
 
+plugins:
+  gitleaks:
+    enabled: true
+    command: gitleaks
+    timeout_seconds: 60
+    mode: blocking
+    fail_fast: true
+    config_path: .gitleaks.toml
+    baseline_path: .gitleaks/baseline.json
+    gitleaks_ignore_path: .gitleaksignore
+
 ai:
   mode: blocking
   max_changed_lines: 500
@@ -53,8 +64,9 @@ ignore_paths:
 ```
 
 The core surface is strict. Unknown top-level, `review`, `tools`, `policies`,
-or `ai` keys are validation errors. `ai.providers.<provider>` is the extension
-point for provider-specific nested settings that later adapters consume.
+`plugins`, or `ai` keys are validation errors. `ai.providers.<provider>` is the
+extension point for provider-specific nested settings that later adapters
+consume.
 
 ## Defaults
 
@@ -67,6 +79,7 @@ The loader normalizes omitted optional values into one internal shape:
 | `review.max_lines_for_full_file` | `300` |
 | `tools` | `[]` |
 | `policies` | `{}` |
+| `plugins` | `{}` |
 | `ignore_paths` | `[]` |
 | `ai.mode` | `blocking` |
 | `tools[].timeout_seconds` | `60` |
@@ -75,6 +88,12 @@ The loader normalizes omitted optional values into one internal shape:
 | `tools[].fail_fast` | `true` |
 | `policies.diff_size.mode` | `blocking` |
 | `policies.forbidden_paths.mode` | `blocking` |
+| `plugins.gitleaks.enabled` | `true` |
+| `plugins.gitleaks.command` | `gitleaks` |
+| `plugins.gitleaks.timeout_seconds` | `60` |
+| `plugins.gitleaks.mode` | `blocking` |
+| `plugins.gitleaks.fail_fast` | `true` |
+| `plugins.gitleaks.redact` | `true` |
 | `ai.max_changed_lines` | `500` |
 | `ai.max_prompt_tokens` | `12000` |
 | `ai.timeout_seconds` | `120` |
@@ -180,6 +199,46 @@ after `ignore_paths` filtering. Deleted files are ignored by this policy so
 removing a forbidden file is not blocked. Matching added, modified, copied, or
 renamed target paths are reported with the matched pattern and either block or
 warn according to `mode`.
+
+## Plugins
+
+Plugins are first-class adapters for external tools whose behavior is richer
+than a plain argv command. They run after built-in policies and before generic
+`tools` entries, and they share the same `blocking` or `warning` result model.
+
+### Gitleaks
+
+`plugins.gitleaks` delegates secret scanning to the Gitleaks CLI:
+
+```yaml
+plugins:
+  gitleaks:
+    enabled: true
+    command: gitleaks
+    timeout_seconds: 60
+    mode: blocking
+    fail_fast: true
+    config_path: .gitleaks.toml
+    baseline_path: .gitleaks/baseline.json
+    gitleaks_ignore_path: .gitleaksignore
+    redact: true
+    max_decode_depth: 2
+    max_archive_depth: 1
+    max_target_megabytes: 10
+    enable_rules:
+      - generic-api-key
+```
+
+The adapter runs `gitleaks git` against the resolved branch range
+`<merge-base>..HEAD` and writes findings to a temporary JSON report. That makes
+the push gate catch secrets introduced anywhere in the commits being pushed,
+including secrets added in one commit and removed in a later commit before the
+final diff.
+
+Pushgate owns only the invocation, timeout, redaction default, and local result
+rendering. Rule tuning, baselines, ignored fingerprints, and custom allowlists
+remain Gitleaks concerns through `.gitleaks.toml`, `.gitleaksignore`, and
+baseline reports.
 
 ## Changed-File Policy
 

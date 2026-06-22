@@ -89,13 +89,18 @@ async function runDeterministicPhase(
     return runDeterministicChecks(config, [], options);
   }
 
+  const resolvedChangedFiles = requireChangedFileResolution(
+    changedFileResolution,
+    "deterministic phase",
+  );
+
   return runDeterministicChecks(
     config,
-    requireChangedFileResolution(
-      changedFileResolution,
-      "deterministic phase",
-    ).files,
-    options,
+    resolvedChangedFiles.files,
+    {
+      ...options,
+      changedFileResolution: resolvedChangedFiles,
+    },
   );
 }
 

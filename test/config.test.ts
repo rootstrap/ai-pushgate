@@ -66,6 +66,7 @@ test("normalizes defaults before later Pushgate layers consume config", async ()
     },
     tools: [],
     policies: {},
+    plugins: {},
     ai: {
       mode: "blocking",
       max_changed_lines: 500,
@@ -75,6 +76,45 @@ test("normalizes defaults before later Pushgate layers consume config", async ()
       providers: { claude: {} },
     },
     ignore_paths: [],
+  });
+});
+
+test("normalizes Gitleaks plugin defaults", () => {
+  const config = parseConfigYaml(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "plugins:",
+      "  gitleaks:",
+      "    config_path: .gitleaks.toml",
+      "    baseline_path: .gitleaks/baseline.json",
+      "    gitleaks_ignore_path: .gitleaksignore",
+      "    max_decode_depth: 2",
+      "    max_archive_depth: 1",
+      "    max_target_megabytes: 5",
+      "    enable_rules:",
+      "      - generic-api-key",
+    ].join("\n"),
+    "gitleaks-plugin.yml",
+  );
+
+  assert.deepEqual(config.plugins, {
+    gitleaks: {
+      enabled: true,
+      command: "gitleaks",
+      timeout_seconds: 60,
+      mode: "blocking",
+      fail_fast: true,
+      config_path: ".gitleaks.toml",
+      baseline_path: ".gitleaks/baseline.json",
+      gitleaks_ignore_path: ".gitleaksignore",
+      redact: true,
+      max_decode_depth: 2,
+      max_archive_depth: 1,
+      max_target_megabytes: 5,
+      enable_rules: ["generic-api-key"],
+    },
   });
 });
 
@@ -264,6 +304,42 @@ test("rejects invalid built-in policy settings", () => {
       "    mode: advisory",
     ].join("\n"),
     /\/policies\/forbidden_paths\/mode must be equal to one of the allowed values/,
+  );
+});
+
+test("rejects invalid Gitleaks plugin settings", () => {
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "plugins:",
+      "  gitleaks:",
+      "    command: ''",
+    ].join("\n"),
+    /\/plugins\/gitleaks\/command must NOT have fewer than 1 characters/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "plugins:",
+      "  gitleaks:",
+      "    timeout_seconds: 0",
+    ].join("\n"),
+    /\/plugins\/gitleaks\/timeout_seconds must be >= 1/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "plugins:",
+      "  gitleaks:",
+      "    mode: advisory",
+    ].join("\n"),
+    /\/plugins\/gitleaks\/mode must be equal to one of the allowed values/,
   );
 });
 

@@ -115,6 +115,29 @@ tools: []
 policies: {}
 
 # =============================================================================
+# Plugins
+# =============================================================================
+# Plugin adapters run external scanners through a first-class Pushgate result
+# model. They run after built-in policies and before generic tools.
+#
+# Gitleaks scans the branch commit range for secrets before push. Install it
+# separately (for example, brew install gitleaks) and tune rules with
+# .gitleaks.toml, .gitleaksignore, or a baseline report.
+#
+# plugins:
+#   gitleaks:
+#     enabled: true
+#     command: gitleaks
+#     timeout_seconds: 60
+#     mode: blocking
+#     fail_fast: true
+#     config_path: .gitleaks.toml
+#     baseline_path: .gitleaks/baseline.json
+#     gitleaks_ignore_path: .gitleaksignore
+#
+plugins: {}
+
+# =============================================================================
 # Ignore paths
 # =============================================================================
 # Files and patterns excluded from tool checks and AI review.

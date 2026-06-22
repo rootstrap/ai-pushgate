@@ -6,6 +6,7 @@ import type { DeterministicResultSummary } from "./summary.js";
 export interface DeterministicTranscript {
   writeFailFast(): void;
   writeNoChecks(): void;
+  writePluginResult(name: string, result: ToolResult): void;
   writePolicyResult(result: BuiltInPolicyResult): void;
   writeStart(checkCount: number): void;
   writeSummary(summary: DeterministicResultSummary): void;
@@ -41,6 +42,10 @@ export function createDeterministicTranscript(
       );
     },
 
+    writePluginResult(name, result) {
+      writeRunnableResult(name, result);
+    },
+
     writeStart(checkCount) {
       writeLine(
         stdout,
@@ -63,32 +68,36 @@ export function createDeterministicTranscript(
     },
 
     writeToolResult(tool, result) {
-      if (result.status === "passed") {
-        writeLine(stdout, `[pushgate] PASS ${tool.name}.`);
-        return;
-      }
-
-      if (result.status === "skipped") {
-        writeLine(stdout, `[pushgate] SKIP ${tool.name}: ${result.detail}.`);
-        return;
-      }
-
-      const label = result.status === "warning" ? "WARN" : "BLOCK";
-
-      writeLine(
-        stdout,
-        `[pushgate] ${label} ${tool.name}: ${result.detail ?? "command failed"}.`,
-      );
-
-      if (result.outputTail) {
-        writeLine(stdout, "[pushgate] Command output:");
-
-        for (const line of result.outputTail.split("\n")) {
-          writeLine(stdout, `[pushgate]   ${line}`);
-        }
-      }
+      writeRunnableResult(tool.name, result);
     },
   };
+
+  function writeRunnableResult(name: string, result: ToolResult): void {
+    if (result.status === "passed") {
+      writeLine(stdout, `[pushgate] PASS ${name}.`);
+      return;
+    }
+
+    if (result.status === "skipped") {
+      writeLine(stdout, `[pushgate] SKIP ${name}: ${result.detail}.`);
+      return;
+    }
+
+    const label = result.status === "warning" ? "WARN" : "BLOCK";
+
+    writeLine(
+      stdout,
+      `[pushgate] ${label} ${name}: ${result.detail ?? "command failed"}.`,
+    );
+
+    if (result.outputTail) {
+      writeLine(stdout, "[pushgate] Command output:");
+
+      for (const line of result.outputTail.split("\n")) {
+        writeLine(stdout, `[pushgate]   ${line}`);
+      }
+    }
+  }
 }
 
 function writeLine(stream: NodeJS.WritableStream, line: string): void {

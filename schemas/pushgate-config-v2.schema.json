@@ -25,6 +25,9 @@
     "policies": {
       "$ref": "#/definitions/policies"
     },
+    "plugins": {
+      "$ref": "#/definitions/plugins"
+    },
     "ai": {
       "$ref": "#/definitions/ai"
     },
@@ -161,6 +164,92 @@
         },
         "mode": {
           "$ref": "#/definitions/policyMode"
+        }
+      }
+    },
+    "plugins": {
+      "description": "Optional external plugin adapters managed by Pushgate.",
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "gitleaks": {
+          "$ref": "#/definitions/gitleaksPlugin"
+        }
+      }
+    },
+    "gitleaksPlugin": {
+      "description": "Gitleaks secret-scanner plugin adapter.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Whether the configured plugin should run.",
+          "type": "boolean",
+          "default": true
+        },
+        "command": {
+          "description": "Executable name or path used to invoke Gitleaks.",
+          "type": "string",
+          "minLength": 1,
+          "default": "gitleaks"
+        },
+        "timeout_seconds": {
+          "description": "Maximum plugin runtime before Pushgate treats the scan as timed out.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 60
+        },
+        "mode": {
+          "$ref": "#/definitions/policyMode"
+        },
+        "fail_fast": {
+          "description": "Whether a blocking Gitleaks failure stops later deterministic checks.",
+          "type": "boolean",
+          "default": true
+        },
+        "config_path": {
+          "description": "Optional path to a Gitleaks TOML config file.",
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_path": {
+          "description": "Optional path to a Gitleaks JSON baseline report.",
+          "type": "string",
+          "minLength": 1
+        },
+        "gitleaks_ignore_path": {
+          "description": "Optional path to a .gitleaksignore file or containing folder.",
+          "type": "string",
+          "minLength": 1
+        },
+        "redact": {
+          "description": "Redact detected secret values in Gitleaks output and reports.",
+          "type": "boolean",
+          "default": true
+        },
+        "max_decode_depth": {
+          "description": "Optional Gitleaks decode recursion depth.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_archive_depth": {
+          "description": "Optional Gitleaks archive recursion depth.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_target_megabytes": {
+          "description": "Optional file-size cap forwarded to Gitleaks.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "enable_rules": {
+          "description": "Optional rule IDs to enable exclusively.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

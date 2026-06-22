@@ -2,11 +2,14 @@ import type { PushgateConfig } from "../config/index.js";
 import {
   selectToolChangedFilePaths,
   type ChangedFile,
+  type ChangedFileResolution,
 } from "../path-policy/index.js";
 import {
   countBuiltInPolicies,
   runBuiltInPolicies,
 } from "./policies.js";
+import { runGitleaksPlugin } from "./plugins/gitleaks.js";
+import { countPluginChecks } from "./plugins.js";
 import { summarizeDeterministicResults } from "./summary.js";
 import { createDeterministicTranscript } from "./transcript.js";
 import { runToolCommand } from "./tool-command.js";
@@ -31,6 +34,7 @@ export interface DeterministicCheckSummary {
 }
 
 export interface DeterministicCheckOptions {
+  changedFileResolution?: ChangedFileResolution;
   env?: NodeJS.ProcessEnv;
   repoRoot?: string;
   stderr?: NodeJS.WritableStream;
@@ -48,7 +52,9 @@ export async function runDeterministicChecks(
   const results: ToolResult[] = [];
   const transcript = createDeterministicTranscript(stdout);
   const policyCount = countBuiltInPolicies(config.policies);
-  const checkCount = policyCount + config.tools.length;
+  const pluginCount = countPluginChecks(config.plugins);
+  const checkCount = policyCount + pluginCount + config.tools.length;
+  let stopAfterBlockingPlugin = false;
 
   if (checkCount === 0) {
     transcript.writeNoChecks();
@@ -63,6 +69,53 @@ export async function runDeterministicChecks(
   )) {
     results.push(policyResult);
     transcript.writePolicyResult(policyResult);
+  }
+
+  if (config.plugins.gitleaks?.enabled) {
+    const plugin = config.plugins.gitleaks;
+    const name = "plugin:gitleaks";
+    const commandResult = options.changedFileResolution
+      ? await runGitleaksPlugin(
+          plugin,
+          options.changedFileResolution,
+          repoRoot,
+          env,
+        )
+      : {
+          passed: false,
+          detail: "requires resolved Git diff metadata",
+        };
+
+    if (commandResult.passed) {
+      const result: ToolResult = { name, status: "passed" };
+
+      results.push(result);
+      transcript.writePluginResult(name, result);
+    } else {
+      const status: ToolResultStatus =
+        plugin.mode === "warning" ? "warning" : "blocked";
+      const result: ToolResult = {
+        name,
+        status,
+        detail: commandResult.detail,
+        outputTail: commandResult.outputTail,
+      };
+
+      results.push(result);
+      transcript.writePluginResult(name, result);
+
+      if (status === "blocked" && plugin.fail_fast) {
+        transcript.writeFailFast();
+        stopAfterBlockingPlugin = true;
+      }
+    }
+  }
+
+  if (stopAfterBlockingPlugin) {
+    const resultSummary = summarizeDeterministicResults(results);
+
+    transcript.writeSummary(resultSummary);
+    return { exitCode: resultSummary.exitCode, results };
   }
 
   for (const tool of config.tools) {

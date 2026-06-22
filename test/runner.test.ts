@@ -67,6 +67,23 @@ test("runs built-in policies against resolved pre-push changed files", async () 
   });
 });
 
+test("Gitleaks plugin findings block the pre-push runner", async () => {
+  await withGitleaksRepo(async (repoRoot, env) => {
+    const result = await runRunner(
+      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      "refs/heads/feature local refs/heads/feature remote\n",
+      { cwd: repoRoot, env },
+    );
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /Running 1 deterministic check\(s\)/);
+    assert.match(result.stdout, /BLOCK plugin:gitleaks/);
+    assert.match(result.stdout, /src\/secret\.txt:1 \(generic-api-key\)/);
+    assert.doesNotMatch(result.stdout, /Running local AI review/);
+    assert.equal(result.stderr, "");
+  });
+});
+
 test("skip-all-checks bypasses config loading and deterministic work", async () => {
   await withGitRepo(async (repoRoot) => {
     await checkedRun("git", ["config", "pushgate.skip-all-checks", "true"], {
@@ -528,6 +545,61 @@ async function withPolicyRepo(
   }
 }
 
+async function withGitleaksRepo(
+  callback: (repoRoot: string, env: NodeJS.ProcessEnv) => Promise<void>,
+): Promise<void> {
+  const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-gitleaks-cli-"));
+  const binDir = join(repoRoot, "bin");
+
+  try {
+    await mkdir(binDir, { recursive: true });
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.email", "runner@example.test"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.name", "Pushgate Runner"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(
+      repoRoot,
+      ".pushgate.yml",
+      [
+        "version: 2",
+        "ai:",
+        "  mode: off",
+        "tools: []",
+        "plugins:",
+        "  gitleaks:",
+        "    command: gitleaks",
+        "",
+      ].join("\n"),
+    );
+    await writeRepoFile(repoRoot, "README.md", "base\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "baseline"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["switch", "--quiet", "-c", "feature"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "src/secret.txt", "token\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
+      cwd: repoRoot,
+    });
+    await installGitleaksStub(binDir);
+
+    await callback(repoRoot, {
+      ...process.env,
+      PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+    });
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+}
+
 async function withAiRepo(
   callback: (repoRoot: string, env: NodeJS.ProcessEnv) => Promise<void>,
 ): Promise<void> {
@@ -620,6 +692,27 @@ async function installCopilotStub(binDir: string): Promise<void> {
     ].join("\n"),
   );
   await chmod(join(binDir, "copilot"), 0o755);
+}
+
+async function installGitleaksStub(binDir: string): Promise<void> {
+  await writeFile(
+    join(binDir, "gitleaks"),
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      "report_path=''",
+      "previous=''",
+      "for arg in \"$@\"; do",
+      "  if [ \"$previous\" = '--report-path' ]; then",
+      "    report_path=\"$arg\"",
+      "  fi",
+      "  previous=\"$arg\"",
+      "done",
+      "printf '%s' '[{\"File\":\"src/secret.txt\",\"RuleID\":\"generic-api-key\",\"StartLine\":1}]' > \"$report_path\"",
+      "exit 1",
+    ].join("\n"),
+  );
+  await chmod(join(binDir, "gitleaks"), 0o755);
 }
 
 interface CommandOptions {

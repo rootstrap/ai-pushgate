@@ -5,8 +5,15 @@ import { dirname, join } from "node:path";
 import { Writable } from "node:stream";
 import test from "node:test";
 
-import type { PushgateConfig, ToolConfig } from "../src/config/index.js";
-import type { ChangedFile } from "../src/path-policy/index.js";
+import type {
+  GitleaksPluginConfig,
+  PushgateConfig,
+  ToolConfig,
+} from "../src/config/index.js";
+import type {
+  ChangedFile,
+  ChangedFileResolution,
+} from "../src/path-policy/index.js";
 import {
   expandChangedFilesToken,
   runDeterministicChecks,
@@ -37,6 +44,13 @@ const changedFiles: ChangedFile[] = [
     status: "deleted",
   },
 ];
+
+const changedFileResolution: ChangedFileResolution = {
+  diffBase: "abc123",
+  files: changedFiles,
+  targetCommit: "def456",
+  targetRef: "main",
+};
 
 test("expands changed files as argv entries without shell interpolation", async () => {
   await withTempDir(async (repoRoot) => {
@@ -250,6 +264,103 @@ test("missing commands are handled according to tool mode", async () => {
   });
 });
 
+test("runs Gitleaks plugin over the resolved branch commit range", async () => {
+  await withTempDir(async (repoRoot) => {
+    const gitleaks = await writeGitleaksStub(repoRoot);
+    const argsPath = join(repoRoot, "gitleaks-args.json");
+    const output = captureOutput();
+    const summary = await runDeterministicChecks(
+      {
+        ...configWithTools([]),
+        plugins: {
+          gitleaks: gitleaksPlugin({ command: gitleaks }),
+        },
+      },
+      changedFiles,
+      {
+        changedFileResolution,
+        env: {
+          ...process.env,
+          PUSHGATE_GITLEAKS_ARGS_OUT: argsPath,
+          PUSHGATE_GITLEAKS_EXIT_CODE: "1",
+          PUSHGATE_GITLEAKS_REPORT: JSON.stringify([
+            {
+              File: "src/config.ts",
+              RuleID: "generic-api-key",
+              StartLine: 3,
+            },
+          ]),
+        },
+        repoRoot,
+        stdout: output.stream,
+      },
+    );
+
+    assert.equal(summary.exitCode, 1, output.text());
+    assert.equal(summary.results[0]?.status, "blocked");
+    assert.match(output.text(), /BLOCK plugin:gitleaks/);
+    assert.match(output.text(), /src\/config\.ts:3 \(generic-api-key\)/);
+
+    const args = JSON.parse(await readFile(argsPath, "utf8")) as string[];
+    assert.equal(args[0], "git");
+    assert.ok(args.includes("--redact"));
+    assert.equal(args[args.indexOf("--report-format") + 1], "json");
+    assert.equal(args[args.indexOf("--log-opts") + 1], "abc123..HEAD");
+    assert.equal(args.at(-1), repoRoot);
+  });
+});
+
+test("warning-mode Gitleaks findings do not stop later tools", async () => {
+  await withTempDir(async (repoRoot) => {
+    const gitleaks = await writeGitleaksStub(repoRoot);
+    const recorder = await writeArgRecorder(repoRoot);
+    const argsPath = join(repoRoot, "tool-args.json");
+    const output = captureOutput();
+    const summary = await runDeterministicChecks(
+      {
+        ...configWithTools([
+          tool({
+            command: [process.execPath, recorder],
+          }),
+        ]),
+        plugins: {
+          gitleaks: gitleaksPlugin({
+            command: gitleaks,
+            mode: "warning",
+          }),
+        },
+      },
+      changedFiles,
+      {
+        changedFileResolution,
+        env: {
+          ...process.env,
+          PUSHGATE_ARGS_OUT: argsPath,
+          PUSHGATE_GITLEAKS_EXIT_CODE: "1",
+          PUSHGATE_GITLEAKS_REPORT: JSON.stringify([
+            {
+              File: "README.md",
+              RuleID: "generic-api-key",
+              StartLine: 1,
+            },
+          ]),
+        },
+        repoRoot,
+        stdout: output.stream,
+      },
+    );
+
+    assert.equal(summary.exitCode, 0, output.text());
+    assert.deepEqual(
+      summary.results.map((result) => result.status),
+      ["warning", "passed"],
+    );
+    assert.deepEqual(JSON.parse(await readFile(argsPath, "utf8")), []);
+    assert.match(output.text(), /WARN plugin:gitleaks/);
+    assert.match(output.text(), /PASS check/);
+  });
+});
+
 test("runs built-in policies and makes warning versus blocking behavior explicit", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
@@ -390,6 +501,7 @@ function configWithTools(tools: ToolConfig[]): PushgateConfig {
     },
     tools,
     policies: {},
+    plugins: {},
     ai: {
       mode: "off",
       max_changed_lines: 500,
@@ -398,6 +510,20 @@ function configWithTools(tools: ToolConfig[]): PushgateConfig {
       providers: {},
     },
     ignore_paths: [],
+  };
+}
+
+function gitleaksPlugin(
+  overrides: Partial<GitleaksPluginConfig> = {},
+): GitleaksPluginConfig {
+  return {
+    enabled: true,
+    command: "gitleaks",
+    timeout_seconds: 60,
+    mode: "blocking",
+    fail_fast: true,
+    redact: true,
+    ...overrides,
   };
 }
 
@@ -434,6 +560,30 @@ async function writeArgRecorder(repoRoot: string): Promise<string> {
     [
       "import { writeFileSync } from 'node:fs';",
       "writeFileSync(process.env.PUSHGATE_ARGS_OUT, JSON.stringify(process.argv.slice(2)));",
+    ].join("\n"),
+  );
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
+}
+
+async function writeGitleaksStub(repoRoot: string): Promise<string> {
+  const scriptPath = join(repoRoot, "bin", "gitleaks-stub.mjs");
+
+  await mkdir(dirname(scriptPath), { recursive: true });
+  await writeFile(
+    scriptPath,
+    [
+      "#!/usr/bin/env node",
+      "import { writeFileSync } from 'node:fs';",
+      "const args = process.argv.slice(2);",
+      "if (process.env.PUSHGATE_GITLEAKS_ARGS_OUT) {",
+      "  writeFileSync(process.env.PUSHGATE_GITLEAKS_ARGS_OUT, JSON.stringify(args));",
+      "}",
+      "const reportPath = args[args.indexOf('--report-path') + 1];",
+      "if (reportPath && process.env.PUSHGATE_GITLEAKS_REPORT) {",
+      "  writeFileSync(reportPath, process.env.PUSHGATE_GITLEAKS_REPORT);",
+      "}",
+      "process.exit(Number(process.env.PUSHGATE_GITLEAKS_EXIT_CODE ?? '0'));",
     ].join("\n"),
   );
   await chmod(scriptPath, 0o755);
