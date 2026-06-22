@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.0](https://github.com/rootstrap/ai-pushgate/compare/v3.3.1...v3.4.0) (2026-06-22)
+
+
+### Features
+
+* add gitleaks plugin integration ([#49](https://github.com/rootstrap/ai-pushgate/issues/49)) ([ad085c1](https://github.com/rootstrap/ai-pushgate/commit/ad085c1ff8c10a9c4f59bb23cc33d9cb3415a65f))
+
 ## [3.3.1](https://github.com/rootstrap/ai-pushgate/compare/v3.3.0...v3.3.1) (2026-06-18)
 
 
