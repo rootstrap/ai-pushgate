@@ -9144,21 +9144,77 @@ function matchesExtension(path, extensions) {
   return extensions.some((extension) => path.endsWith(extension));
 }
 
-// src/process/run-command.ts
+// src/process/captured-command.ts
 import { spawn } from "node:child_process";
-function runCommand(options) {
-  const outputEncoding = options.outputEncoding ?? "utf8";
-  return new Promise((resolve, reject) => {
+
+// src/process/output.ts
+function appendCapped(current, next, outputCaptureLimit) {
+  const combined = current + next;
+  if (combined.length <= outputCaptureLimit) {
+    return combined;
+  }
+  return combined.slice(-outputCaptureLimit);
+}
+function formatOutputTail(stdout, stderr, outputTailLimit) {
+  const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
+  if (!output) {
+    return void 0;
+  }
+  if (output.length <= outputTailLimit) {
+    return output;
+  }
+  return output.slice(-outputTailLimit);
+}
+
+// src/process/captured-command.ts
+function runCapturedCommand(options) {
+  return new Promise((resolve) => {
+    const outputEncoding = options.outputEncoding;
+    const stdoutBuffers = [];
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    let settled = false;
+    let killTimer;
+    let timeoutTimer;
     const child = spawn(options.command, [...options.args ?? []], {
       cwd: options.cwd,
       env: options.env,
+      shell: options.shell,
       stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
     });
-    const stdoutBuffers = [];
-    let stderr = "";
-    let stdout = "";
+    const capturedStdout = () => outputEncoding === "buffer" ? Buffer.concat(stdoutBuffers) : stdout;
+    const capturedOutputTail = () => outputEncoding === "utf8" && options.outputTailLimit !== void 0 ? formatOutputTail(stdout, stderr, options.outputTailLimit) : void 0;
+    const finish = (result) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+      }
+      if (killTimer) {
+        clearTimeout(killTimer);
+      }
+      resolve(result);
+    };
+    if (options.timeoutMs !== void 0) {
+      timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGTERM");
+        killTimer = setTimeout(() => {
+          child.kill("SIGKILL");
+        }, options.killGraceMs ?? 0);
+      }, options.timeoutMs);
+    }
     if (!child.stdout || !child.stderr) {
-      reject(new Error(`${options.command} output streams were not captured.`));
+      finish({
+        error: new Error(`${options.command} output streams were not captured.`),
+        kind: "spawn-error",
+        outputTail: capturedOutputTail(),
+        stderr,
+        stdout: capturedStdout()
+      });
       return;
     }
     if (outputEncoding === "buffer") {
@@ -9168,39 +9224,95 @@ function runCommand(options) {
     } else {
       child.stdout.setEncoding("utf8");
       child.stdout.on("data", (data) => {
-        stdout += data;
+        stdout = appendCaptured(stdout, data, options.outputCaptureLimit);
       });
     }
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (data) => {
-      stderr += data;
+      stderr = appendCaptured(stderr, data, options.outputCaptureLimit);
     });
-    child.on("error", reject);
+    child.on("error", (error51) => {
+      finish({
+        error: error51,
+        kind: "spawn-error",
+        outputTail: capturedOutputTail(),
+        stderr,
+        stdout: capturedStdout()
+      });
+    });
     child.on("close", (code, signal) => {
-      if (outputEncoding === "buffer") {
-        resolve({
-          code,
-          signal,
+      if (timedOut) {
+        finish({
+          kind: "timeout",
+          outputTail: capturedOutputTail(),
           stderr,
-          stdout: Buffer.concat(stdoutBuffers)
+          stdout: capturedStdout()
         });
         return;
       }
-      resolve({
+      finish({
         code,
+        kind: "completed",
+        outputTail: capturedOutputTail(),
         signal,
         stderr,
-        stdout
+        stdout: capturedStdout()
       });
     });
     if (options.stdin !== void 0) {
       if (!child.stdin) {
-        reject(new Error(`${options.command} stdin was not piped.`));
+        finish({
+          error: new Error(`${options.command} stdin was not piped.`),
+          kind: "spawn-error",
+          outputTail: capturedOutputTail(),
+          stderr,
+          stdout: capturedStdout()
+        });
         return;
+      }
+      if (options.ignoreStdinErrors) {
+        child.stdin.on("error", () => {
+        });
       }
       child.stdin.end(options.stdin);
     }
   });
+}
+function appendCaptured(current, next, outputCaptureLimit) {
+  return outputCaptureLimit === void 0 ? current + next : appendCapped(current, next, outputCaptureLimit);
+}
+
+// src/process/run-command.ts
+async function runCommand(options) {
+  const outputEncoding = options.outputEncoding ?? "utf8";
+  if (outputEncoding === "buffer") {
+    return completedResult(
+      await runCapturedCommand({
+        ...options,
+        outputEncoding: "buffer"
+      })
+    );
+  }
+  return completedResult(
+    await runCapturedCommand({
+      ...options,
+      outputEncoding: "utf8"
+    })
+  );
+}
+function completedResult(result) {
+  if (result.kind === "spawn-error") {
+    throw result.error;
+  }
+  if (result.kind === "timeout") {
+    throw new Error("Command timed out unexpectedly.");
+  }
+  return {
+    code: result.code,
+    signal: result.signal,
+    stderr: result.stderr,
+    stdout: result.stdout
+  };
 }
 
 // src/git/command.ts
@@ -24851,123 +24963,45 @@ function normalizeProviderReviewOutput(options) {
 }
 
 // src/process/timed-command.ts
-import { spawn as spawn3 } from "node:child_process";
-
-// src/process/output.ts
-function appendCapped(current, next, outputCaptureLimit) {
-  const combined = current + next;
-  if (combined.length <= outputCaptureLimit) {
-    return combined;
-  }
-  return combined.slice(-outputCaptureLimit);
-}
-function formatOutputTail(stdout, stderr, outputTailLimit) {
-  const output = [stdout.trimEnd(), stderr.trimEnd()].filter(Boolean).join("\n");
-  if (!output) {
-    return void 0;
-  }
-  if (output.length <= outputTailLimit) {
-    return output;
-  }
-  return output.slice(-outputTailLimit);
-}
-
-// src/process/timed-command.ts
 var DEFAULT_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
 var DEFAULT_OUTPUT_TAIL_LIMIT = 4 * 1024;
 var DEFAULT_KILL_GRACE_MS = 1e3;
-function runTimedCommand(options) {
-  return new Promise((resolve) => {
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    let settled = false;
-    let killTimer;
-    let timeoutTimer;
-    const outputCaptureLimit = options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT;
-    const outputTailLimit = options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT;
-    const killGraceMs = options.killGraceMs ?? DEFAULT_KILL_GRACE_MS;
-    const child = spawn3(options.command, [...options.args], {
-      cwd: options.cwd,
-      env: options.env,
-      shell: false,
-      stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
-    });
-    const capturedOutputTail = () => formatOutputTail(stdout, stderr, outputTailLimit);
-    const finish = (result) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      if (timeoutTimer) {
-        clearTimeout(timeoutTimer);
-      }
-      if (killTimer) {
-        clearTimeout(killTimer);
-      }
-      resolve(result);
-    };
-    timeoutTimer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-      killTimer = setTimeout(() => {
-        child.kill("SIGKILL");
-      }, killGraceMs);
-    }, options.timeoutSeconds * 1e3);
-    if (!child.stdout || !child.stderr) {
-      finish({
-        error: new Error(`${options.command} output streams were not captured.`),
-        kind: "spawn-error",
-        outputTail: capturedOutputTail()
-      });
-      return;
-    }
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (data) => {
-      stdout = appendCapped(stdout, data, outputCaptureLimit);
-    });
-    child.stderr.on("data", (data) => {
-      stderr = appendCapped(stderr, data, outputCaptureLimit);
-    });
-    child.on("error", (error51) => {
-      finish({
-        error: error51,
-        kind: "spawn-error",
-        outputTail: capturedOutputTail()
-      });
-    });
-    child.on("close", (code, signal) => {
-      if (timedOut) {
-        finish({
-          kind: "timeout",
-          outputTail: capturedOutputTail()
-        });
-        return;
-      }
-      finish({
-        code,
-        kind: "completed",
-        outputTail: capturedOutputTail(),
-        signal,
-        stderr,
-        stdout
-      });
-    });
-    if (options.stdin !== void 0) {
-      if (!child.stdin) {
-        finish({
-          error: new Error(`${options.command} stdin was not piped.`),
-          kind: "spawn-error",
-          outputTail: capturedOutputTail()
-        });
-        return;
-      }
-      child.stdin.on("error", () => {
-      });
-      child.stdin.end(options.stdin);
-    }
+async function runTimedCommand(options) {
+  const commandResult = await runCapturedCommand({
+    args: options.args,
+    command: options.command,
+    cwd: options.cwd,
+    env: options.env,
+    ignoreStdinErrors: true,
+    killGraceMs: options.killGraceMs ?? DEFAULT_KILL_GRACE_MS,
+    outputCaptureLimit: options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
+    outputEncoding: "utf8",
+    outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
+    shell: false,
+    stdin: options.stdin,
+    timeoutMs: options.timeoutSeconds * 1e3
   });
+  if (commandResult.kind === "spawn-error") {
+    return {
+      error: commandResult.error,
+      kind: "spawn-error",
+      outputTail: commandResult.outputTail
+    };
+  }
+  if (commandResult.kind === "timeout") {
+    return {
+      kind: "timeout",
+      outputTail: commandResult.outputTail
+    };
+  }
+  return {
+    code: commandResult.code,
+    kind: "completed",
+    outputTail: commandResult.outputTail,
+    signal: commandResult.signal,
+    stderr: commandResult.stderr,
+    stdout: commandResult.stdout
+  };
 }
 
 // src/ai/providers/run-provider-command.ts
