@@ -1,0 +1,5 @@
+# Exclude generated internals from architecture analysis.
+# They remain tracked and tested as distribution/release artifacts.
+
+bin/pushgate.mjs
+src/generated/*-validator.ts
