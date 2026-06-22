@@ -9564,6 +9564,225 @@ function selectProviderModel(providerConfig) {
   return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
 }
 
+// src/ai/review-output/candidates.ts
+function buildCandidates(output) {
+  const seen = /* @__PURE__ */ new Set();
+  const candidates = [];
+  const addCandidate = (value, source, notes = []) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue.length === 0 || seen.has(trimmedValue)) {
+      return;
+    }
+    seen.add(trimmedValue);
+    candidates.push({
+      notes,
+      source,
+      value: trimmedValue
+    });
+  };
+  addCandidate(output, "provider response");
+  for (const fencedJson of extractFencedJsonBlocks(output)) {
+    addCandidate(fencedJson, "fenced JSON block", [
+      "Extracted the review JSON from a fenced code block."
+    ]);
+  }
+  for (const objectSlice of extractJsonObjectSlices(output)) {
+    addCandidate(objectSlice, "embedded JSON object", [
+      "Extracted the review JSON from surrounding provider prose."
+    ]);
+  }
+  return candidates;
+}
+function extractFencedJsonBlocks(output) {
+  const matches = output.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
+  return [...matches].map((match) => match[1] ?? "");
+}
+function extractJsonObjectSlices(output) {
+  const slices = [];
+  for (let index = 0; index < output.length; index += 1) {
+    if (output[index] !== "{") {
+      continue;
+    }
+    const endIndex = findJsonObjectEnd(output, index);
+    if (endIndex === null) {
+      continue;
+    }
+    const sliced = output.slice(index, endIndex + 1);
+    if (sliced !== output) {
+      slices.push(sliced);
+    }
+  }
+  return slices;
+}
+function findJsonObjectEnd(value, startIndex) {
+  let depth = 0;
+  let escaped = false;
+  let inString = false;
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (character === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === "{") {
+      depth += 1;
+      continue;
+    }
+    if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+  return null;
+}
+
+// src/ai/review-output/json-repair.ts
+function repairJsonCandidate(value) {
+  let repaired = value;
+  const notes = [];
+  const strippedListMarker = stripLeadingJsonListMarker(repaired);
+  if (strippedListMarker !== repaired) {
+    repaired = strippedListMarker;
+    notes.push("Stripped a leading list marker before the review JSON.");
+  }
+  const escapedControlCharacters = escapeControlCharactersInJsonStrings(repaired);
+  if (escapedControlCharacters !== repaired) {
+    repaired = escapedControlCharacters;
+    notes.push("Escaped raw control characters inside JSON strings.");
+  }
+  const removedTrailingCommas = removeTrailingCommasBeforeJsonClose(repaired);
+  if (removedTrailingCommas !== repaired) {
+    repaired = removedTrailingCommas;
+    notes.push("Removed trailing commas from JSON objects/arrays.");
+  }
+  if (notes.length === 0) {
+    return null;
+  }
+  return {
+    notes,
+    value: repaired
+  };
+}
+function stripLeadingJsonListMarker(value) {
+  return value.replace(/^\s*[•●▪◦*-]\s*(?=\{)/u, "");
+}
+function escapeControlCharactersInJsonStrings(value) {
+  let changed = false;
+  let escaped = false;
+  let inString = false;
+  let repaired = "";
+  for (const character of value) {
+    if (!inString) {
+      repaired += character;
+      if (character === '"') {
+        inString = true;
+      }
+      continue;
+    }
+    if (escaped) {
+      repaired += character;
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      repaired += character;
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      repaired += character;
+      inString = false;
+      continue;
+    }
+    if (character.charCodeAt(0) < 32) {
+      changed = true;
+      repaired += escapeJsonControlCharacter(character);
+      continue;
+    }
+    repaired += character;
+  }
+  return changed ? repaired : value;
+}
+function escapeJsonControlCharacter(character) {
+  switch (character) {
+    case "\b":
+      return "\\b";
+    case "\f":
+      return "\\f";
+    case "\n":
+      return "\\n";
+    case "\r":
+      return "\\r";
+    case "	":
+      return "\\t";
+    default:
+      return `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`;
+  }
+}
+function removeTrailingCommasBeforeJsonClose(value) {
+  let changed = false;
+  let escaped = false;
+  let inString = false;
+  let repaired = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+    if (inString) {
+      repaired += character;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (character === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (character === '"') {
+      repaired += character;
+      inString = true;
+      continue;
+    }
+    if (character === ",") {
+      const nextNonWhitespace = findNextNonJsonWhitespace(value, index + 1);
+      if (nextNonWhitespace !== null && ["]", "}"].includes(value[nextNonWhitespace] ?? "")) {
+        changed = true;
+        continue;
+      }
+    }
+    repaired += character;
+  }
+  return changed ? repaired : value;
+}
+function findNextNonJsonWhitespace(value, startIndex) {
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+    if (![" ", "\n", "\r", "	"].includes(character)) {
+      return index;
+    }
+  }
+  return null;
+}
+
 // node_modules/.pnpm/zod@4.4.3/node_modules/zod/v4/classic/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -24245,12 +24464,231 @@ function typedKeys(value) {
   return Object.freeze(Object.keys(value));
 }
 
-// src/ai/review-output.ts
+// src/ai/review-output/normalization.ts
 var BLOCKING_CATEGORY_SET = new Set(AI_BLOCKING_CATEGORIES);
+var WARNING_CATEGORY_SET = new Set(AI_WARNING_CATEGORIES);
+function validateFindingSemantics(findings) {
+  const diagnostics = [];
+  for (const finding of findings) {
+    if (BLOCKING_CATEGORY_SET.has(finding.category) && finding.severity !== "blocking") {
+      diagnostics.push(
+        `Finding ${JSON.stringify(finding.category)} must use severity "blocking".`
+      );
+    }
+    if (WARNING_CATEGORY_SET.has(finding.category) && finding.severity !== "warning") {
+      diagnostics.push(
+        `Finding ${JSON.stringify(finding.category)} must use severity "warning".`
+      );
+    }
+  }
+  return diagnostics;
+}
+function normalizeFinding(finding, source) {
+  return {
+    category: finding.category,
+    confidence: finding.confidence,
+    severity: finding.severity,
+    file: finding.file,
+    line: finding.line,
+    message: finding.message,
+    source: {
+      provider: source.provider,
+      ...source.model ? { model: source.model } : {}
+    },
+    suggestion: finding.suggestion
+  };
+}
+function summarizeFindings(findings) {
+  const blockingCount = findings.filter(
+    (finding) => finding.severity === "blocking"
+  ).length;
+  const warningCount = findings.filter(
+    (finding) => finding.severity === "warning"
+  ).length;
+  return {
+    blockingCount,
+    warningCount,
+    verdict: blockingCount > 0 ? "BLOCK" : "PASS"
+  };
+}
+
+// src/ai/review-output/validation.ts
 var FINDING_REVIEW_KEYS = new Set(AI_REVIEW_FINDING_KEYS);
 var KEY_REPAIR_NORMALIZATION_NOTE = "Normalized whitespace around AI review JSON property names.";
 var TOP_LEVEL_REVIEW_KEYS = new Set(AI_REVIEW_TOP_LEVEL_KEYS);
-var WARNING_CATEGORY_SET = new Set(AI_WARNING_CATEGORIES);
+function validateRepairingReview(parsed) {
+  const repairedKeys = repairWhitespaceCorruptedReviewKeys(parsed);
+  if (repairedKeys.kind === "ambiguous") {
+    return repairedKeys;
+  }
+  const validation = validateParsedReview(repairedKeys.value);
+  if (validation.review !== null) {
+    return {
+      kind: "valid",
+      notes: repairedKeys.notes,
+      review: validation.review
+    };
+  }
+  return {
+    errors: validation.errors,
+    kind: "invalid"
+  };
+}
+function unwrapSingleNestedObject(value) {
+  if (!isPlainObject2(value)) {
+    return null;
+  }
+  const entries = Object.entries(value);
+  if (entries.length !== 1) {
+    return null;
+  }
+  const [key, nestedValue] = entries[0];
+  return isPlainObject2(nestedValue) ? { key, value: nestedValue } : null;
+}
+function formatSchemaDiagnostics(errors) {
+  if (errors.length === 0) {
+    return "The JSON object did not match the Pushgate review schema.";
+  }
+  return errors.map(formatSchemaError2).join(" ");
+}
+function validateParsedReview(parsed) {
+  const schemaValidation = validateAiReviewOutputContract(parsed);
+  if (schemaValidation.valid) {
+    return {
+      errors: [],
+      review: schemaValidation.data
+    };
+  }
+  return {
+    errors: schemaValidation.errors,
+    review: null
+  };
+}
+function repairWhitespaceCorruptedReviewKeys(value) {
+  if (!isPlainObject2(value)) {
+    return {
+      kind: "success",
+      notes: [],
+      value
+    };
+  }
+  const topLevelRepair = repairKnownObjectKeys(
+    value,
+    TOP_LEVEL_REVIEW_KEYS,
+    "/"
+  );
+  if (topLevelRepair.kind === "ambiguous") {
+    return topLevelRepair;
+  }
+  let repairedReview = topLevelRepair.value;
+  let changed = topLevelRepair.changed;
+  if (Array.isArray(repairedReview.findings)) {
+    const repairedFindings = [];
+    let changedFindings = false;
+    for (let index = 0; index < repairedReview.findings.length; index += 1) {
+      const finding = repairedReview.findings[index];
+      if (!isPlainObject2(finding)) {
+        repairedFindings.push(finding);
+        continue;
+      }
+      const findingRepair = repairKnownObjectKeys(
+        finding,
+        FINDING_REVIEW_KEYS,
+        `/findings/${String(index)}`
+      );
+      if (findingRepair.kind === "ambiguous") {
+        return findingRepair;
+      }
+      changedFindings = changedFindings || findingRepair.changed;
+      repairedFindings.push(findingRepair.value);
+    }
+    if (changedFindings) {
+      repairedReview = {
+        ...repairedReview,
+        findings: repairedFindings
+      };
+      changed = true;
+    }
+  }
+  return {
+    kind: "success",
+    notes: changed ? [KEY_REPAIR_NORMALIZATION_NOTE] : [],
+    value: changed ? repairedReview : value
+  };
+}
+function repairKnownObjectKeys(value, allowedKeys, path) {
+  const repairedEntries = [];
+  const originalKeysByRepairedKey = /* @__PURE__ */ new Map();
+  let changed = false;
+  for (const [key, childValue] of Object.entries(value)) {
+    const repairedKey = repairKnownReviewKey(key, allowedKeys);
+    const existingOriginalKey = originalKeysByRepairedKey.get(repairedKey);
+    if (existingOriginalKey !== void 0) {
+      return {
+        kind: "ambiguous",
+        message: [
+          `Cannot normalize whitespace around AI review JSON property names at ${path}:`,
+          `${JSON.stringify(existingOriginalKey)} and ${JSON.stringify(key)}`,
+          `both resolve to ${JSON.stringify(repairedKey)}.`
+        ].join(" ")
+      };
+    }
+    if (repairedKey !== key) {
+      changed = true;
+    }
+    originalKeysByRepairedKey.set(repairedKey, key);
+    repairedEntries.push([repairedKey, childValue]);
+  }
+  return {
+    changed,
+    kind: "success",
+    value: changed ? Object.fromEntries(repairedEntries) : value
+  };
+}
+function repairKnownReviewKey(key, allowedKeys) {
+  const trimmedKey = trimAsciiWhitespaceAndControlCharacters(key);
+  return trimmedKey !== key && allowedKeys.has(trimmedKey) ? trimmedKey : key;
+}
+function trimAsciiWhitespaceAndControlCharacters(value) {
+  let start = 0;
+  let end = value.length;
+  while (start < end && isAsciiWhitespaceOrControlCharacter(value.charCodeAt(start))) {
+    start += 1;
+  }
+  while (end > start && isAsciiWhitespaceOrControlCharacter(value.charCodeAt(end - 1))) {
+    end -= 1;
+  }
+  return value.slice(start, end);
+}
+function isAsciiWhitespaceOrControlCharacter(charCode) {
+  return charCode <= 32 || charCode === 127;
+}
+function isPlainObject2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function formatSchemaError2(error51) {
+  const path = error51.instancePath || "/";
+  switch (error51.keyword) {
+    case "additionalProperties": {
+      const property = String(error51.params.additionalProperty);
+      return `${path} includes unsupported property ${JSON.stringify(property)}.`;
+    }
+    case "const":
+      return `${path} must equal 1 for schema_version.`;
+    case "enum":
+      return `${path} must be one of the allowed values.`;
+    case "minLength":
+      return `${path} must not be empty.`;
+    case "required":
+      return `${path} is missing required property ${JSON.stringify(String(error51.params.missingProperty))}.`;
+    case "type":
+      return `${path} must be ${String(error51.params.type)}.`;
+    default:
+      return `${path}: ${error51.message ?? "failed validation"}.`;
+  }
+}
+
+// src/ai/review-output.ts
 var AiReviewOutputError = class extends Error {
   diagnostics;
   constructor(message, diagnostics = []) {
@@ -24366,436 +24804,6 @@ function parseJsonCandidate(candidate) {
     kind: "failure",
     diagnostics
   };
-}
-function validateRepairingReview(parsed) {
-  const repairedKeys = repairWhitespaceCorruptedReviewKeys(parsed);
-  if (repairedKeys.kind === "ambiguous") {
-    return repairedKeys;
-  }
-  const validation = validateParsedReview(repairedKeys.value);
-  if (validation.review !== null) {
-    return {
-      kind: "valid",
-      notes: repairedKeys.notes,
-      review: validation.review
-    };
-  }
-  return {
-    errors: validation.errors,
-    kind: "invalid"
-  };
-}
-function validateParsedReview(parsed) {
-  const schemaValidation = validateAiReviewOutputContract(parsed);
-  if (schemaValidation.valid) {
-    return {
-      errors: [],
-      review: schemaValidation.data
-    };
-  }
-  return {
-    errors: schemaValidation.errors,
-    review: null
-  };
-}
-function repairWhitespaceCorruptedReviewKeys(value) {
-  if (!isPlainObject2(value)) {
-    return {
-      kind: "success",
-      notes: [],
-      value
-    };
-  }
-  const topLevelRepair = repairKnownObjectKeys(
-    value,
-    TOP_LEVEL_REVIEW_KEYS,
-    "/"
-  );
-  if (topLevelRepair.kind === "ambiguous") {
-    return topLevelRepair;
-  }
-  let repairedReview = topLevelRepair.value;
-  let changed = topLevelRepair.changed;
-  if (Array.isArray(repairedReview.findings)) {
-    const repairedFindings = [];
-    let changedFindings = false;
-    for (let index = 0; index < repairedReview.findings.length; index += 1) {
-      const finding = repairedReview.findings[index];
-      if (!isPlainObject2(finding)) {
-        repairedFindings.push(finding);
-        continue;
-      }
-      const findingRepair = repairKnownObjectKeys(
-        finding,
-        FINDING_REVIEW_KEYS,
-        `/findings/${String(index)}`
-      );
-      if (findingRepair.kind === "ambiguous") {
-        return findingRepair;
-      }
-      changedFindings = changedFindings || findingRepair.changed;
-      repairedFindings.push(findingRepair.value);
-    }
-    if (changedFindings) {
-      repairedReview = {
-        ...repairedReview,
-        findings: repairedFindings
-      };
-      changed = true;
-    }
-  }
-  return {
-    kind: "success",
-    notes: changed ? [KEY_REPAIR_NORMALIZATION_NOTE] : [],
-    value: changed ? repairedReview : value
-  };
-}
-function repairKnownObjectKeys(value, allowedKeys, path) {
-  const repairedEntries = [];
-  const originalKeysByRepairedKey = /* @__PURE__ */ new Map();
-  let changed = false;
-  for (const [key, childValue] of Object.entries(value)) {
-    const repairedKey = repairKnownReviewKey(key, allowedKeys);
-    const existingOriginalKey = originalKeysByRepairedKey.get(repairedKey);
-    if (existingOriginalKey !== void 0) {
-      return {
-        kind: "ambiguous",
-        message: [
-          `Cannot normalize whitespace around AI review JSON property names at ${path}:`,
-          `${JSON.stringify(existingOriginalKey)} and ${JSON.stringify(key)}`,
-          `both resolve to ${JSON.stringify(repairedKey)}.`
-        ].join(" ")
-      };
-    }
-    if (repairedKey !== key) {
-      changed = true;
-    }
-    originalKeysByRepairedKey.set(repairedKey, key);
-    repairedEntries.push([repairedKey, childValue]);
-  }
-  return {
-    changed,
-    kind: "success",
-    value: changed ? Object.fromEntries(repairedEntries) : value
-  };
-}
-function repairKnownReviewKey(key, allowedKeys) {
-  const trimmedKey = trimAsciiWhitespaceAndControlCharacters(key);
-  return trimmedKey !== key && allowedKeys.has(trimmedKey) ? trimmedKey : key;
-}
-function trimAsciiWhitespaceAndControlCharacters(value) {
-  let start = 0;
-  let end = value.length;
-  while (start < end && isAsciiWhitespaceOrControlCharacter(value.charCodeAt(start))) {
-    start += 1;
-  }
-  while (end > start && isAsciiWhitespaceOrControlCharacter(value.charCodeAt(end - 1))) {
-    end -= 1;
-  }
-  return value.slice(start, end);
-}
-function isAsciiWhitespaceOrControlCharacter(charCode) {
-  return charCode <= 32 || charCode === 127;
-}
-function buildCandidates(output) {
-  const seen = /* @__PURE__ */ new Set();
-  const candidates = [];
-  const addCandidate = (value, source, notes = []) => {
-    const trimmedValue = value.trim();
-    if (trimmedValue.length === 0 || seen.has(trimmedValue)) {
-      return;
-    }
-    seen.add(trimmedValue);
-    candidates.push({
-      notes,
-      source,
-      value: trimmedValue
-    });
-  };
-  addCandidate(output, "provider response");
-  for (const fencedJson of extractFencedJsonBlocks(output)) {
-    addCandidate(fencedJson, "fenced JSON block", [
-      "Extracted the review JSON from a fenced code block."
-    ]);
-  }
-  for (const objectSlice of extractJsonObjectSlices(output)) {
-    addCandidate(objectSlice, "embedded JSON object", [
-      "Extracted the review JSON from surrounding provider prose."
-    ]);
-  }
-  return candidates;
-}
-function extractFencedJsonBlocks(output) {
-  const matches = output.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
-  return [...matches].map((match) => match[1] ?? "");
-}
-function extractJsonObjectSlices(output) {
-  const slices = [];
-  for (let index = 0; index < output.length; index += 1) {
-    if (output[index] !== "{") {
-      continue;
-    }
-    const endIndex = findJsonObjectEnd(output, index);
-    if (endIndex === null) {
-      continue;
-    }
-    const sliced = output.slice(index, endIndex + 1);
-    if (sliced !== output) {
-      slices.push(sliced);
-    }
-  }
-  return slices;
-}
-function findJsonObjectEnd(value, startIndex) {
-  let depth = 0;
-  let escaped = false;
-  let inString = false;
-  for (let index = startIndex; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (character === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (character === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (character === '"') {
-      inString = true;
-      continue;
-    }
-    if (character === "{") {
-      depth += 1;
-      continue;
-    }
-    if (character === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        return index;
-      }
-    }
-  }
-  return null;
-}
-function repairJsonCandidate(value) {
-  let repaired = value;
-  const notes = [];
-  const strippedListMarker = stripLeadingJsonListMarker(repaired);
-  if (strippedListMarker !== repaired) {
-    repaired = strippedListMarker;
-    notes.push("Stripped a leading list marker before the review JSON.");
-  }
-  const escapedControlCharacters = escapeControlCharactersInJsonStrings(repaired);
-  if (escapedControlCharacters !== repaired) {
-    repaired = escapedControlCharacters;
-    notes.push("Escaped raw control characters inside JSON strings.");
-  }
-  const removedTrailingCommas = removeTrailingCommasBeforeJsonClose(repaired);
-  if (removedTrailingCommas !== repaired) {
-    repaired = removedTrailingCommas;
-    notes.push("Removed trailing commas from JSON objects/arrays.");
-  }
-  if (notes.length === 0) {
-    return null;
-  }
-  return {
-    notes,
-    value: repaired
-  };
-}
-function stripLeadingJsonListMarker(value) {
-  return value.replace(/^\s*[•●▪◦*-]\s*(?=\{)/u, "");
-}
-function escapeControlCharactersInJsonStrings(value) {
-  let changed = false;
-  let escaped = false;
-  let inString = false;
-  let repaired = "";
-  for (const character of value) {
-    if (!inString) {
-      repaired += character;
-      if (character === '"') {
-        inString = true;
-      }
-      continue;
-    }
-    if (escaped) {
-      repaired += character;
-      escaped = false;
-      continue;
-    }
-    if (character === "\\") {
-      repaired += character;
-      escaped = true;
-      continue;
-    }
-    if (character === '"') {
-      repaired += character;
-      inString = false;
-      continue;
-    }
-    if (character.charCodeAt(0) < 32) {
-      changed = true;
-      repaired += escapeJsonControlCharacter(character);
-      continue;
-    }
-    repaired += character;
-  }
-  return changed ? repaired : value;
-}
-function escapeJsonControlCharacter(character) {
-  switch (character) {
-    case "\b":
-      return "\\b";
-    case "\f":
-      return "\\f";
-    case "\n":
-      return "\\n";
-    case "\r":
-      return "\\r";
-    case "	":
-      return "\\t";
-    default:
-      return `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`;
-  }
-}
-function removeTrailingCommasBeforeJsonClose(value) {
-  let changed = false;
-  let escaped = false;
-  let inString = false;
-  let repaired = "";
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    if (inString) {
-      repaired += character;
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (character === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (character === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (character === '"') {
-      repaired += character;
-      inString = true;
-      continue;
-    }
-    if (character === ",") {
-      const nextNonWhitespace = findNextNonJsonWhitespace(value, index + 1);
-      if (nextNonWhitespace !== null && ["]", "}"].includes(value[nextNonWhitespace] ?? "")) {
-        changed = true;
-        continue;
-      }
-    }
-    repaired += character;
-  }
-  return changed ? repaired : value;
-}
-function findNextNonJsonWhitespace(value, startIndex) {
-  for (let index = startIndex; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    if (![" ", "\n", "\r", "	"].includes(character)) {
-      return index;
-    }
-  }
-  return null;
-}
-function unwrapSingleNestedObject(value) {
-  if (!isPlainObject2(value)) {
-    return null;
-  }
-  const entries = Object.entries(value);
-  if (entries.length !== 1) {
-    return null;
-  }
-  const [key, nestedValue] = entries[0];
-  return isPlainObject2(nestedValue) ? { key, value: nestedValue } : null;
-}
-function isPlainObject2(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function validateFindingSemantics(findings) {
-  const diagnostics = [];
-  for (const finding of findings) {
-    if (BLOCKING_CATEGORY_SET.has(finding.category) && finding.severity !== "blocking") {
-      diagnostics.push(
-        `Finding ${JSON.stringify(finding.category)} must use severity "blocking".`
-      );
-    }
-    if (WARNING_CATEGORY_SET.has(finding.category) && finding.severity !== "warning") {
-      diagnostics.push(
-        `Finding ${JSON.stringify(finding.category)} must use severity "warning".`
-      );
-    }
-  }
-  return diagnostics;
-}
-function normalizeFinding(finding, source) {
-  return {
-    category: finding.category,
-    confidence: finding.confidence,
-    severity: finding.severity,
-    file: finding.file,
-    line: finding.line,
-    message: finding.message,
-    source: {
-      provider: source.provider,
-      ...source.model ? { model: source.model } : {}
-    },
-    suggestion: finding.suggestion
-  };
-}
-function summarizeFindings(findings) {
-  const blockingCount = findings.filter(
-    (finding) => finding.severity === "blocking"
-  ).length;
-  const warningCount = findings.filter(
-    (finding) => finding.severity === "warning"
-  ).length;
-  return {
-    blockingCount,
-    warningCount,
-    verdict: blockingCount > 0 ? "BLOCK" : "PASS"
-  };
-}
-function formatSchemaDiagnostics(errors) {
-  if (errors.length === 0) {
-    return "The JSON object did not match the Pushgate review schema.";
-  }
-  return errors.map(formatSchemaError2).join(" ");
-}
-function formatSchemaError2(error51) {
-  const path = error51.instancePath || "/";
-  switch (error51.keyword) {
-    case "additionalProperties": {
-      const property = String(error51.params.additionalProperty);
-      return `${path} includes unsupported property ${JSON.stringify(property)}.`;
-    }
-    case "const":
-      return `${path} must equal 1 for schema_version.`;
-    case "enum":
-      return `${path} must be one of the allowed values.`;
-    case "minLength":
-      return `${path} must not be empty.`;
-    case "required":
-      return `${path} is missing required property ${JSON.stringify(String(error51.params.missingProperty))}.`;
-    case "type":
-      return `${path} must be ${String(error51.params.type)}.`;
-    default:
-      return `${path}: ${error51.message ?? "failed validation"}.`;
-  }
 }
 function formatUnknownError(error51) {
   return error51 instanceof Error ? error51.message : String(error51);
