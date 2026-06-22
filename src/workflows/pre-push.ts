@@ -6,11 +6,11 @@ import {
   type ChangedFileResolution,
 } from "../path-policy/index.js";
 import { runDeterministicChecks } from "../runner/deterministic.js";
-import { countBuiltInPolicies } from "../runner/policies.js";
+import { resolveSkipControlState } from "../skip-controls.js";
 import {
-  resolveSkipControlState,
-  type SkipControlState,
-} from "../skip-controls.js";
+  buildPrePushRunPlan,
+  type PrePushRunPlan,
+} from "./run-plan.js";
 
 export interface PrePushWorkflowIO {
   env: NodeJS.ProcessEnv;
@@ -40,13 +40,15 @@ export async function runPrePushWorkflow(
     io.stdout.write(`[pushgate] Warning: ${warning}\n`);
   }
 
+  const runPlan = buildPrePushRunPlan(loaded.config, skipControls);
   const changedFileResolution = await maybeResolveChangedFiles(loaded.config, {
     repoRoot,
-    skipControls,
+    runPlan,
   });
 
   const summary = await runDeterministicPhase(
     loaded.config,
+    runPlan,
     changedFileResolution,
     {
       env: io.env,
@@ -62,8 +64,8 @@ export async function runPrePushWorkflow(
 
   return await runLocalAiPhase(
     loaded.config,
+    runPlan,
     changedFileResolution,
-    skipControls,
     {
       env: io.env,
       repoRoot,
@@ -74,6 +76,7 @@ export async function runPrePushWorkflow(
 
 async function runDeterministicPhase(
   config: PushgateConfig,
+  runPlan: PrePushRunPlan,
   changedFileResolution: ChangedFileResolution | null,
   options: {
     env: NodeJS.ProcessEnv;
@@ -82,51 +85,48 @@ async function runDeterministicPhase(
     stdout: NodeJS.WritableStream;
   },
 ) {
-  if (
-    config.tools.length === 0 &&
-    countBuiltInPolicies(config.policies) === 0
-  ) {
+  if (!runPlan.runDeterministic) {
     return runDeterministicChecks(config, [], options);
   }
 
   return runDeterministicChecks(
     config,
-    changedFileResolution?.files ?? [],
+    requireChangedFileResolution(
+      changedFileResolution,
+      "deterministic phase",
+    ).files,
     options,
   );
 }
 
 async function runLocalAiPhase(
   config: PushgateConfig,
+  runPlan: PrePushRunPlan,
   changedFileResolution: ChangedFileResolution | null,
-  skipControls: SkipControlState,
   options: {
     env: NodeJS.ProcessEnv;
     repoRoot: string;
     stdout: NodeJS.WritableStream;
   },
 ): Promise<number> {
-  if (config.ai.mode === "off") {
+  if (runPlan.localAiSkipReason === "mode-off") {
     return 0;
   }
 
-  if (skipControls.skipAiCheck) {
+  if (runPlan.localAiSkipReason === "skip-control") {
     options.stdout.write(
       "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n",
     );
     return 0;
   }
 
-  if (changedFileResolution === null) {
-    throw new Error(
-      "Pushgate could not prepare changed files for the local AI phase.",
-    );
-  }
-
   return (
     await runLocalAiReview({
       aiConfig: config.ai,
-      changedFileResolution,
+      changedFileResolution: requireChangedFileResolution(
+        changedFileResolution,
+        "local AI phase",
+      ),
       env: options.env,
       repoRoot: options.repoRoot,
       reviewConfig: config.review,
@@ -139,15 +139,10 @@ async function maybeResolveChangedFiles(
   config: PushgateConfig,
   options: {
     repoRoot: string;
-    skipControls: SkipControlState;
+    runPlan: PrePushRunPlan;
   },
 ): Promise<ChangedFileResolution | null> {
-  const deterministicCheckCount =
-    config.tools.length + countBuiltInPolicies(config.policies);
-  const shouldRunAi =
-    config.ai.mode !== "off" && !options.skipControls.skipAiCheck;
-
-  if (deterministicCheckCount === 0 && !shouldRunAi) {
+  if (!options.runPlan.needsChangedFiles) {
     return null;
   }
 
@@ -156,6 +151,19 @@ async function maybeResolveChangedFiles(
     targetBranch: config.review.target_branch,
     ignorePaths: config.ignore_paths,
   });
+}
+
+function requireChangedFileResolution(
+  changedFileResolution: ChangedFileResolution | null,
+  phaseName: string,
+): ChangedFileResolution {
+  if (changedFileResolution !== null) {
+    return changedFileResolution;
+  }
+
+  throw new Error(
+    `Pushgate could not prepare changed files for the ${phaseName}.`,
+  );
 }
 
 function drainStdin(stdin: NodeJS.ReadableStream): Promise<void> {
