@@ -75,6 +75,7 @@ export type LocalAiProviderFailureCode =
   | "missing_response"
   | "not_authenticated"
   | "timed_out"
+  | "unsupported_structured_output"
   | "unsupported_provider";
 
 export interface LocalAiProviderFailure {

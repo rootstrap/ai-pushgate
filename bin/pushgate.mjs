@@ -10031,231 +10031,6 @@ function estimatePromptTokens(prompt) {
   return Math.ceil(prompt.length / 4);
 }
 
-// src/ai/providers/config.ts
-function selectProviderModel(providerConfig) {
-  const model = providerConfig.model;
-  return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
-}
-
-// src/ai/review-output/candidates.ts
-function buildCandidates(output) {
-  const seen = /* @__PURE__ */ new Set();
-  const candidates = [];
-  const addCandidate = (value, source, notes = []) => {
-    const trimmedValue = value.trim();
-    if (trimmedValue.length === 0 || seen.has(trimmedValue)) {
-      return;
-    }
-    seen.add(trimmedValue);
-    candidates.push({
-      notes,
-      source,
-      value: trimmedValue
-    });
-  };
-  addCandidate(output, "provider response");
-  for (const fencedJson of extractFencedJsonBlocks(output)) {
-    addCandidate(fencedJson, "fenced JSON block", [
-      "Extracted the review JSON from a fenced code block."
-    ]);
-  }
-  for (const objectSlice of extractJsonObjectSlices(output)) {
-    addCandidate(objectSlice, "embedded JSON object", [
-      "Extracted the review JSON from surrounding provider prose."
-    ]);
-  }
-  return candidates;
-}
-function extractFencedJsonBlocks(output) {
-  const matches = output.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
-  return [...matches].map((match) => match[1] ?? "");
-}
-function extractJsonObjectSlices(output) {
-  const slices = [];
-  for (let index = 0; index < output.length; index += 1) {
-    if (output[index] !== "{") {
-      continue;
-    }
-    const endIndex = findJsonObjectEnd(output, index);
-    if (endIndex === null) {
-      continue;
-    }
-    const sliced = output.slice(index, endIndex + 1);
-    if (sliced !== output) {
-      slices.push(sliced);
-    }
-  }
-  return slices;
-}
-function findJsonObjectEnd(value, startIndex) {
-  let depth = 0;
-  let escaped = false;
-  let inString = false;
-  for (let index = startIndex; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (character === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (character === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (character === '"') {
-      inString = true;
-      continue;
-    }
-    if (character === "{") {
-      depth += 1;
-      continue;
-    }
-    if (character === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        return index;
-      }
-    }
-  }
-  return null;
-}
-
-// src/ai/review-output/json-repair.ts
-function repairJsonCandidate(value) {
-  let repaired = value;
-  const notes = [];
-  const strippedListMarker = stripLeadingJsonListMarker(repaired);
-  if (strippedListMarker !== repaired) {
-    repaired = strippedListMarker;
-    notes.push("Stripped a leading list marker before the review JSON.");
-  }
-  const escapedControlCharacters = escapeControlCharactersInJsonStrings(repaired);
-  if (escapedControlCharacters !== repaired) {
-    repaired = escapedControlCharacters;
-    notes.push("Escaped raw control characters inside JSON strings.");
-  }
-  const removedTrailingCommas = removeTrailingCommasBeforeJsonClose(repaired);
-  if (removedTrailingCommas !== repaired) {
-    repaired = removedTrailingCommas;
-    notes.push("Removed trailing commas from JSON objects/arrays.");
-  }
-  if (notes.length === 0) {
-    return null;
-  }
-  return {
-    notes,
-    value: repaired
-  };
-}
-function stripLeadingJsonListMarker(value) {
-  return value.replace(/^\s*[•●▪◦*-]\s*(?=\{)/u, "");
-}
-function escapeControlCharactersInJsonStrings(value) {
-  let changed = false;
-  let escaped = false;
-  let inString = false;
-  let repaired = "";
-  for (const character of value) {
-    if (!inString) {
-      repaired += character;
-      if (character === '"') {
-        inString = true;
-      }
-      continue;
-    }
-    if (escaped) {
-      repaired += character;
-      escaped = false;
-      continue;
-    }
-    if (character === "\\") {
-      repaired += character;
-      escaped = true;
-      continue;
-    }
-    if (character === '"') {
-      repaired += character;
-      inString = false;
-      continue;
-    }
-    if (character.charCodeAt(0) < 32) {
-      changed = true;
-      repaired += escapeJsonControlCharacter(character);
-      continue;
-    }
-    repaired += character;
-  }
-  return changed ? repaired : value;
-}
-function escapeJsonControlCharacter(character) {
-  switch (character) {
-    case "\b":
-      return "\\b";
-    case "\f":
-      return "\\f";
-    case "\n":
-      return "\\n";
-    case "\r":
-      return "\\r";
-    case "	":
-      return "\\t";
-    default:
-      return `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`;
-  }
-}
-function removeTrailingCommasBeforeJsonClose(value) {
-  let changed = false;
-  let escaped = false;
-  let inString = false;
-  let repaired = "";
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    if (inString) {
-      repaired += character;
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (character === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (character === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (character === '"') {
-      repaired += character;
-      inString = true;
-      continue;
-    }
-    if (character === ",") {
-      const nextNonWhitespace = findNextNonJsonWhitespace(value, index + 1);
-      if (nextNonWhitespace !== null && ["]", "}"].includes(value[nextNonWhitespace] ?? "")) {
-        changed = true;
-        continue;
-      }
-    }
-    repaired += character;
-  }
-  return changed ? repaired : value;
-}
-function findNextNonJsonWhitespace(value, startIndex) {
-  for (let index = startIndex; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    if (![" ", "\n", "\r", "	"].includes(character)) {
-      return index;
-    }
-  }
-  return null;
-}
-
 // node_modules/.pnpm/zod@4.4.3/node_modules/zod/v4/classic/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -24771,6 +24546,8 @@ function date4(params) {
 config(en_default());
 
 // src/ai/review-contract.ts
+var AI_REVIEW_OUTPUT_SCHEMA_ID = "https://rootstrap.github.io/ai-pushgate/schemas/ai-review-output-v1.schema.json";
+var AI_REVIEW_OUTPUT_SCHEMA_TITLE = "Pushgate AI Review Output v1";
 var AI_REVIEW_OUTPUT_SCHEMA_VERSION = 1;
 var AI_BLOCKING_CATEGORIES = [
   "security",
@@ -24825,6 +24602,26 @@ function validateAiReviewOutputContract(value) {
       (issue2) => mapZodIssueToContractIssues(value, issue2)
     ),
     valid: false
+  };
+}
+function generateAiReviewOutputJsonSchema() {
+  const schema = external_exports.toJSONSchema(AiReviewOutputSchema, {
+    override({ jsonSchema, path }) {
+      if (pathMatches(path, ["properties", "schema_version"])) {
+        jsonSchema.type = "integer";
+      }
+    },
+    target: "draft-07"
+  });
+  const properties = schema.properties;
+  return {
+    $schema: "http://json-schema.org/draft-07/schema#",
+    $id: AI_REVIEW_OUTPUT_SCHEMA_ID,
+    title: AI_REVIEW_OUTPUT_SCHEMA_TITLE,
+    type: "object",
+    additionalProperties: false,
+    required: schema.required,
+    properties
   };
 }
 function mapZodIssueToContractIssues(value, issue2) {
@@ -24935,6 +24732,231 @@ function pathMatches(actual, expected) {
 }
 function typedKeys(value) {
   return Object.freeze(Object.keys(value));
+}
+
+// src/ai/providers/config.ts
+function selectProviderModel(providerConfig) {
+  const model = providerConfig.model;
+  return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
+}
+
+// src/ai/review-output/candidates.ts
+function buildCandidates(output) {
+  const seen = /* @__PURE__ */ new Set();
+  const candidates = [];
+  const addCandidate = (value, source, notes = []) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue.length === 0 || seen.has(trimmedValue)) {
+      return;
+    }
+    seen.add(trimmedValue);
+    candidates.push({
+      notes,
+      source,
+      value: trimmedValue
+    });
+  };
+  addCandidate(output, "provider response");
+  for (const fencedJson of extractFencedJsonBlocks(output)) {
+    addCandidate(fencedJson, "fenced JSON block", [
+      "Extracted the review JSON from a fenced code block."
+    ]);
+  }
+  for (const objectSlice of extractJsonObjectSlices(output)) {
+    addCandidate(objectSlice, "embedded JSON object", [
+      "Extracted the review JSON from surrounding provider prose."
+    ]);
+  }
+  return candidates;
+}
+function extractFencedJsonBlocks(output) {
+  const matches = output.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
+  return [...matches].map((match) => match[1] ?? "");
+}
+function extractJsonObjectSlices(output) {
+  const slices = [];
+  for (let index = 0; index < output.length; index += 1) {
+    if (output[index] !== "{") {
+      continue;
+    }
+    const endIndex = findJsonObjectEnd(output, index);
+    if (endIndex === null) {
+      continue;
+    }
+    const sliced = output.slice(index, endIndex + 1);
+    if (sliced !== output) {
+      slices.push(sliced);
+    }
+  }
+  return slices;
+}
+function findJsonObjectEnd(value, startIndex) {
+  let depth = 0;
+  let escaped = false;
+  let inString = false;
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (character === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === "{") {
+      depth += 1;
+      continue;
+    }
+    if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+  return null;
+}
+
+// src/ai/review-output/json-repair.ts
+function repairJsonCandidate(value) {
+  let repaired = value;
+  const notes = [];
+  const strippedListMarker = stripLeadingJsonListMarker(repaired);
+  if (strippedListMarker !== repaired) {
+    repaired = strippedListMarker;
+    notes.push("Stripped a leading list marker before the review JSON.");
+  }
+  const escapedControlCharacters = escapeControlCharactersInJsonStrings(repaired);
+  if (escapedControlCharacters !== repaired) {
+    repaired = escapedControlCharacters;
+    notes.push("Escaped raw control characters inside JSON strings.");
+  }
+  const removedTrailingCommas = removeTrailingCommasBeforeJsonClose(repaired);
+  if (removedTrailingCommas !== repaired) {
+    repaired = removedTrailingCommas;
+    notes.push("Removed trailing commas from JSON objects/arrays.");
+  }
+  if (notes.length === 0) {
+    return null;
+  }
+  return {
+    notes,
+    value: repaired
+  };
+}
+function stripLeadingJsonListMarker(value) {
+  return value.replace(/^\s*[•●▪◦*-]\s*(?=\{)/u, "");
+}
+function escapeControlCharactersInJsonStrings(value) {
+  let changed = false;
+  let escaped = false;
+  let inString = false;
+  let repaired = "";
+  for (const character of value) {
+    if (!inString) {
+      repaired += character;
+      if (character === '"') {
+        inString = true;
+      }
+      continue;
+    }
+    if (escaped) {
+      repaired += character;
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      repaired += character;
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      repaired += character;
+      inString = false;
+      continue;
+    }
+    if (character.charCodeAt(0) < 32) {
+      changed = true;
+      repaired += escapeJsonControlCharacter(character);
+      continue;
+    }
+    repaired += character;
+  }
+  return changed ? repaired : value;
+}
+function escapeJsonControlCharacter(character) {
+  switch (character) {
+    case "\b":
+      return "\\b";
+    case "\f":
+      return "\\f";
+    case "\n":
+      return "\\n";
+    case "\r":
+      return "\\r";
+    case "	":
+      return "\\t";
+    default:
+      return `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`;
+  }
+}
+function removeTrailingCommasBeforeJsonClose(value) {
+  let changed = false;
+  let escaped = false;
+  let inString = false;
+  let repaired = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+    if (inString) {
+      repaired += character;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (character === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (character === '"') {
+      repaired += character;
+      inString = true;
+      continue;
+    }
+    if (character === ",") {
+      const nextNonWhitespace = findNextNonJsonWhitespace(value, index + 1);
+      if (nextNonWhitespace !== null && ["]", "}"].includes(value[nextNonWhitespace] ?? "")) {
+        changed = true;
+        continue;
+      }
+    }
+    repaired += character;
+  }
+  return changed ? repaired : value;
+}
+function findNextNonJsonWhitespace(value, startIndex) {
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index] ?? "";
+    if (![" ", "\n", "\r", "	"].includes(character)) {
+      return index;
+    }
+  }
+  return null;
 }
 
 // src/ai/review-output/normalization.ts
@@ -25205,6 +25227,39 @@ function parseAiReviewOutput(rawOutput, source) {
     diagnostics.length > 0 ? dedupeDiagnostics(diagnostics) : ["The provider response did not contain a valid Pushgate review JSON object."]
   );
 }
+function normalizeAiReviewObject(options) {
+  const validation = validateRepairingReview(options.value);
+  const diagnosticSource = options.rawOutput === void 0 ? "provider response object" : "parsed provider response";
+  if (validation.kind === "ambiguous") {
+    throw new AiReviewOutputError(
+      "Provider output is invalid.",
+      [`${diagnosticSource}: ${validation.message}`]
+    );
+  }
+  if (validation.kind === "invalid") {
+    throw new AiReviewOutputError(
+      "Provider output is invalid.",
+      [`${diagnosticSource}: ${formatSchemaDiagnostics(validation.errors)}`]
+    );
+  }
+  const semanticDiagnostics = validateFindingSemantics(
+    validation.review.findings
+  );
+  if (semanticDiagnostics.length > 0) {
+    throw new AiReviewOutputError(
+      "Provider output is invalid.",
+      [`${diagnosticSource}: ${semanticDiagnostics.join(" ")}`]
+    );
+  }
+  const findings = validation.review.findings.map(
+    (finding) => normalizeFinding(finding, options.source)
+  );
+  return {
+    findings,
+    normalizationNotes: validation.notes,
+    summary: summarizeFindings(findings)
+  };
+}
 function parseCandidate(candidate, diagnostics) {
   const parsedJson = parseJsonCandidate(candidate);
   if (parsedJson.kind === "failure") {
@@ -25322,6 +25377,37 @@ function normalizeProviderReviewOutput(options) {
     };
   }
 }
+function normalizeProviderReviewObject(options) {
+  const rawOutput = options.rawOutput?.trim() ?? JSON.stringify(options.value, null, 2) ?? String(options.value);
+  try {
+    const parsed = normalizeAiReviewObject({
+      rawOutput,
+      source: {
+        provider: options.provider,
+        ...options.model ? { model: options.model } : {}
+      },
+      value: options.value
+    });
+    return {
+      kind: "review",
+      provider: options.provider,
+      findings: parsed.findings,
+      normalizationNotes: parsed.normalizationNotes,
+      rawOutput,
+      summary: parsed.summary
+    };
+  } catch (error51) {
+    const detail = error51 instanceof AiReviewOutputError ? error51.diagnostics.join("\n") || error51.message : String(error51);
+    return {
+      kind: "provider-error",
+      code: "invalid_output",
+      provider: options.provider,
+      message: options.invalidOutputMessage,
+      detail,
+      output: options.output
+    };
+  }
+}
 
 // src/process/timed-command.ts
 var DEFAULT_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
@@ -25401,7 +25487,7 @@ async function runProviderCommand(options) {
 // src/ai/providers/claude.ts
 var claudeProvider = {
   id: "claude",
-  structuredOutputCapability: "text_fallback",
+  structuredOutputCapability: "native_json_schema",
   async runReview(options) {
     const model = selectProviderModel(options.providerConfig);
     const args = buildClaudeArgs(options.repoRoot, model);
@@ -25431,6 +25517,16 @@ var claudeProvider = {
       };
     }
     if (commandResult.code !== 0) {
+      const output = commandResult.output ?? "";
+      if (isClaudeStructuredOutputUnsupported(output)) {
+        return {
+          kind: "provider-error",
+          code: "unsupported_structured_output",
+          provider: "claude",
+          message: "Claude Code CLI does not appear to support native structured output. Upgrade Claude Code to a version that supports `claude -p --json-schema`.",
+          output: commandResult.output
+        };
+      }
       if (await isClaudeUnauthenticated(options.repoRoot, options.env)) {
         return {
           kind: "provider-error",
@@ -25448,22 +25544,57 @@ var claudeProvider = {
         output: commandResult.output
       };
     }
-    return normalizeProviderReviewOutput({
-      emptyOutputMessage: "Claude Code CLI returned an empty review response.",
+    const extractedOutput = extractClaudeStructuredReviewObject(
+      commandResult.stdout
+    );
+    if (extractedOutput.kind === "empty") {
+      return {
+        kind: "provider-error",
+        code: "empty_output",
+        provider: "claude",
+        message: "Claude Code CLI returned an empty structured review response.",
+        output: commandResult.output
+      };
+    }
+    if (extractedOutput.kind === "malformed-json") {
+      return {
+        kind: "provider-error",
+        code: "malformed_transport",
+        provider: "claude",
+        message: "Claude Code CLI returned malformed structured review output.",
+        detail: extractedOutput.detail,
+        output: commandResult.output
+      };
+    }
+    if (extractedOutput.kind === "structured-output-error") {
+      return {
+        kind: "provider-error",
+        code: "invalid_output",
+        provider: "claude",
+        message: "Claude Code CLI could not produce structured review output matching the Pushgate schema.",
+        detail: extractedOutput.detail,
+        output: commandResult.output
+      };
+    }
+    return normalizeProviderReviewObject({
       invalidOutputMessage: "Claude Code CLI returned malformed review output.",
       model,
       output: commandResult.output,
       provider: "claude",
-      stdout: commandResult.stdout
+      rawOutput: commandResult.stdout,
+      value: extractedOutput.value
     });
   }
 };
 function buildClaudeArgs(repoRoot, model) {
+  const reviewSchema = JSON.stringify(generateAiReviewOutputJsonSchema());
   const args = [
     "-p",
     "Review the provided Pushgate review input exactly as instructed.",
     "--output-format",
-    "text",
+    "json",
+    "--json-schema",
+    reviewSchema,
     "--bare",
     "--tools",
     "Read",
@@ -25480,6 +25611,68 @@ function buildClaudeArgs(repoRoot, model) {
   }
   return args;
 }
+function extractClaudeStructuredReviewObject(stdout) {
+  const rawOutput = stdout.replace(/\r/g, "").trim();
+  if (rawOutput.length === 0) {
+    return { kind: "empty" };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawOutput);
+  } catch (error51) {
+    return {
+      detail: `Claude structured output failed to parse JSON (${formatUnknownError2(error51)}).`,
+      kind: "malformed-json"
+    };
+  }
+  if (!isJsonObject(parsed)) {
+    return {
+      detail: `Claude structured output was ${typeof parsed}, not a JSON object.`,
+      kind: "malformed-json"
+    };
+  }
+  const subtype = typeof parsed.subtype === "string" ? parsed.subtype : "";
+  if (subtype.length > 0 && subtype !== "success") {
+    return {
+      detail: formatClaudeStructuredOutputFailure(parsed, subtype),
+      kind: "structured-output-error"
+    };
+  }
+  if (!Object.prototype.hasOwnProperty.call(parsed, "structured_output")) {
+    return {
+      detail: "Claude structured output JSON did not include a top-level `structured_output` field.",
+      kind: "malformed-json"
+    };
+  }
+  const value = parsed.structured_output;
+  if (!isJsonObject(value)) {
+    return {
+      detail: "Claude structured output `structured_output` field was not a JSON object.",
+      kind: "malformed-json"
+    };
+  }
+  return {
+    kind: "success",
+    value
+  };
+}
+function formatClaudeStructuredOutputFailure(output, subtype) {
+  const errors = Array.isArray(output.errors) ? output.errors.map((error51) => JSON.stringify(error51)).join("\n") : "";
+  return [
+    `Claude structured output result subtype was ${JSON.stringify(subtype)}.`,
+    errors.length > 0 ? errors : null
+  ].filter((line) => line !== null).join("\n");
+}
+function isClaudeStructuredOutputUnsupported(output) {
+  return [
+    /unknown (?:option|argument).*--json-schema/i,
+    /unrecognized (?:option|argument).*--json-schema/i,
+    /invalid (?:option|argument).*--json-schema/i,
+    /--json-schema.*(?:unknown|unrecognized|invalid)/i,
+    /structured output.*not supported/i,
+    /json schema.*not supported/i
+  ].some((pattern) => pattern.test(output));
+}
 async function isClaudeUnauthenticated(repoRoot, env) {
   try {
     const result = await runCommand({
@@ -25492,6 +25685,12 @@ async function isClaudeUnauthenticated(repoRoot, env) {
   } catch {
     return false;
   }
+}
+function isJsonObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function formatUnknownError2(error51) {
+  return error51 instanceof Error ? error51.message : String(error51);
 }
 
 // src/ai/providers/copilot.ts
@@ -25638,11 +25837,11 @@ function extractCopilotFinalAssistantResponse(stdout) {
       event = JSON.parse(line);
     } catch (error51) {
       return {
-        detail: `JSONL line ${String(index + 1)} failed to parse JSON (${formatUnknownError2(error51)}).`,
+        detail: `JSONL line ${String(index + 1)} failed to parse JSON (${formatUnknownError3(error51)}).`,
         kind: "malformed-jsonl"
       };
     }
-    if (!isJsonObject(event)) {
+    if (!isJsonObject2(event)) {
       return {
         detail: `JSONL line ${String(index + 1)} was ${typeof event}, not a JSON object.`,
         kind: "malformed-jsonl"
@@ -25671,7 +25870,7 @@ function extractCopilotFinalAssistantResponse(stdout) {
 }
 function readAssistantMessageContent(event) {
   const type = typeof event.type === "string" ? event.type : void 0;
-  const data = isJsonObject(event.data) ? event.data : void 0;
+  const data = isJsonObject2(event.data) ? event.data : void 0;
   if (type === "assistant.message") {
     if (data && typeof data.content === "string") {
       return data.content;
@@ -25686,16 +25885,16 @@ function readAssistantMessageContent(event) {
   return null;
 }
 function isMainAssistantMessage(event) {
-  const data = isJsonObject(event.data) ? event.data : void 0;
+  const data = isJsonObject2(event.data) ? event.data : void 0;
   if (data && typeof data.parentToolCallId === "string" && data.parentToolCallId.length > 0) {
     return false;
   }
   return !data || typeof data.phase !== "string" || data.phase.toLowerCase() !== "thinking";
 }
-function isJsonObject(value) {
+function isJsonObject2(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function formatUnknownError2(error51) {
+function formatUnknownError3(error51) {
   return error51 instanceof Error ? error51.message : String(error51);
 }
 

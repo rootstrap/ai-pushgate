@@ -1,12 +1,13 @@
 import { runCommand } from "../../process/run-command.js";
+import { generateAiReviewOutputJsonSchema } from "../review-contract.js";
 import type { LocalAiProviderAdapter } from "../types.js";
 import { selectProviderModel } from "./config.js";
-import { normalizeProviderReviewOutput } from "./normalize-review.js";
+import { normalizeProviderReviewObject } from "./normalize-review.js";
 import { runProviderCommand } from "./run-provider-command.js";
 
 export const claudeProvider: LocalAiProviderAdapter = {
   id: "claude",
-  structuredOutputCapability: "text_fallback",
+  structuredOutputCapability: "native_json_schema",
   async runReview(options) {
     const model = selectProviderModel(options.providerConfig);
     const args = buildClaudeArgs(options.repoRoot, model);
@@ -40,6 +41,19 @@ export const claudeProvider: LocalAiProviderAdapter = {
     }
 
     if (commandResult.code !== 0) {
+      const output = commandResult.output ?? "";
+
+      if (isClaudeStructuredOutputUnsupported(output)) {
+        return {
+          kind: "provider-error",
+          code: "unsupported_structured_output",
+          provider: "claude",
+          message:
+            "Claude Code CLI does not appear to support native structured output. Upgrade Claude Code to a version that supports `claude -p --json-schema`.",
+          output: commandResult.output,
+        };
+      }
+
       if (await isClaudeUnauthenticated(options.repoRoot, options.env)) {
         return {
           kind: "provider-error",
@@ -60,23 +74,64 @@ export const claudeProvider: LocalAiProviderAdapter = {
       };
     }
 
-    return normalizeProviderReviewOutput({
-      emptyOutputMessage: "Claude Code CLI returned an empty review response.",
+    const extractedOutput = extractClaudeStructuredReviewObject(
+      commandResult.stdout,
+    );
+
+    if (extractedOutput.kind === "empty") {
+      return {
+        kind: "provider-error",
+        code: "empty_output",
+        provider: "claude",
+        message: "Claude Code CLI returned an empty structured review response.",
+        output: commandResult.output,
+      };
+    }
+
+    if (extractedOutput.kind === "malformed-json") {
+      return {
+        kind: "provider-error",
+        code: "malformed_transport",
+        provider: "claude",
+        message:
+          "Claude Code CLI returned malformed structured review output.",
+        detail: extractedOutput.detail,
+        output: commandResult.output,
+      };
+    }
+
+    if (extractedOutput.kind === "structured-output-error") {
+      return {
+        kind: "provider-error",
+        code: "invalid_output",
+        provider: "claude",
+        message:
+          "Claude Code CLI could not produce structured review output matching the Pushgate schema.",
+        detail: extractedOutput.detail,
+        output: commandResult.output,
+      };
+    }
+
+    return normalizeProviderReviewObject({
       invalidOutputMessage: "Claude Code CLI returned malformed review output.",
       model,
       output: commandResult.output,
       provider: "claude",
-      stdout: commandResult.stdout,
+      rawOutput: commandResult.stdout,
+      value: extractedOutput.value,
     });
   },
 };
 
 function buildClaudeArgs(repoRoot: string, model?: string): string[] {
+  const reviewSchema = JSON.stringify(generateAiReviewOutputJsonSchema());
   const args = [
     "-p",
     "Review the provided Pushgate review input exactly as instructed.",
     "--output-format",
-    "text",
+    "json",
+    "--json-schema",
+    reviewSchema,
     "--bare",
     "--tools",
     "Read",
@@ -96,6 +151,108 @@ function buildClaudeArgs(repoRoot: string, model?: string): string[] {
   return args;
 }
 
+type JsonObject = Record<string, unknown>;
+
+function extractClaudeStructuredReviewObject(stdout: string):
+  | {
+      kind: "success";
+      value: unknown;
+    }
+  | {
+      kind: "empty";
+    }
+  | {
+      detail: string;
+      kind: "malformed-json";
+    }
+  | {
+      detail: string;
+      kind: "structured-output-error";
+    } {
+  const rawOutput = stdout.replace(/\r/g, "").trim();
+
+  if (rawOutput.length === 0) {
+    return { kind: "empty" };
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(rawOutput);
+  } catch (error) {
+    return {
+      detail: `Claude structured output failed to parse JSON (${formatUnknownError(error)}).`,
+      kind: "malformed-json",
+    };
+  }
+
+  if (!isJsonObject(parsed)) {
+    return {
+      detail: `Claude structured output was ${typeof parsed}, not a JSON object.`,
+      kind: "malformed-json",
+    };
+  }
+
+  const subtype = typeof parsed.subtype === "string" ? parsed.subtype : "";
+
+  if (subtype.length > 0 && subtype !== "success") {
+    return {
+      detail: formatClaudeStructuredOutputFailure(parsed, subtype),
+      kind: "structured-output-error",
+    };
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(parsed, "structured_output")) {
+    return {
+      detail:
+        "Claude structured output JSON did not include a top-level `structured_output` field.",
+      kind: "malformed-json",
+    };
+  }
+
+  const value = parsed.structured_output;
+
+  if (!isJsonObject(value)) {
+    return {
+      detail:
+        "Claude structured output `structured_output` field was not a JSON object.",
+      kind: "malformed-json",
+    };
+  }
+
+  return {
+    kind: "success",
+    value,
+  };
+}
+
+function formatClaudeStructuredOutputFailure(
+  output: JsonObject,
+  subtype: string,
+): string {
+  const errors = Array.isArray(output.errors)
+    ? output.errors.map((error) => JSON.stringify(error)).join("\n")
+    : "";
+
+  return [
+    `Claude structured output result subtype was ${JSON.stringify(subtype)}.`,
+    errors.length > 0 ? errors : null,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
+}
+
+function isClaudeStructuredOutputUnsupported(output: string): boolean {
+  return [
+    /unknown (?:option|argument).*--json-schema/i,
+    /unrecognized (?:option|argument).*--json-schema/i,
+    /invalid (?:option|argument).*--json-schema/i,
+    /--json-schema.*(?:unknown|unrecognized|invalid)/i,
+    /structured output.*not supported/i,
+    /json schema.*not supported/i,
+  ].some((pattern) => pattern.test(output));
+}
+
 async function isClaudeUnauthenticated(
   repoRoot: string,
   env: NodeJS.ProcessEnv,
@@ -112,4 +269,12 @@ async function isClaudeUnauthenticated(
   } catch {
     return false;
   }
+}
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function formatUnknownError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

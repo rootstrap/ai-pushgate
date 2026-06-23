@@ -1,4 +1,8 @@
-import { AiReviewOutputError, parseAiReviewOutput } from "../review-output.js";
+import {
+  AiReviewOutputError,
+  normalizeAiReviewObject,
+  parseAiReviewOutput,
+} from "../review-output.js";
 import type { LocalAiProviderResult } from "../types.js";
 
 export function normalizeProviderReviewOutput(options: {
@@ -25,6 +29,54 @@ export function normalizeProviderReviewOutput(options: {
     const parsed = parseAiReviewOutput(rawOutput, {
       provider: options.provider,
       ...(options.model ? { model: options.model } : {}),
+    });
+
+    return {
+      kind: "review",
+      provider: options.provider,
+      findings: parsed.findings,
+      normalizationNotes: parsed.normalizationNotes,
+      rawOutput,
+      summary: parsed.summary,
+    };
+  } catch (error) {
+    const detail =
+      error instanceof AiReviewOutputError
+        ? error.diagnostics.join("\n") || error.message
+        : String(error);
+
+    return {
+      kind: "provider-error",
+      code: "invalid_output",
+      provider: options.provider,
+      message: options.invalidOutputMessage,
+      detail,
+      output: options.output,
+    };
+  }
+}
+
+export function normalizeProviderReviewObject(options: {
+  invalidOutputMessage: string;
+  model?: string;
+  output?: string;
+  provider: string;
+  rawOutput?: string;
+  value: unknown;
+}): LocalAiProviderResult {
+  const rawOutput =
+    options.rawOutput?.trim() ??
+    JSON.stringify(options.value, null, 2) ??
+    String(options.value);
+
+  try {
+    const parsed = normalizeAiReviewObject({
+      rawOutput,
+      source: {
+        provider: options.provider,
+        ...(options.model ? { model: options.model } : {}),
+      },
+      value: options.value,
     });
 
     return {

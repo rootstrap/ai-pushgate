@@ -9,6 +9,7 @@ import {
   type CommandResult,
   type HookHarness,
 } from "./support/hook-harness.js";
+import { generateAiReviewOutputJsonSchema } from "../src/ai/index.js";
 
 test("forwards pre-push arguments and stdin to the managed runner", async () => {
   await withHarness(async (harness) => {
@@ -354,7 +355,10 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
         "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
         "cat > \"$PUSHGATE_CLAUDE_PROMPT_OUT\"",
         "cat <<'EOF'",
-        "{\"schema_version\":1,\"findings\":[]}",
+        claudeStructuredOutputJson({
+          schema_version: 1,
+          findings: [],
+        }),
         "EOF",
       ].join("\n"),
     );
@@ -390,11 +394,21 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
     assert.match(output, /Local AI review passed with no findings/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /=== DIFF ===/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /"schema_version": 1/);
-    assert.deepEqual(await artifactLines(harness, "claude-args.txt"), [
+    const args = await artifactLines(harness, "claude-args.txt");
+
+    assert.deepEqual(args.slice(0, 6), [
       "-p",
       "Review the provided Pushgate review input exactly as instructed.",
       "--output-format",
-      "text",
+      "json",
+      "--json-schema",
+      args[5] ?? "",
+    ]);
+    assert.deepEqual(
+      JSON.parse(args[5] ?? ""),
+      generateAiReviewOutputJsonSchema(),
+    );
+    assert.deepEqual(args.slice(6), [
       "--bare",
       "--tools",
       "Read",
@@ -428,6 +442,14 @@ async function artifactLines(
   name: string,
 ): Promise<string[]> {
   return (await requiredArtifact(harness, name)).trimEnd().split("\n");
+}
+
+function claudeStructuredOutputJson(structuredOutput: unknown): string {
+  return JSON.stringify({
+    type: "result",
+    subtype: "success",
+    structured_output: structuredOutput,
+  });
 }
 
 async function requiredArtifact(
