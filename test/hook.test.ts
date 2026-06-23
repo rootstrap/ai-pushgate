@@ -60,6 +60,12 @@ test("uses PUSHGATE_RUNNER when provided", async () => {
     });
 
     assert.equal(result.code, 0, formatResult(result));
+    assert.match(
+      cleanHookOutput(result),
+      new RegExp(
+        `Using runner from PUSHGATE_RUNNER: ${escapeRegex(runnerPath)}`,
+      ),
+    );
     assert.deepEqual(await artifactLines(harness, "env-override-args.txt"), [
       "pre-push",
       "origin",
@@ -202,8 +208,17 @@ test("uses git config pushgate.runner during a real installed-hook push", async 
     await harness.addBareOrigin();
 
     const result = await harness.git(["push", "origin", "feature"]);
+    const output = cleanHookOutput(result);
 
     assert.equal(result.code, 0, formatResult(result));
+    assert.match(
+      output,
+      new RegExp(
+        `Using runner from git config pushgate\\.runner: ${escapeRegex(
+          runnerPath,
+        )}`,
+      ),
+    );
     assert.equal(await requiredArtifact(harness, "config-override-ran.txt"), "ran\n");
   });
 });
@@ -438,6 +453,10 @@ async function writePushgateConfig(
   content: string,
 ): Promise<void> {
   await writeFile(join(harness.repoRoot, ".pushgate.yml"), `${content.trimEnd()}\n`);
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function writeOverrideRunner(

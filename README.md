@@ -231,6 +231,12 @@ This makes it possible to test an unpublished runner build in one repository
 without replacing the stable managed install for every repository on the
 machine.
 
+Each hook run prints the resolved runner source and path, for example:
+
+```text
+[pushgate] Using runner from git config pushgate.runner: /absolute/path/to/bin/pushgate.mjs
+```
+
 ```bash
 # Point one repository at a locally built runner
 git config --local pushgate.runner /absolute/path/to/bin/pushgate.mjs

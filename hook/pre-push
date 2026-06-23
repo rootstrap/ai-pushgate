@@ -26,6 +26,10 @@ managed_runner_path() {
   fi
 }
 
+info() {
+  printf '[pushgate] %s\n' "$*"
+}
+
 error() {
   printf '[pushgate] %s\n' "$*" >&2
 }
@@ -117,4 +121,5 @@ if [ "$RUNNER_PROTOCOL" != "$HOOK_PROTOCOL" ]; then
   exit 1
 fi
 
+info "Using runner from ${PUSHGATE_RUNNER_SOURCE}: ${PUSHGATE_RUNNER}"
 exec "$PUSHGATE_RUNNER" pre-push "$@"
