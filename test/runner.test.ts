@@ -687,11 +687,24 @@ async function installCopilotStub(binDir: string): Promise<void> {
       "set -eu",
       "cat > /dev/null",
       "cat <<'EOF'",
-      "{\"schema_version\":1,\"findings\":[{\"category\":\"performance\",\"confidence\":\"medium\",\"severity\":\"warning\",\"file\":\"src/changed.ts\",\"line\":\"2\",\"message\":\"The changed branch repeats avoidable work.\",\"suggestion\":\"Cache the computed result before returning.\"}]}",
+      copilotAssistantMessageJsonl(
+        "{\"schema_version\":1,\"findings\":[{\"category\":\"performance\",\"confidence\":\"medium\",\"severity\":\"warning\",\"file\":\"src/changed.ts\",\"line\":\"2\",\"message\":\"The changed branch repeats avoidable work.\",\"suggestion\":\"Cache the computed result before returning.\"}]}",
+      ),
       "EOF",
     ].join("\n"),
   );
   await chmod(join(binDir, "copilot"), 0o755);
+}
+
+function copilotAssistantMessageJsonl(content: string): string {
+  return JSON.stringify({
+    type: "assistant.message",
+    data: {
+      messageId: "msg-1",
+      phase: "response",
+      content,
+    },
+  });
 }
 
 async function installGitleaksStub(binDir: string): Promise<void> {

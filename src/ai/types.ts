@@ -70,7 +70,9 @@ export type LocalAiProviderFailureCode =
   | "command_failed"
   | "empty_output"
   | "invalid_output"
+  | "malformed_transport"
   | "missing_binary"
+  | "missing_response"
   | "not_authenticated"
   | "timed_out"
   | "unsupported_provider";
@@ -168,6 +170,7 @@ export type LocalAiProviderStructuredOutputCapability =
   | "native_json_schema"
   | "strict_tool_call"
   | "json_mode"
+  | "jsonl_transport"
   | "text_fallback";
 
 export interface LocalAiProviderAdapter {
