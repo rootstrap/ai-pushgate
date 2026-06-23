@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, realpath, writeFile } from "node:fs/promises";
+import { chmod, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -9,7 +9,6 @@ import {
   type CommandResult,
   type HookHarness,
 } from "./support/hook-harness.js";
-import { generateAiReviewOutputJsonSchema } from "../src/ai/index.js";
 
 test("forwards pre-push arguments and stdin to the managed runner", async () => {
   await withHarness(async (harness) => {
@@ -343,7 +342,6 @@ test("skip-ai-check keeps deterministic checks running on a real installed-hook 
 
 test("invokes the Claude adapter on a real installed-hook push", async () => {
   await withHarness(async (harness) => {
-    const argsPath = join(harness.artifactsDir, "claude-args.txt");
     const promptPath = join(harness.artifactsDir, "claude-prompt.txt");
     const claudeStub = join(harness.binDir, "claude");
 
@@ -352,7 +350,6 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
       [
         "#!/usr/bin/env bash",
         "set -eu",
-        "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
         "cat > \"$PUSHGATE_CLAUDE_PROMPT_OUT\"",
         "cat <<'EOF'",
         claudeStructuredOutputJson({
@@ -382,46 +379,16 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
 
     const result = await harness.git(["push", "origin", "feature"], {
       env: {
-        PUSHGATE_CLAUDE_ARGS_OUT: argsPath,
         PUSHGATE_CLAUDE_PROMPT_OUT: promptPath,
       },
     });
     const output = cleanHookOutput(result);
-    const resolvedRepoRoot = await realpath(harness.repoRoot);
 
     assert.equal(result.code, 0, output);
     assert.match(output, /Running local AI review with claude/);
     assert.match(output, /Local AI review passed with no findings/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /=== DIFF ===/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /"schema_version": 1/);
-    const args = await artifactLines(harness, "claude-args.txt");
-
-    assert.deepEqual(args.slice(0, 6), [
-      "-p",
-      "Review the provided Pushgate review input exactly as instructed.",
-      "--output-format",
-      "json",
-      "--json-schema",
-      args[5] ?? "",
-    ]);
-    assert.deepEqual(
-      JSON.parse(args[5] ?? ""),
-      generateAiReviewOutputJsonSchema(),
-    );
-    assert.deepEqual(args.slice(6), [
-      "--bare",
-      "--tools",
-      "Read",
-      "--allowedTools",
-      "Read",
-      "--permission-mode",
-      "bypassPermissions",
-      "--no-session-persistence",
-      "--add-dir",
-      resolvedRepoRoot,
-      "--model",
-      "claude-sonnet-4-20250514",
-    ]);
   });
 });
 

@@ -152,8 +152,7 @@ function buildClaudeArgs(repoRoot: string, model?: string): string[] {
 }
 
 type JsonObject = Record<string, unknown>;
-
-function extractClaudeStructuredReviewObject(stdout: string):
+type ClaudeStructuredReviewExtraction =
   | {
       kind: "success";
       value: unknown;
@@ -168,7 +167,14 @@ function extractClaudeStructuredReviewObject(stdout: string):
   | {
       detail: string;
       kind: "structured-output-error";
-    } {
+    };
+
+const CLAUDE_STRUCTURED_OUTPUT_TYPE = "result";
+const CLAUDE_STRUCTURED_OUTPUT_SUCCESS_SUBTYPE = "success";
+
+function extractClaudeStructuredReviewObject(
+  stdout: string,
+): ClaudeStructuredReviewExtraction {
   const rawOutput = stdout.replace(/\r/g, "").trim();
 
   if (rawOutput.length === 0) {
@@ -186,23 +192,46 @@ function extractClaudeStructuredReviewObject(stdout: string):
     };
   }
 
-  if (!isJsonObject(parsed)) {
+  return extractClaudeStructuredReviewEnvelope(parsed);
+}
+
+function extractClaudeStructuredReviewEnvelope(
+  envelope: unknown,
+): Exclude<ClaudeStructuredReviewExtraction, { kind: "empty" }> {
+  if (!isJsonObject(envelope)) {
     return {
-      detail: `Claude structured output was ${typeof parsed}, not a JSON object.`,
+      detail: `Claude structured output was ${typeof envelope}, not a JSON object.`,
       kind: "malformed-json",
     };
   }
 
-  const subtype = typeof parsed.subtype === "string" ? parsed.subtype : "";
+  const type = envelope.type;
 
-  if (subtype.length > 0 && subtype !== "success") {
+  if (type !== CLAUDE_STRUCTURED_OUTPUT_TYPE) {
     return {
-      detail: formatClaudeStructuredOutputFailure(parsed, subtype),
+      detail: `Claude structured output JSON expected top-level type ${JSON.stringify(CLAUDE_STRUCTURED_OUTPUT_TYPE)}, but received ${formatJsonTypeValue(type)}.`,
+      kind: "malformed-json",
+    };
+  }
+
+  const subtype = envelope.subtype;
+
+  if (typeof subtype !== "string" || subtype.length === 0) {
+    return {
+      detail:
+        "Claude structured output JSON did not include a top-level `subtype` string.",
+      kind: "malformed-json",
+    };
+  }
+
+  if (subtype !== CLAUDE_STRUCTURED_OUTPUT_SUCCESS_SUBTYPE) {
+    return {
+      detail: formatClaudeStructuredOutputFailure(envelope, subtype),
       kind: "structured-output-error",
     };
   }
 
-  if (!Object.prototype.hasOwnProperty.call(parsed, "structured_output")) {
+  if (!Object.prototype.hasOwnProperty.call(envelope, "structured_output")) {
     return {
       detail:
         "Claude structured output JSON did not include a top-level `structured_output` field.",
@@ -210,7 +239,7 @@ function extractClaudeStructuredReviewObject(stdout: string):
     };
   }
 
-  const value = parsed.structured_output;
+  const value = envelope.structured_output;
 
   if (!isJsonObject(value)) {
     return {
@@ -240,6 +269,18 @@ function formatClaudeStructuredOutputFailure(
   ]
     .filter((line): line is string => line !== null)
     .join("\n");
+}
+
+function formatJsonTypeValue(value: unknown): string {
+  if (value === undefined) {
+    return "undefined";
+  }
+
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+
+  return `${JSON.stringify(value)} (${Array.isArray(value) ? "array" : typeof value})`;
 }
 
 function isClaudeStructuredOutputUnsupported(output: string): boolean {

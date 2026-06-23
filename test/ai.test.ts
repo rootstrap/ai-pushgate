@@ -942,6 +942,71 @@ test("reports malformed Claude structured output JSON", async () => {
   });
 });
 
+test("reports malformed Claude structured output envelopes", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const outputPath = join(repoRoot, "claude-output.json");
+    const cases = [
+      {
+        detail: /expected top-level type "result"/,
+        value: {
+          subtype: "success",
+          structured_output: {
+            schema_version: 1,
+            findings: [],
+          },
+        },
+      },
+      {
+        detail: /did not include a top-level `subtype` string/,
+        value: {
+          type: "result",
+          structured_output: {
+            schema_version: 1,
+            findings: [],
+          },
+        },
+      },
+    ];
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat \"$PUSHGATE_CLAUDE_OUTPUT_FILE\"",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    for (const testCase of cases) {
+      await writeFile(outputPath, JSON.stringify(testCase.value));
+
+      const result = await claudeProvider.runReview({
+        env: {
+          ...process.env,
+          PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+          PUSHGATE_CLAUDE_OUTPUT_FILE: outputPath,
+        },
+        payload: minimalReviewPayload(),
+        providerConfig: {},
+        repoRoot,
+        timeoutSeconds: 120,
+      });
+
+      if (result.kind !== "provider-error") {
+        assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+      }
+
+      assert.equal(result.code, "malformed_transport");
+      assert.match(result.message, /malformed structured review output/);
+      assert.match(result.detail ?? "", testCase.detail);
+    }
+  });
+});
+
 test("reports invalid Claude structured review objects", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");
