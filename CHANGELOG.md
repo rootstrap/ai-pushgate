@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.5.0](https://github.com/rootstrap/ai-pushgate/compare/v3.4.0...v3.5.0) (2026-06-23)
+
+
+### Features
+
+* allow repo-local pushgate runner overrides ([#51](https://github.com/rootstrap/ai-pushgate/issues/51)) ([b10c62c](https://github.com/rootstrap/ai-pushgate/commit/b10c62cf62b17f5a749431875954265d7c4b789d))
+
+
+### Bug Fixes
+
+* improve logging message format in pre-push hook ([#54](https://github.com/rootstrap/ai-pushgate/issues/54)) ([9d96f0a](https://github.com/rootstrap/ai-pushgate/commit/9d96f0a8627b11f78eef4564f84438da1d63647e))
+
 ## [3.4.0](https://github.com/rootstrap/ai-pushgate/compare/v3.3.1...v3.4.0) (2026-06-22)
 
 

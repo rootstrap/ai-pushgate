@@ -6,7 +6,7 @@
 
 set -u
 
-HOOK_VERSION="3.4.0" # x-release-please-version
+HOOK_VERSION="3.5.0" # x-release-please-version
 HOOK_PROTOCOL="1"
 PUSHGATE_RUNNER_OVERRIDE="${PUSHGATE_RUNNER:-}"
 PUSHGATE_RUNNER=""
