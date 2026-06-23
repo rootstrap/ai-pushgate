@@ -219,6 +219,35 @@ pushgate push --skip-ai-check
 pushgate push --skip-all-checks
 ```
 
+## Runner overrides
+
+The installed hook resolves the Pushgate runner in this order:
+
+1. Repository-local `git config pushgate.runner`
+2. `PUSHGATE_RUNNER` environment variable
+3. Managed install at `~/.pushgate/bin/pushgate`
+
+This makes it possible to test an unpublished runner build in one repository
+without replacing the stable managed install for every repository on the
+machine.
+
+```bash
+# Point one repository at a locally built runner
+git config --local pushgate.runner /absolute/path/to/bin/pushgate.mjs
+
+# Use normal Git entrypoints while the override is active
+git push
+
+# Remove the repository override and fall back to the managed install
+git config --unset --local pushgate.runner
+```
+
+For one shell session or one command, use `PUSHGATE_RUNNER` instead:
+
+```bash
+PUSHGATE_RUNNER=/absolute/path/to/bin/pushgate.mjs git push
+```
+
 ## Updating
 
 Re-run the installer to update the managed command and hook script. Your `.pushgate.yml` is **never overwritten** — it stays exactly as you've configured it.

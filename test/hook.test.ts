@@ -44,14 +44,94 @@ test("returns the managed runner exit code", async () => {
   });
 });
 
+test("uses PUSHGATE_RUNNER when provided", async () => {
+  await withHarness(async (harness) => {
+    const runnerPath = await writeOverrideRunner(
+      harness,
+      "env-override-runner",
+      "env-override",
+    );
+    const stdin =
+      "refs/heads/feature 0123456789 refs/heads/feature fedcba9876\n";
+    const result = await harness.runHook({
+      args: ["origin", "git@example.test:rootstrap/ai-pushgate.git"],
+      env: { PUSHGATE_RUNNER: runnerPath },
+      stdin,
+    });
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.deepEqual(await artifactLines(harness, "env-override-args.txt"), [
+      "pre-push",
+      "origin",
+      "git@example.test:rootstrap/ai-pushgate.git",
+    ]);
+    assert.equal(
+      await requiredArtifact(harness, "env-override-stdin.txt"),
+      stdin,
+    );
+  });
+});
+
+test("prefers git config pushgate.runner over PUSHGATE_RUNNER", async () => {
+  await withHarness(async (harness) => {
+    const configRunnerPath = await writeOverrideRunner(
+      harness,
+      "config-override-runner",
+      "config-override",
+    );
+    const envRunnerPath = await writeOverrideRunner(
+      harness,
+      "env-override-runner",
+      "env-override",
+    );
+    const configResult = await harness.git([
+      "config",
+      "--local",
+      "pushgate.runner",
+      configRunnerPath,
+    ]);
+
+    assert.equal(configResult.code, 0, formatResult(configResult));
+
+    const result = await harness.runHook({
+      env: { PUSHGATE_RUNNER: envRunnerPath },
+      stdin: "",
+    });
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.equal(await requiredArtifact(harness, "config-override-ran.txt"), "ran\n");
+    assert.equal(await harness.readArtifact("env-override-ran.txt"), null);
+  });
+});
+
 test("fails clearly when the managed runner is missing", async () => {
   await withHarness(async (harness) => {
     const result = await harness.runHook({ stdin: "" });
     const output = cleanHookOutput(result);
 
     assert.equal(result.code, 1, output);
-    assert.match(output, /Pushgate runner not found/);
+    assert.match(output, /Pushgate runner from managed install not found/);
     assert.match(output, /Reinstall Pushgate/);
+  });
+});
+
+test("reports how to unset a missing git-config runner override", async () => {
+  await withHarness(async (harness) => {
+    const configResult = await harness.git([
+      "config",
+      "--local",
+      "pushgate.runner",
+      join(harness.tempRoot, "missing-runner"),
+    ]);
+
+    assert.equal(configResult.code, 0, formatResult(configResult));
+
+    const result = await harness.runHook({ stdin: "" });
+    const output = cleanHookOutput(result);
+
+    assert.equal(result.code, 1, output);
+    assert.match(output, /Pushgate runner from git config pushgate\.runner not found/);
+    assert.match(output, /git config --unset --local pushgate\.runner/);
   });
 });
 
@@ -99,6 +179,32 @@ test("surfaces runner output when the protocol probe cannot execute", async () =
     assert.equal(result.code, 1, output);
     assert.match(output, /could not report its hook protocol/);
     assert.match(output, /env: node: No such file or directory/);
+  });
+});
+
+test("uses git config pushgate.runner during a real installed-hook push", async () => {
+  await withHarness(async (harness) => {
+    const runnerPath = await writeOverrideRunner(
+      harness,
+      "config-override-runner",
+      "config-override",
+    );
+    const configResult = await harness.git([
+      "config",
+      "--local",
+      "pushgate.runner",
+      runnerPath,
+    ]);
+
+    assert.equal(configResult.code, 0, formatResult(configResult));
+
+    await harness.installInstalledHook();
+    await harness.addBareOrigin();
+
+    const result = await harness.git(["push", "origin", "feature"]);
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.equal(await requiredArtifact(harness, "config-override-ran.txt"), "ran\n");
   });
 });
 
@@ -332,4 +438,39 @@ async function writePushgateConfig(
   content: string,
 ): Promise<void> {
   await writeFile(join(harness.repoRoot, ".pushgate.yml"), `${content.trimEnd()}\n`);
+}
+
+async function writeOverrideRunner(
+  harness: HookHarness,
+  fileName: string,
+  artifactPrefix: string,
+): Promise<string> {
+  const runnerPath = join(harness.tempRoot, fileName);
+  const ranPath = join(harness.artifactsDir, `${artifactPrefix}-ran.txt`);
+  const argsPath = join(harness.artifactsDir, `${artifactPrefix}-args.txt`);
+  const stdinPath = join(harness.artifactsDir, `${artifactPrefix}-stdin.txt`);
+
+  await writeFile(
+    runnerPath,
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      'case "${1:-}" in',
+      "  hook-protocol)",
+      "    printf '1\\n'",
+      "    ;;",
+      "  pre-push)",
+      `    printf 'ran\\n' > ${JSON.stringify(ranPath)}`,
+      `    printf '%s\\n' "$@" > ${JSON.stringify(argsPath)}`,
+      `    cat > ${JSON.stringify(stdinPath)}`,
+      "    ;;",
+      "  *)",
+      "    exit 64",
+      "    ;;",
+      "esac",
+    ].join("\n"),
+  );
+  await chmod(runnerPath, 0o755);
+
+  return runnerPath;
 }

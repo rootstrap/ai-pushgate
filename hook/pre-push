@@ -8,11 +8,22 @@ set -u
 
 HOOK_VERSION="3.4.0" # x-release-please-version
 HOOK_PROTOCOL="1"
-PUSHGATE_HOME="${HOME:-}/.pushgate"
-PUSHGATE_RUNNER="${PUSHGATE_HOME}/bin/pushgate"
+PUSHGATE_RUNNER_OVERRIDE="${PUSHGATE_RUNNER:-}"
+PUSHGATE_RUNNER=""
+PUSHGATE_RUNNER_SOURCE=""
 
 repo_root() {
   git rev-parse --show-toplevel 2>/dev/null || pwd
+}
+
+configured_runner_override() {
+  git config --local --get pushgate.runner 2>/dev/null || true
+}
+
+managed_runner_path() {
+  if [ -n "${HOME:-}" ]; then
+    printf '%s\n' "${HOME}/.pushgate/bin/pushgate"
+  fi
 }
 
 error() {
@@ -24,28 +35,70 @@ reinstall_hint() {
   error "  curl -fsSL https://raw.githubusercontent.com/rootstrap/ai-pushgate/main/install.sh | bash"
 }
 
+runner_hint() {
+  case "$PUSHGATE_RUNNER_SOURCE" in
+    "git config pushgate.runner")
+      error "Update or unset the repository override:"
+      error "  git config --unset --local pushgate.runner"
+      ;;
+    "PUSHGATE_RUNNER")
+      error "Unset PUSHGATE_RUNNER or point it at a compatible runner."
+      ;;
+    *)
+      reinstall_hint
+      ;;
+  esac
+}
+
+resolve_runner() {
+  local configured_runner
+  local managed_runner
+
+  configured_runner="$(configured_runner_override)"
+  if [ -n "$configured_runner" ]; then
+    PUSHGATE_RUNNER="$configured_runner"
+    PUSHGATE_RUNNER_SOURCE="git config pushgate.runner"
+    return 0
+  fi
+
+  if [ -n "$PUSHGATE_RUNNER_OVERRIDE" ]; then
+    PUSHGATE_RUNNER="$PUSHGATE_RUNNER_OVERRIDE"
+    PUSHGATE_RUNNER_SOURCE="PUSHGATE_RUNNER"
+    return 0
+  fi
+
+  managed_runner="$(managed_runner_path)"
+  if [ -n "$managed_runner" ]; then
+    PUSHGATE_RUNNER="$managed_runner"
+    PUSHGATE_RUNNER_SOURCE="managed install"
+    return 0
+  fi
+
+  return 1
+}
+
 REPO_ROOT="$(repo_root)"
 
-if [ -z "${HOME:-}" ]; then
-  error "HOME is not set, so the installed Pushgate runner cannot be resolved for ${REPO_ROOT}."
-  reinstall_hint
+if ! resolve_runner; then
+  error "HOME is not set, and no Pushgate runner override was provided for ${REPO_ROOT}."
+  error "Set git config --local pushgate.runner <path>, export PUSHGATE_RUNNER=<path>, or reinstall Pushgate in an environment with HOME set."
   exit 1
 fi
 
 if [ ! -e "$PUSHGATE_RUNNER" ]; then
-  error "Pushgate runner not found at ${PUSHGATE_RUNNER} for ${REPO_ROOT}."
-  reinstall_hint
+  error "Pushgate runner from ${PUSHGATE_RUNNER_SOURCE} not found at ${PUSHGATE_RUNNER} for ${REPO_ROOT}."
+  runner_hint
   exit 1
 fi
 
 if [ ! -x "$PUSHGATE_RUNNER" ]; then
-  error "Pushgate runner at ${PUSHGATE_RUNNER} is not executable for ${REPO_ROOT}."
-  reinstall_hint
+  error "Pushgate runner from ${PUSHGATE_RUNNER_SOURCE} at ${PUSHGATE_RUNNER} is not executable for ${REPO_ROOT}."
+  runner_hint
   exit 1
 fi
 
 if ! RUNNER_PROTOCOL="$("$PUSHGATE_RUNNER" hook-protocol 2>&1)"; then
-  error "Pushgate runner at ${PUSHGATE_RUNNER} could not report its hook protocol."
+  error "Pushgate runner from ${PUSHGATE_RUNNER_SOURCE} at ${PUSHGATE_RUNNER} could not report its hook protocol."
   if [ -n "$RUNNER_PROTOCOL" ]; then
     error "Runner output:"
     while IFS= read -r line; do
@@ -54,13 +107,13 @@ if ! RUNNER_PROTOCOL="$("$PUSHGATE_RUNNER" hook-protocol 2>&1)"; then
 $RUNNER_PROTOCOL
 EOF
   fi
-  reinstall_hint
+  runner_hint
   exit 1
 fi
 
 if [ "$RUNNER_PROTOCOL" != "$HOOK_PROTOCOL" ]; then
-  error "Pushgate runner at ${PUSHGATE_RUNNER} uses hook protocol ${RUNNER_PROTOCOL:-unknown}; this hook requires ${HOOK_PROTOCOL}."
-  reinstall_hint
+  error "Pushgate runner from ${PUSHGATE_RUNNER_SOURCE} at ${PUSHGATE_RUNNER} uses hook protocol ${RUNNER_PROTOCOL:-unknown}; this hook requires ${HOOK_PROTOCOL}."
+  runner_hint
   exit 1
 fi
 
