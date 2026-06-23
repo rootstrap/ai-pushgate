@@ -121,7 +121,7 @@ if [ "$RUNNER_PROTOCOL" != "$HOOK_PROTOCOL" ]; then
   exit 1
 fi
 
-info "Pushgate pre-push hook v${HOOK_VERSION} with ${HOOK_PROTOCOL} protocol"
+info "Pushgate pre-push hook v${HOOK_VERSION} with protocol ${HOOK_PROTOCOL}"
 info "Repository root: ${REPO_ROOT}"
 info "Using runner from ${PUSHGATE_RUNNER_SOURCE}: ${PUSHGATE_RUNNER}"
 exec "$PUSHGATE_RUNNER" pre-push "$@"
