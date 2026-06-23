@@ -132,6 +132,17 @@ bash install.sh --template node
 git push
 ```
 
+For manual testing against an unpublished runner build without replacing the
+stable managed install for every repo on the machine, point one repository at
+your local build:
+
+```bash
+pnpm run bundle
+git config --local pushgate.runner /absolute/path/to/bin/pushgate.mjs
+git push
+git config --unset --local pushgate.runner
+```
+
 For template changes, install the template into a representative project and
 verify the configured tools run correctly against changed files.
 
