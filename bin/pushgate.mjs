@@ -25497,7 +25497,7 @@ async function isClaudeUnauthenticated(repoRoot, env) {
 // src/ai/providers/copilot.ts
 var copilotProvider = {
   id: "copilot",
-  structuredOutputCapability: "text_fallback",
+  structuredOutputCapability: "jsonl_transport",
   async runReview(options) {
     const model = selectProviderModel(options.providerConfig);
     const args = buildCopilotArgs(model);
@@ -25545,13 +25545,45 @@ var copilotProvider = {
         output: commandResult.output
       };
     }
+    const extractedResponse = extractCopilotFinalAssistantResponse(
+      commandResult.stdout
+    );
+    if (extractedResponse.kind === "empty") {
+      return {
+        kind: "provider-error",
+        code: "empty_output",
+        provider: "copilot",
+        message: "GitHub Copilot CLI returned empty JSONL output.",
+        output: commandResult.output
+      };
+    }
+    if (extractedResponse.kind === "malformed-jsonl") {
+      return {
+        kind: "provider-error",
+        code: "malformed_transport",
+        provider: "copilot",
+        message: "GitHub Copilot CLI returned malformed JSONL transport output.",
+        detail: extractedResponse.detail,
+        output: commandResult.output
+      };
+    }
+    if (extractedResponse.kind === "missing-assistant-response") {
+      return {
+        kind: "provider-error",
+        code: "missing_response",
+        provider: "copilot",
+        message: "GitHub Copilot CLI JSONL output did not include a final assistant response.",
+        detail: extractedResponse.detail,
+        output: commandResult.output
+      };
+    }
     return normalizeProviderReviewOutput({
       emptyOutputMessage: "GitHub Copilot CLI returned an empty review response.",
       invalidOutputMessage: "GitHub Copilot CLI returned malformed review output.",
       model,
       output: commandResult.output,
       provider: "copilot",
-      stdout: commandResult.stdout
+      stdout: extractedResponse.content
     });
   }
 };
@@ -25560,7 +25592,7 @@ function buildCopilotArgs(model) {
     "-s",
     "--no-ask-user",
     "--stream=off",
-    "--output-format=text",
+    "--output-format=json",
     "--no-color",
     "--no-custom-instructions",
     "--no-remote",
@@ -25592,6 +25624,79 @@ function isCopilotAuthFailure(output) {
     /copilot.*policy.*enabled/i,
     /access.*copilot/i
   ].some((pattern) => pattern.test(output));
+}
+function extractCopilotFinalAssistantResponse(stdout) {
+  const lines = stdout.replace(/\r/g, "").split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+  if (lines.length === 0) {
+    return { kind: "empty" };
+  }
+  const mainAssistantContents = [];
+  const assistantContents = [];
+  for (const [index, line] of lines.entries()) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch (error51) {
+      return {
+        detail: `JSONL line ${String(index + 1)} failed to parse JSON (${formatUnknownError2(error51)}).`,
+        kind: "malformed-jsonl"
+      };
+    }
+    if (!isJsonObject(event)) {
+      return {
+        detail: `JSONL line ${String(index + 1)} was ${typeof event}, not a JSON object.`,
+        kind: "malformed-jsonl"
+      };
+    }
+    const content2 = readAssistantMessageContent(event);
+    if (content2 === null || content2.trim().length === 0) {
+      continue;
+    }
+    assistantContents.push(content2);
+    if (isMainAssistantMessage(event)) {
+      mainAssistantContents.push(content2);
+    }
+  }
+  const content = mainAssistantContents.at(-1) ?? assistantContents.at(-1) ?? null;
+  if (content === null) {
+    return {
+      detail: `Parsed ${String(lines.length)} JSONL event(s), but none contained assistant response content.`,
+      kind: "missing-assistant-response"
+    };
+  }
+  return {
+    content,
+    kind: "success"
+  };
+}
+function readAssistantMessageContent(event) {
+  const type = typeof event.type === "string" ? event.type : void 0;
+  const data = isJsonObject(event.data) ? event.data : void 0;
+  if (type === "assistant.message") {
+    if (data && typeof data.content === "string") {
+      return data.content;
+    }
+    if (typeof event.content === "string") {
+      return event.content;
+    }
+  }
+  if ((type === void 0 || type === "message" || type === "assistant") && typeof event.content === "string" && (event.role === void 0 || event.role === "assistant")) {
+    return event.content;
+  }
+  return null;
+}
+function isMainAssistantMessage(event) {
+  const data = isJsonObject(event.data) ? event.data : void 0;
+  if (data && typeof data.parentToolCallId === "string" && data.parentToolCallId.length > 0) {
+    return false;
+  }
+  return !data || typeof data.phase !== "string" || data.phase.toLowerCase() !== "thinking";
+}
+function isJsonObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function formatUnknownError2(error51) {
+  return error51 instanceof Error ? error51.message : String(error51);
 }
 
 // src/ai/provider-registry.ts

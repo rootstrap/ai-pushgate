@@ -219,9 +219,9 @@ test("rejects ambiguous key repair in parsed AI review objects", () => {
   assert.match(error.diagnostics.join("\n"), /both resolve to "file"/);
 });
 
-test("marks current CLI providers as text fallback structured-output adapters", () => {
+test("marks current CLI provider structured-output capabilities", () => {
   assert.equal(claudeProvider.structuredOutputCapability, "text_fallback");
-  assert.equal(copilotProvider.structuredOutputCapability, "text_fallback");
+  assert.equal(copilotProvider.structuredOutputCapability, "jsonl_transport");
 });
 
 test("parses structured AI review output into findings and summary", () => {
@@ -847,7 +847,22 @@ test("runs the Copilot adapter with non-interactive stdin prompt and model selec
         "printf '%s\\n' \"$@\" > \"$PUSHGATE_COPILOT_ARGS_OUT\"",
         "cat > \"$PUSHGATE_COPILOT_PROMPT_OUT\"",
         "cat <<'EOF'",
-        "{\"schema_version\":1,\"findings\":[{\"category\":\"performance\",\"confidence\":\"medium\",\"severity\":\"warning\",\"file\":\"src/changed.ts\",\"line\":\"2\",\"message\":\"The loop repeats work that can be cached.\",\"suggestion\":\"Cache the computed value before entering the loop.\"}]}",
+        copilotAssistantMessageJsonl(
+          JSON.stringify({
+            schema_version: 1,
+            findings: [
+              {
+                category: "performance",
+                confidence: "medium",
+                severity: "warning",
+                file: "src/changed.ts",
+                line: "2",
+                message: "The loop repeats work that can be cached.",
+                suggestion: "Cache the computed value before entering the loop.",
+              },
+            ],
+          }),
+        ),
         "EOF",
       ].join("\n"),
     );
@@ -882,7 +897,7 @@ test("runs the Copilot adapter with non-interactive stdin prompt and model selec
       "-s",
       "--no-ask-user",
       "--stream=off",
-      "--output-format=text",
+      "--output-format=json",
       "--no-color",
       "--no-custom-instructions",
       "--no-remote",
@@ -909,19 +924,23 @@ test("runs the Copilot adapter when the provider wraps JSON in a list marker", a
         "set -eu",
         "cat > /dev/null",
         "cat <<'EOF'",
-        "● { \"schema_version\": 1, \"findings\": [",
-        "  {",
-        "    \"category\": \"security\",",
-        "    \"confidence\": \"high\",",
-        "    \"severity\": \"blocking\",",
-        "    \"file\": \".pushgate.yml\",",
-        "    \"line\": \"18-19\",",
-        "    \"message\": \"The forbidden path rules for .env files are root-scoped and can miss secrets",
-        "committed in subdirectories (for example, config/.env or services/api/.env.prod).\",",
-        "    \"suggestion\": \"Make these patterns recursive (for example **/.env and **/.env.*) so",
-        "environment files are blocked anywhere in the repository.\"",
-        "  }",
-        "] }",
+        copilotAssistantMessageJsonl(
+          [
+            "● { \"schema_version\": 1, \"findings\": [",
+            "  {",
+            "    \"category\": \"security\",",
+            "    \"confidence\": \"high\",",
+            "    \"severity\": \"blocking\",",
+            "    \"file\": \".pushgate.yml\",",
+            "    \"line\": \"18-19\",",
+            "    \"message\": \"The forbidden path rules for .env files are root-scoped and can miss secrets",
+            "committed in subdirectories (for example, config/.env or services/api/.env.prod).\",",
+            "    \"suggestion\": \"Make these patterns recursive (for example **/.env and **/.env.*) so",
+            "environment files are blocked anywhere in the repository.\"",
+            "  }",
+            "] }",
+          ].join("\n"),
+        ),
         "EOF",
       ].join("\n"),
     );
@@ -965,8 +984,12 @@ test("runs the Copilot adapter when the provider emits a whitespace-corrupted fi
         "set -eu",
         "cat > /dev/null",
         "cat <<'EOF'",
-        '{"schema_version":1,"findings":[{"category":"security","confidence":"high","severity":"blocking","',
-        '  file":"scripts/demo_command_injection.py","line":"7","message":"Shell command construction uses user-controlled input.","suggestion":"Pass arguments without shell interpolation."}]}',
+        copilotAssistantMessageJsonl(
+          [
+            '{"schema_version":1,"findings":[{"category":"security","confidence":"high","severity":"blocking","',
+            '  file":"scripts/demo_command_injection.py","line":"7","message":"Shell command construction uses user-controlled input.","suggestion":"Pass arguments without shell interpolation."}]}',
+          ].join("\n"),
+        ),
         "EOF",
       ].join("\n"),
     );
@@ -1082,7 +1105,7 @@ test("reports missing Copilot CLI as a provider failure", async () => {
   });
 });
 
-test("reports malformed Copilot output through the normalized parser", async () => {
+test("reports malformed Copilot JSONL transport output", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");
 
@@ -1093,7 +1116,96 @@ test("reports malformed Copilot output through the normalized parser", async () 
         "#!/usr/bin/env bash",
         "set -eu",
         "cat > /dev/null",
-        "echo 'Here is a review, but not JSON.'",
+        "echo 'not jsonl'",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Copilot provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "malformed_transport");
+    assert.match(result.message, /malformed JSONL transport output/);
+    assert.match(result.detail ?? "", /JSONL line 1 failed to parse JSON/);
+  });
+});
+
+test("reports missing final Copilot assistant response", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        JSON.stringify({
+          type: "assistant.intent",
+          data: {
+            intent: "Reviewing changes",
+          },
+        }),
+        JSON.stringify({
+          type: "assistant.turn_end",
+          data: {
+            turnId: "1",
+          },
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Copilot provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "missing_response");
+    assert.match(result.message, /did not include a final assistant response/);
+    assert.match(result.detail ?? "", /none contained assistant response content/);
+  });
+});
+
+test("reports invalid Copilot final review content through the normalized parser", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        copilotAssistantMessageJsonl("Here is a review, but not JSON."),
+        "EOF",
       ].join("\n"),
     );
     await chmod(join(binDir, "copilot"), 0o755);
@@ -1516,6 +1628,17 @@ function extractFirstJsonFence(value: string): string {
 
   assert.ok(match?.[1], "Expected prompt to contain a fenced JSON example.");
   return match[1];
+}
+
+function copilotAssistantMessageJsonl(content: string): string {
+  return JSON.stringify({
+    type: "assistant.message",
+    data: {
+      messageId: "msg-1",
+      phase: "response",
+      content,
+    },
+  });
 }
 
 function minimalReviewPayload(
