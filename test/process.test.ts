@@ -85,7 +85,7 @@ test("runTimedCommand reports timeout with captured output tail", async () => {
     killGraceMs: 10,
     outputCaptureLimit: 256,
     outputTailLimit: 256,
-    timeoutSeconds: 0.1,
+    timeoutSeconds: 1,
   });
 
   assert.equal(result.kind, "timeout");

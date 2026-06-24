@@ -10,6 +10,15 @@ ai:
     copilot:
       model: auto
 
+plugins:
+  gitleaks:
+    enabled: true
+    command: gitleaks
+    timeout_seconds: 60
+    mode: blocking
+    fail_fast: false
+    redact: true
+
 policies:
   diff_size:
     max_changed_lines: 1000
