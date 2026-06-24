@@ -27049,11 +27049,11 @@ function getLocalAiSkipReason(config2, skipControls) {
 
 // src/workflows/warning-confirmation.ts
 import {
-  createReadStream,
-  createWriteStream,
-  openSync
+  closeSync,
+  openSync,
+  readSync,
+  writeSync
 } from "node:fs";
-import { createInterface } from "node:readline/promises";
 var WarningConfirmationError = class extends Error {
   constructor(message) {
     super(message);
@@ -27062,49 +27062,34 @@ var WarningConfirmationError = class extends Error {
 };
 function createTerminalWarningConfirmer() {
   return async (request) => {
-    let input;
-    let output;
+    let inputFd;
+    let outputFd;
     try {
-      const inputFd = openSync("/dev/tty", "r");
-      const outputFd = openSync("/dev/tty", "w");
-      input = createReadStream("/dev/tty", {
-        autoClose: true,
-        encoding: "utf8",
-        fd: inputFd
-      });
-      output = createWriteStream("/dev/tty", {
-        autoClose: true,
-        fd: outputFd
-      });
-      const readline = createInterface({ input, output });
-      try {
-        for (; ; ) {
-          const answer = normalizeAnswer(
-            await readline.question(formatWarningPrompt(request))
-          );
-          if (answer === "yes") {
-            return true;
-          }
-          if (answer === "no") {
-            return false;
-          }
-          output.write("[pushgate] Please answer yes(y) or no(n).\n");
+      inputFd = openSync("/dev/tty", "r");
+      outputFd = openSync("/dev/tty", "w");
+      for (; ; ) {
+        writeSync(outputFd, formatWarningPrompt(request));
+        const answer = normalizeAnswer(readLineSync(inputFd));
+        if (answer === "yes") {
+          return true;
         }
-      } finally {
-        readline.close();
+        if (answer === "no") {
+          return false;
+        }
+        writeSync(outputFd, "[pushgate] Please answer yes(y) or no(n).\n");
       }
     } catch (error51) {
       throw new WarningConfirmationError(
         `Warning confirmation required for ${request.phase}, but no interactive terminal is available.`
       );
     } finally {
-      input?.destroy();
-      output?.end();
+      closeFd(inputFd);
+      closeFd(outputFd);
     }
   };
 }
-function formatWarningPrompt(request) {
-  return `[pushgate] ${request.phase} produced ${String(request.warningCount)} warning(s). Continue with warnings? yes(y) / no(n) `;
+function formatYesNoPrompt(question) {
+  return `${question} yes(y) / no(n) `;
 }
 function normalizeAnswer(answer) {
   const normalized = answer.trim().toLowerCase();
@@ -27115,6 +27100,30 @@ function normalizeAnswer(answer) {
     return "no";
   }
   return "invalid";
+}
+function readLineSync(fd) {
+  const buffer = Buffer.alloc(1);
+  let line = "";
+  for (; ; ) {
+    const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
+    if (bytesRead === 0) {
+      throw new WarningConfirmationError("No terminal input was available.");
+    }
+    const char = buffer.toString("utf8", 0, bytesRead);
+    if (char === "\n" || char === "\r") {
+      return line;
+    }
+    line += char;
+  }
+}
+function closeFd(fd) {
+  if (fd === void 0) {
+    return;
+  }
+  try {
+    closeSync(fd);
+  } catch {
+  }
 }
 
 // src/workflows/pre-push.ts
