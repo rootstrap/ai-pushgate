@@ -140,8 +140,8 @@ diffs from bypassing local AI review silently.
 `ai.max_prompt_tokens` is an approximate provider-neutral budget over the
 rendered prompt. Provider tokenizers differ, so Pushgate intentionally uses a
 local estimate instead of coupling the core schema to a provider-specific
-tokenizer. If the estimate exceeds the configured value, Pushgate prints a
-visible local-AI skip message and continues.
+tokenizer. If the estimate exceeds the configured value, Pushgate blocks the
+push before invoking the configured provider.
 
 `ai.timeout_seconds` is passed to the selected provider adapter. A timeout is a
 provider failure: it blocks in `blocking` mode and warns in `advisory` mode.
