@@ -2,20 +2,74 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { PushgateConfig } from "../src/config/index.js";
-import { buildPrePushRunPlan } from "../src/workflows/run-plan.js";
+import { createSkipControlState } from "../src/skip-controls.js";
+import {
+  buildPrePushConfigDecision,
+  buildPrePushRunDecision,
+  formatRunSkipReason,
+} from "../src/workflows/run-decisions.js";
+
+test("skip-all-checks owns the pre-config decision and visible reason", () => {
+  const decision = buildPrePushConfigDecision(
+    createSkipControlState({ skipAllChecks: true, skipAiCheck: true }),
+  );
+
+  assert.deepEqual(decision, {
+    kind: "skip",
+    reason: {
+      configKey: "pushgate.skip-all-checks",
+      control: "skip-all-checks",
+      kind: "skip-control",
+      scope: "all-local-checks",
+    },
+  });
+  if (decision.kind !== "skip") {
+    assert.fail("Expected skip-all-checks to skip before config loading.");
+  }
+  assert.equal(
+    formatRunSkipReason(decision.reason),
+    "Skipping all local Pushgate checks because pushgate.skip-all-checks=true.",
+  );
+});
+
+test("skip-ai-check still allows config loading", () => {
+  assert.deepEqual(
+    buildPrePushConfigDecision(
+      createSkipControlState({ skipAllChecks: false, skipAiCheck: true }),
+    ),
+    { kind: "load-config" },
+  );
+});
 
 test("skips changed-file planning when deterministic checks and local AI are inactive", () => {
-  const plan = buildPrePushRunPlan(baseConfig(), { skipAiCheck: false });
+  const decision = buildPrePushRunDecision(
+    baseConfig(),
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
+  );
 
-  assert.deepEqual(plan, {
-    localAiSkipReason: "mode-off",
-    needsChangedFiles: false,
-    runLocalAi: false,
+  assert.deepEqual(decision, {
+    changedFiles: {
+      kind: "not-required",
+      requiredBy: [],
+    },
+    deterministicChecks: {
+      kind: "not-configured",
+    },
+    localAi: {
+      kind: "skip",
+      reason: {
+        kind: "local-ai-mode-off",
+      },
+    },
   });
+  if (decision.localAi.kind !== "skip") {
+    assert.fail("Expected local AI to be skipped when ai.mode is off.");
+  }
+  assert.equal(formatRunSkipReason(decision.localAi.reason), null);
 });
 
 test("plans changed files for configured deterministic tools and policies", () => {
-  const plan = buildPrePushRunPlan(
+  const decision = buildPrePushRunDecision(
     baseConfig({
       policies: {
         diff_size: { max_changed_lines: 10, mode: "warning" },
@@ -32,15 +86,27 @@ test("plans changed files for configured deterministic tools and policies", () =
         },
       ],
     }),
-    { skipAiCheck: false },
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
   );
 
-  assert.equal(plan.runLocalAi, false);
-  assert.equal(plan.needsChangedFiles, true);
+  assert.deepEqual(decision.changedFiles, {
+    kind: "required",
+    requiredBy: ["deterministic-checks"],
+  });
+  assert.deepEqual(decision.deterministicChecks, {
+    checkCount: 3,
+    kind: "configured",
+  });
+  assert.deepEqual(decision.localAi, {
+    kind: "skip",
+    reason: {
+      kind: "local-ai-mode-off",
+    },
+  });
 });
 
 test("plans changed files for enabled deterministic plugins", () => {
-  const plan = buildPrePushRunPlan(
+  const decision = buildPrePushRunDecision(
     baseConfig({
       plugins: {
         gitleaks: {
@@ -53,15 +119,21 @@ test("plans changed files for enabled deterministic plugins", () => {
         },
       },
     }),
-    { skipAiCheck: false },
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
   );
 
-  assert.equal(plan.runLocalAi, false);
-  assert.equal(plan.needsChangedFiles, true);
+  assert.deepEqual(decision.changedFiles, {
+    kind: "required",
+    requiredBy: ["deterministic-checks"],
+  });
+  assert.deepEqual(decision.deterministicChecks, {
+    checkCount: 1,
+    kind: "configured",
+  });
 });
 
 test("skips disabled deterministic plugins", () => {
-  const plan = buildPrePushRunPlan(
+  const decision = buildPrePushRunDecision(
     baseConfig({
       plugins: {
         gitleaks: {
@@ -74,18 +146,28 @@ test("skips disabled deterministic plugins", () => {
         },
       },
     }),
-    { skipAiCheck: false },
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
   );
 
-  assert.deepEqual(plan, {
-    localAiSkipReason: "mode-off",
-    needsChangedFiles: false,
-    runLocalAi: false,
+  assert.deepEqual(decision, {
+    changedFiles: {
+      kind: "not-required",
+      requiredBy: [],
+    },
+    deterministicChecks: {
+      kind: "not-configured",
+    },
+    localAi: {
+      kind: "skip",
+      reason: {
+        kind: "local-ai-mode-off",
+      },
+    },
   });
 });
 
 test("plans changed files for active local AI without deterministic checks", () => {
-  const plan = buildPrePushRunPlan(
+  const decision = buildPrePushRunDecision(
     baseConfig({
       ai: {
         ...baseConfig().ai,
@@ -93,18 +175,20 @@ test("plans changed files for active local AI without deterministic checks", () 
         provider: "claude",
       },
     }),
-    { skipAiCheck: false },
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
   );
 
-  assert.deepEqual(plan, {
-    localAiSkipReason: null,
-    needsChangedFiles: true,
-    runLocalAi: true,
+  assert.deepEqual(decision.changedFiles, {
+    kind: "required",
+    requiredBy: ["local-ai-review"],
+  });
+  assert.deepEqual(decision.localAi, {
+    kind: "run",
   });
 });
 
 test("skip-ai-check removes local AI changed-file work", () => {
-  const plan = buildPrePushRunPlan(
+  const decision = buildPrePushRunDecision(
     baseConfig({
       ai: {
         ...baseConfig().ai,
@@ -112,13 +196,70 @@ test("skip-ai-check removes local AI changed-file work", () => {
         provider: "copilot",
       },
     }),
-    { skipAiCheck: true },
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: true }),
   );
 
-  assert.deepEqual(plan, {
-    localAiSkipReason: "skip-control",
-    needsChangedFiles: false,
-    runLocalAi: false,
+  assert.deepEqual(decision, {
+    changedFiles: {
+      kind: "not-required",
+      requiredBy: [],
+    },
+    deterministicChecks: {
+      kind: "not-configured",
+    },
+    localAi: {
+      kind: "skip",
+      reason: {
+        configKey: "pushgate.skip-ai-check",
+        control: "skip-ai-check",
+        kind: "skip-control",
+        scope: "local-ai",
+      },
+    },
+  });
+  if (decision.localAi.kind !== "skip") {
+    assert.fail("Expected skip-ai-check to skip local AI.");
+  }
+  assert.equal(
+    formatRunSkipReason(decision.localAi.reason),
+    "Skipping local AI because pushgate.skip-ai-check=true.",
+  );
+});
+
+test("skip-ai-check leaves deterministic changed-file work intact", () => {
+  const decision = buildPrePushRunDecision(
+    baseConfig({
+      ai: {
+        ...baseConfig().ai,
+        mode: "blocking",
+        provider: "claude",
+      },
+      tools: [
+        {
+          command: ["pnpm", "test"],
+          fail_fast: true,
+          mode: "blocking",
+          name: "test",
+          run: "changed_files",
+          timeout_seconds: 60,
+        },
+      ],
+    }),
+    createSkipControlState({ skipAllChecks: false, skipAiCheck: true }),
+  );
+
+  assert.deepEqual(decision.changedFiles, {
+    kind: "required",
+    requiredBy: ["deterministic-checks"],
+  });
+  assert.deepEqual(decision.localAi, {
+    kind: "skip",
+    reason: {
+      configKey: "pushgate.skip-ai-check",
+      control: "skip-ai-check",
+      kind: "skip-control",
+      scope: "local-ai",
+    },
   });
 });
 
