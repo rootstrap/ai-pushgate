@@ -9746,15 +9746,14 @@ async function resolveDiffBase(repoRoot, targetRef, targetCommit) {
   }
   throw new MissingDiffBaseError(targetRef, gitResultDetail(result));
 }
-async function readChangedFileDiffs(repoRoot, targetCommit) {
-  const diffRange = `${targetCommit}...HEAD`;
+async function readChangedFileDiffs(repoRoot, reviewRange) {
   const nameStatusArgs = [
     "diff",
     "--name-status",
     "-z",
     "--find-renames",
     "--no-ext-diff",
-    diffRange
+    reviewRange
   ];
   const numstatArgs = [
     "diff",
@@ -9762,7 +9761,7 @@ async function readChangedFileDiffs(repoRoot, targetCommit) {
     "-z",
     "--find-renames",
     "--no-ext-diff",
-    diffRange
+    reviewRange
   ];
   const [nameStatusOutput, numstatOutput] = await Promise.all([
     readChangedFilesGitOutput(repoRoot, nameStatusArgs),
@@ -9806,7 +9805,8 @@ async function resolveChangedFiles(options) {
     options.targetBranch,
     targetCommit
   );
-  const diffOutput = await readChangedFileDiffs(repoRoot, targetCommit);
+  const ranges = buildChangedFileRanges({ diffBase, targetCommit });
+  const diffOutput = await readChangedFileDiffs(repoRoot, ranges.reviewRange);
   const diffStats = parseDiffStats(
     diffOutput.numstat.output,
     diffOutput.numstat.args
@@ -9822,8 +9822,16 @@ async function resolveChangedFiles(options) {
   return {
     diffBase,
     files,
+    reviewRange: ranges.reviewRange,
+    scanRange: ranges.scanRange,
     targetCommit,
     targetRef: options.targetBranch
+  };
+}
+function buildChangedFileRanges(options) {
+  return {
+    reviewRange: `${options.targetCommit}...HEAD`,
+    scanRange: `${options.diffBase}..HEAD`
   };
 }
 
@@ -26156,7 +26164,7 @@ async function collectReviewDiff(options) {
     "diff",
     `-U${String(options.contextLines)}`,
     "--no-ext-diff",
-    `${options.changedFileResolution.targetCommit}...HEAD`,
+    options.changedFileResolution.reviewRange,
     "--",
     ...filePaths
   ];
@@ -26668,7 +26676,7 @@ function buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath) 
     "--timeout",
     String(plugin.timeout_seconds),
     "--log-opts",
-    `${changedFileResolution.diffBase}..HEAD`
+    changedFileResolution.scanRange
   ];
   if (!plugin.redact) {
     args.splice(args.indexOf("--redact"), 1);

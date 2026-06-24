@@ -112,7 +112,7 @@ function buildGitleaksArgs(
     "--timeout",
     String(plugin.timeout_seconds),
     "--log-opts",
-    `${changedFileResolution.diffBase}..HEAD`,
+    changedFileResolution.scanRange,
   ];
 
   if (!plugin.redact) {

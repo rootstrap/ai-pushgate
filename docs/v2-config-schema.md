@@ -140,8 +140,8 @@ diffs from bypassing local AI review silently.
 `ai.max_prompt_tokens` is an approximate provider-neutral budget over the
 rendered prompt. Provider tokenizers differ, so Pushgate intentionally uses a
 local estimate instead of coupling the core schema to a provider-specific
-tokenizer. If the estimate exceeds the configured value, Pushgate prints a
-visible local-AI skip message and continues.
+tokenizer. If the estimate exceeds the configured value, Pushgate blocks the
+push before invoking the configured provider.
 
 `ai.timeout_seconds` is passed to the selected provider adapter. A timeout is a
 provider failure: it blocks in `blocking` mode and warns in `advisory` mode.
@@ -244,11 +244,11 @@ plugins:
       - generic-api-key
 ```
 
-The adapter runs `gitleaks git` against the resolved branch range
-`<merge-base>..HEAD` and writes findings to a temporary JSON report. That makes
-the push gate catch secrets introduced anywhere in the commits being pushed,
-including secrets added in one commit and removed in a later commit before the
-final diff.
+The adapter runs `gitleaks git` against the scan range returned by changed-file
+resolution (`<merge-base>..HEAD`) and writes findings to a temporary JSON
+report. That makes the push gate catch secrets introduced anywhere in the
+commits being pushed, including secrets added in one commit and removed in a
+later commit before the final diff.
 
 Pushgate owns only the invocation, timeout, redaction default, and local result
 rendering. Rule tuning, baselines, ignored fingerprints, and custom allowlists
@@ -258,10 +258,13 @@ baseline reports.
 ## Changed-File Policy
 
 The changed-file path policy resolves `review.target_branch` locally and uses
-the documented `<target_branch>...HEAD` Git diff range. If that ref is missing
-or Git cannot find a merge base with `HEAD`, Pushgate fails with an explicit
-diagnostic instead of fetching, guessing a remote variant, or switching to a
-different history range.
+the documented `<target_branch>...HEAD` Git diff range to produce the shared
+changed-file list. It also returns two named Git ranges: the review range
+`<target-commit>...HEAD` for human-readable local AI diff context, and the scan
+range `<merge-base>..HEAD` for deterministic scanners that inspect commits. If
+the target ref is missing or Git cannot find a merge base with `HEAD`, Pushgate
+fails with an explicit diagnostic instead of fetching, guessing a remote
+variant, or switching to a different history range.
 
 `ignore_paths` uses gitignore-like rules against Git's repo-relative paths.
 Patterns such as `*.lock` match basenames across the changed tree, while

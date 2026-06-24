@@ -57,16 +57,15 @@ export async function resolveDiffBase(
 
 export async function readChangedFileDiffs(
   repoRoot: string,
-  targetCommit: string,
+  reviewRange: string,
 ): Promise<ChangedFilesDiffOutput> {
-  const diffRange = `${targetCommit}...HEAD`;
   const nameStatusArgs = [
     "diff",
     "--name-status",
     "-z",
     "--find-renames",
     "--no-ext-diff",
-    diffRange,
+    reviewRange,
   ];
   const numstatArgs = [
     "diff",
@@ -74,7 +73,7 @@ export async function readChangedFileDiffs(
     "-z",
     "--find-renames",
     "--no-ext-diff",
-    diffRange,
+    reviewRange,
   ];
   const [nameStatusOutput, numstatOutput] = await Promise.all([
     readChangedFilesGitOutput(repoRoot, nameStatusArgs),

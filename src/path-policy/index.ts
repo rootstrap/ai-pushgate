@@ -42,7 +42,8 @@ export async function resolveChangedFiles(
     options.targetBranch,
     targetCommit,
   );
-  const diffOutput = await readChangedFileDiffs(repoRoot, targetCommit);
+  const ranges = buildChangedFileRanges({ diffBase, targetCommit });
+  const diffOutput = await readChangedFileDiffs(repoRoot, ranges.reviewRange);
   const diffStats = parseDiffStats(
     diffOutput.numstat.output,
     diffOutput.numstat.args,
@@ -59,7 +60,19 @@ export async function resolveChangedFiles(
   return {
     diffBase,
     files,
+    reviewRange: ranges.reviewRange,
+    scanRange: ranges.scanRange,
     targetCommit,
     targetRef: options.targetBranch,
+  };
+}
+
+function buildChangedFileRanges(options: {
+  diffBase: string;
+  targetCommit: string;
+}): Pick<ChangedFileResolution, "reviewRange" | "scanRange"> {
+  return {
+    reviewRange: `${options.targetCommit}...HEAD`,
+    scanRange: `${options.diffBase}..HEAD`,
   };
 }

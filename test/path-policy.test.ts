@@ -32,6 +32,8 @@ test("resolves filtered changed paths and preserves Git path metadata", async ()
     assert.equal(resolution.targetRef, "main");
     assert.match(resolution.targetCommit, /^[0-9a-f]{40}$/);
     assert.match(resolution.diffBase, /^[0-9a-f]{40}$/);
+    assert.equal(resolution.reviewRange, `${resolution.targetCommit}...HEAD`);
+    assert.equal(resolution.scanRange, `${resolution.diffBase}..HEAD`);
 
     assert.deepEqual(filesByPath.get("src/modified.ts"), {
       additions: 1,

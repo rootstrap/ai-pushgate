@@ -41,6 +41,10 @@ export interface ChangedFileResolution {
   diffBase: string;
   /** Globally filtered changed files for deterministic and AI consumers. */
   files: ChangedFile[];
+  /** Git range used to prepare human-readable local AI review context. */
+  reviewRange: string;
+  /** Git range used by deterministic scanners that inspect pushed commits. */
+  scanRange: string;
   /** Commit selected by the configured target ref at resolution time. */
   targetCommit: string;
   /** Configured target branch or ref. */

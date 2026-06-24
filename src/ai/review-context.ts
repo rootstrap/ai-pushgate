@@ -78,7 +78,7 @@ async function collectReviewDiff(options: {
     "diff",
     `-U${String(options.contextLines)}`,
     "--no-ext-diff",
-    `${options.changedFileResolution.targetCommit}...HEAD`,
+    options.changedFileResolution.reviewRange,
     "--",
     ...filePaths,
   ];

@@ -49,6 +49,8 @@ const changedFiles: ChangedFile[] = [
 const changedFileResolution: ChangedFileResolution = {
   diffBase: "abc123",
   files: changedFiles,
+  reviewRange: "def456...HEAD",
+  scanRange: "pushgate-scan-range",
   targetCommit: "def456",
   targetRef: "main",
 };
@@ -321,7 +323,7 @@ test("runs Gitleaks plugin over the resolved branch commit range", async () => {
     assert.equal(args[0], "git");
     assert.ok(args.includes("--redact"));
     assert.equal(args[args.indexOf("--report-format") + 1], "json");
-    assert.equal(args[args.indexOf("--log-opts") + 1], "abc123..HEAD");
+    assert.equal(args[args.indexOf("--log-opts") + 1], "pushgate-scan-range");
     assert.equal(args.at(-1), repoRoot);
   });
 });
