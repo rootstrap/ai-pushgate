@@ -220,7 +220,7 @@ test("rejects ambiguous key repair in parsed AI review objects", () => {
 });
 
 test("marks current CLI provider structured-output capabilities", () => {
-  assert.equal(claudeProvider.structuredOutputCapability, "text_fallback");
+  assert.equal(claudeProvider.structuredOutputCapability, "native_json_schema");
   assert.equal(copilotProvider.structuredOutputCapability, "jsonl_transport");
 });
 
@@ -766,7 +766,10 @@ test("runs the Claude adapter through the provider interface with model selectio
         "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
         "cat > \"$PUSHGATE_CLAUDE_PROMPT_OUT\"",
         "cat <<'EOF'",
-        "{\"schema_version\":1,\"findings\":[]}",
+        claudeStructuredOutputJson({
+          schema_version: 1,
+          findings: [],
+        }),
         "EOF",
       ].join("\n"),
     );
@@ -811,12 +814,22 @@ test("runs the Claude adapter through the provider interface with model selectio
     assert.match(output.text(), /Local AI review passed with no findings/);
     assert.match(await readFile(promptPath, "utf8"), /=== DIFF ===/);
     assert.match(await readFile(promptPath, "utf8"), /"schema_version": 1/);
-    assert.deepEqual(await readArgLines(argsPath), [
+    const args = await readArgLines(argsPath);
+
+    assert.deepEqual(args.slice(0, 6), [
       "-p",
       "Review the provided Pushgate review input exactly as instructed.",
       "--output-format",
-      "text",
-      "--bare",
+      "json",
+      "--json-schema",
+      args[5] ?? "",
+    ]);
+    assert.deepEqual(
+      JSON.parse(args[5] ?? ""),
+      generateAiReviewOutputJsonSchema(),
+    );
+    assert.deepEqual(args.slice(6), [
+      "--safe-mode",
       "--tools",
       "Read",
       "--allowedTools",
@@ -829,6 +842,435 @@ test("runs the Claude adapter through the provider interface with model selectio
       "--model",
       "claude-sonnet-4-20250514",
     ]);
+  });
+});
+
+test("lets Claude provider config opt into bare mode for API-key scripts", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const argsPath = join(repoRoot, "claude-args.txt");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStructuredOutputJson({
+          schema_version: 1,
+          findings: [],
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+        PUSHGATE_CLAUDE_ARGS_OUT: argsPath,
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {
+        bare: true,
+      },
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Claude review result, got ${result.kind}.`);
+    }
+
+    const args = await readArgLines(argsPath);
+
+    assert.ok(args.includes("--bare"));
+    assert.equal(args.includes("--safe-mode"), false);
+  });
+});
+
+test("runs the Claude adapter with native structured output and source metadata", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStructuredOutputJson({
+          schema_version: 1,
+          findings: [
+            {
+              category: "performance",
+              confidence: "medium",
+              severity: "warning",
+              file: "src/changed.ts",
+              line: "2",
+              message: "The loop repeats work that can be cached.",
+              suggestion: "Cache the computed value before entering the loop.",
+            },
+          ],
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload("Review this Pushgate payload.\n"),
+      providerConfig: {
+        model: "claude-sonnet-4-20250514",
+      },
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Claude review result, got ${result.kind}.`);
+    }
+
+    assert.equal(result.provider, "claude");
+    assert.equal(result.findings.length, 1);
+    assert.equal(result.findings[0]?.source.provider, "claude");
+    assert.equal(
+      result.findings[0]?.source.model,
+      "claude-sonnet-4-20250514",
+    );
+    assert.equal(result.summary.warningCount, 1);
+    assert.match(result.rawOutput, /"structured_output"/);
+  });
+});
+
+test("reports malformed Claude structured output JSON", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "echo 'not json'",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "malformed_transport");
+    assert.match(result.message, /malformed structured review output/);
+    assert.match(result.detail ?? "", /failed to parse JSON/);
+  });
+});
+
+test("reports malformed Claude structured output envelopes", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const outputPath = join(repoRoot, "claude-output.json");
+    const cases = [
+      {
+        detail: /expected top-level type "result"/,
+        value: {
+          subtype: "success",
+          structured_output: {
+            schema_version: 1,
+            findings: [],
+          },
+        },
+      },
+      {
+        detail: /did not include a top-level `subtype` string/,
+        value: {
+          type: "result",
+          structured_output: {
+            schema_version: 1,
+            findings: [],
+          },
+        },
+      },
+    ];
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat \"$PUSHGATE_CLAUDE_OUTPUT_FILE\"",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    for (const testCase of cases) {
+      await writeFile(outputPath, JSON.stringify(testCase.value));
+
+      const result = await claudeProvider.runReview({
+        env: {
+          ...process.env,
+          PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+          PUSHGATE_CLAUDE_OUTPUT_FILE: outputPath,
+        },
+        payload: minimalReviewPayload(),
+        providerConfig: {},
+        repoRoot,
+        timeoutSeconds: 120,
+      });
+
+      if (result.kind !== "provider-error") {
+        assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+      }
+
+      assert.equal(result.code, "malformed_transport");
+      assert.match(result.message, /malformed structured review output/);
+      assert.match(result.detail ?? "", testCase.detail);
+    }
+  });
+});
+
+test("reports invalid Claude structured review objects", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStructuredOutputJson({
+          schema_version: 1,
+          findings: [
+            {
+              category: "security",
+              confidence: "high",
+              severity: "blocking",
+              line: "7",
+              message: "Shell command construction uses user input.",
+              suggestion: "Pass arguments without shell interpolation.",
+            },
+          ],
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "invalid_output");
+    assert.match(result.message, /malformed review output/);
+    assert.match(result.detail ?? "", /missing required property "file"/);
+  });
+});
+
+test("reports unsupported Claude structured-output mode", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "if [ \"${1:-}\" = \"auth\" ] && [ \"${2:-}\" = \"status\" ]; then",
+        "  exit 0",
+        "fi",
+        "cat > /dev/null",
+        "echo 'error: unknown option --json-schema' >&2",
+        "exit 1",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "unsupported_structured_output");
+    assert.match(result.message, /does not appear to support native structured output/);
+  });
+});
+
+test("reports Claude auth failures before generic command failures", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "if [ \"${1:-}\" = \"auth\" ] && [ \"${2:-}\" = \"status\" ]; then",
+        "  exit 1",
+        "fi",
+        "cat > /dev/null",
+        "echo 'please log in' >&2",
+        "exit 1",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "not_authenticated");
+    assert.match(result.message, /not authenticated/);
+  });
+});
+
+test("classifies Claude prompt-mode login output as an auth failure", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "if [ \"${1:-}\" = \"auth\" ] && [ \"${2:-}\" = \"status\" ]; then",
+        "  exit 0",
+        "fi",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        JSON.stringify({
+          type: "result",
+          subtype: "success",
+          is_error: true,
+          result: "Not logged in - Please run /login",
+        }),
+        "EOF",
+        "exit 1",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "not_authenticated");
+    assert.match(result.message, /complete `\/login`/);
+    assert.match(result.output ?? "", /Not logged in/);
+  });
+});
+
+test("reports generic Claude command failures", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "if [ \"${1:-}\" = \"auth\" ] && [ \"${2:-}\" = \"status\" ]; then",
+        "  exit 0",
+        "fi",
+        "cat > /dev/null",
+        "echo 'provider exploded' >&2",
+        "exit 42",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "command_failed");
+    assert.match(result.message, /exited with code 42/);
   });
 });
 
@@ -1638,6 +2080,14 @@ function copilotAssistantMessageJsonl(content: string): string {
       phase: "response",
       content,
     },
+  });
+}
+
+function claudeStructuredOutputJson(structuredOutput: unknown): string {
+  return JSON.stringify({
+    type: "result",
+    subtype: "success",
+    structured_output: structuredOutput,
   });
 }
 

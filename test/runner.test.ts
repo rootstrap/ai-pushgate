@@ -672,7 +672,22 @@ async function installClaudeStub(binDir: string): Promise<void> {
       "set -eu",
       "cat > /dev/null",
       "cat <<'EOF'",
-      "{\"schema_version\":1,\"findings\":[{\"category\":\"logic_errors\",\"confidence\":\"high\",\"severity\":\"blocking\",\"file\":\"src/changed.ts\",\"line\":\"2-3\",\"message\":\"The true branch always returns false instead of preserving the flag.\",\"suggestion\":\"Return the computed value for the true branch and cover it with a regression test.\"}]}",
+      claudeStructuredOutputJson({
+        schema_version: 1,
+        findings: [
+          {
+            category: "logic_errors",
+            confidence: "high",
+            severity: "blocking",
+            file: "src/changed.ts",
+            line: "2-3",
+            message:
+              "The true branch always returns false instead of preserving the flag.",
+            suggestion:
+              "Return the computed value for the true branch and cover it with a regression test.",
+          },
+        ],
+      }),
       "EOF",
     ].join("\n"),
   );
@@ -704,6 +719,14 @@ function copilotAssistantMessageJsonl(content: string): string {
       phase: "response",
       content,
     },
+  });
+}
+
+function claudeStructuredOutputJson(structuredOutput: unknown): string {
+  return JSON.stringify({
+    type: "result",
+    subtype: "success",
+    structured_output: structuredOutput,
   });
 }
 
