@@ -8,9 +8,13 @@ import {
 import { runDeterministicChecks } from "../runner/deterministic.js";
 import { resolveSkipControlState } from "../skip-controls.js";
 import {
-  buildPrePushRunPlan,
-  type PrePushRunPlan,
-} from "./run-plan.js";
+  buildPrePushConfigDecision,
+  buildPrePushRunDecision,
+  formatRunSkipReason,
+  type LocalAiPhaseDecision,
+  type PrePushRunDecision,
+  type RunSkipReason,
+} from "./run-decisions.js";
 import {
   createTerminalWarningConfirmer,
   WarningConfirmationError,
@@ -33,11 +37,10 @@ export async function runPrePushWorkflow(
 
   const repoRoot = await resolveGitRepositoryRoot(io.env);
   const skipControls = await resolveSkipControlState(repoRoot, io.env);
+  const configDecision = buildPrePushConfigDecision(skipControls);
 
-  if (skipControls.skipAllChecks) {
-    io.stdout.write(
-      "[pushgate] Skipping all local Pushgate checks because pushgate.skip-all-checks=true.\n",
-    );
+  if (configDecision.kind === "skip") {
+    writeVisibleSkipReason(io.stdout, configDecision.reason);
     return 0;
   }
 
@@ -47,10 +50,10 @@ export async function runPrePushWorkflow(
     io.stdout.write(`[pushgate] Warning: ${warning}\n`);
   }
 
-  const runPlan = buildPrePushRunPlan(loaded.config, skipControls);
+  const runDecision = buildPrePushRunDecision(loaded.config, skipControls);
   const changedFileResolution = await maybeResolveChangedFiles(loaded.config, {
     repoRoot,
-    runPlan,
+    runDecision,
   });
 
   const summary = await runDeterministicChecks({
@@ -80,7 +83,7 @@ export async function runPrePushWorkflow(
 
   const localAiSummary = await runLocalAiPhase(
     loaded.config,
-    runPlan,
+    runDecision.localAi,
     changedFileResolution,
     {
       env: io.env,
@@ -109,7 +112,7 @@ export async function runPrePushWorkflow(
 
 async function runLocalAiPhase(
   config: PushgateConfig,
-  runPlan: PrePushRunPlan,
+  decision: LocalAiPhaseDecision,
   changedFileResolution: ChangedFileResolution | null,
   options: {
     env: NodeJS.ProcessEnv;
@@ -117,14 +120,8 @@ async function runLocalAiPhase(
     stdout: NodeJS.WritableStream;
   },
 ): Promise<{ exitCode: number; warningCount: number }> {
-  if (runPlan.localAiSkipReason === "mode-off") {
-    return { exitCode: 0, warningCount: 0 };
-  }
-
-  if (runPlan.localAiSkipReason === "skip-control") {
-    options.stdout.write(
-      "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n",
-    );
+  if (decision.kind === "skip") {
+    writeVisibleSkipReason(options.stdout, decision.reason);
     return { exitCode: 0, warningCount: 0 };
   }
 
@@ -187,10 +184,10 @@ async function maybeResolveChangedFiles(
   config: PushgateConfig,
   options: {
     repoRoot: string;
-    runPlan: PrePushRunPlan;
+    runDecision: PrePushRunDecision;
   },
 ): Promise<ChangedFileResolution | null> {
-  if (!options.runPlan.needsChangedFiles) {
+  if (options.runDecision.changedFiles.kind === "not-required") {
     return null;
   }
 
@@ -199,6 +196,17 @@ async function maybeResolveChangedFiles(
     targetBranch: config.review.target_branch,
     ignorePaths: config.ignore_paths,
   });
+}
+
+function writeVisibleSkipReason(
+  stdout: NodeJS.WritableStream,
+  reason: RunSkipReason,
+): void {
+  const message = formatRunSkipReason(reason);
+
+  if (message !== null) {
+    stdout.write(`[pushgate] ${message}\n`);
+  }
 }
 
 function requireChangedFileResolution(

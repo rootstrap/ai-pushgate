@@ -74,10 +74,7 @@ async function runPushCommand(
     const parsed = parsePushCommandArgs(args);
 
     const result = await runGitPush(
-      buildGitPushArgs(parsed.gitPushArgs, {
-        skipAllChecks: parsed.skipAllChecks,
-        skipAiCheck: parsed.skipAiCheck,
-      }),
+      buildGitPushArgs(parsed.gitPushArgs, parsed.skipControls),
       { env: io.env },
     ).catch((error: unknown) => {
       const spawnError = error as NodeJS.ErrnoException;

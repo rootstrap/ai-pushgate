@@ -7,7 +7,21 @@ export const SKIP_ALL_CHECKS_CONFIG_KEY =
   "pushgate.skip-all-checks" as const;
 export const SKIP_AI_CHECK_CONFIG_KEY = "pushgate.skip-ai-check" as const;
 
+export type ActiveSkipControl =
+  | {
+      configKey: typeof SKIP_ALL_CHECKS_CONFIG_KEY;
+      kind: "skip-all-checks";
+    }
+  | {
+      configKey: typeof SKIP_AI_CHECK_CONFIG_KEY;
+      kind: "skip-ai-check";
+    }
+  | {
+      kind: "none";
+    };
+
 export interface SkipControlState {
+  active: ActiveSkipControl;
   skipAllChecks: boolean;
   skipAiCheck: boolean;
 }
@@ -25,15 +39,48 @@ export function buildGitPushArgs(
 ): string[] {
   const gitArgs: string[] = [];
 
-  if (state.skipAllChecks) {
-    gitArgs.push("-c", `${SKIP_ALL_CHECKS_CONFIG_KEY}=true`);
-  } else if (state.skipAiCheck) {
-    gitArgs.push("-c", `${SKIP_AI_CHECK_CONFIG_KEY}=true`);
+  if (state.active.kind !== "none") {
+    gitArgs.push("-c", `${state.active.configKey}=true`);
   }
 
   gitArgs.push("push", ...pushArgs);
 
   return gitArgs;
+}
+
+export function createSkipControlState(options: {
+  skipAllChecks: boolean;
+  skipAiCheck: boolean;
+}): SkipControlState {
+  if (options.skipAllChecks) {
+    return {
+      active: {
+        configKey: SKIP_ALL_CHECKS_CONFIG_KEY,
+        kind: "skip-all-checks",
+      },
+      skipAllChecks: true,
+      skipAiCheck: false,
+    };
+  }
+
+  if (options.skipAiCheck) {
+    return {
+      active: {
+        configKey: SKIP_AI_CHECK_CONFIG_KEY,
+        kind: "skip-ai-check",
+      },
+      skipAllChecks: false,
+      skipAiCheck: true,
+    };
+  }
+
+  return {
+    active: {
+      kind: "none",
+    },
+    skipAllChecks: false,
+    skipAiCheck: false,
+  };
 }
 
 export async function resolveSkipControlState(
@@ -47,20 +94,20 @@ export async function resolveSkipControlState(
   );
 
   if (skipAllChecks) {
-    return {
+    return createSkipControlState({
       skipAllChecks: true,
       skipAiCheck: false,
-    };
+    });
   }
 
-  return {
+  return createSkipControlState({
     skipAllChecks: false,
     skipAiCheck: await readSkipBooleanConfig(
       repoRoot,
       env,
       SKIP_AI_CHECK_CONFIG_KEY,
     ),
-  };
+  });
 }
 
 async function readSkipBooleanConfig(

@@ -1,7 +1,11 @@
+import {
+  createSkipControlState,
+  type SkipControlState,
+} from "../skip-controls.js";
+
 export interface PushCommandArgs {
   gitPushArgs: string[];
-  skipAllChecks: boolean;
-  skipAiCheck: boolean;
+  skipControls: SkipControlState;
 }
 
 export function parsePushCommandArgs(
@@ -32,7 +36,9 @@ export function parsePushCommandArgs(
 
   return {
     gitPushArgs,
-    skipAllChecks,
-    skipAiCheck: skipAllChecks ? false : skipAiCheck,
+    skipControls: createSkipControlState({
+      skipAllChecks,
+      skipAiCheck,
+    }),
   };
 }

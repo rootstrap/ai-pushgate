@@ -9888,13 +9888,40 @@ var SkipControlError = class extends Error {
 };
 function buildGitPushArgs(pushArgs, state) {
   const gitArgs = [];
-  if (state.skipAllChecks) {
-    gitArgs.push("-c", `${SKIP_ALL_CHECKS_CONFIG_KEY}=true`);
-  } else if (state.skipAiCheck) {
-    gitArgs.push("-c", `${SKIP_AI_CHECK_CONFIG_KEY}=true`);
+  if (state.active.kind !== "none") {
+    gitArgs.push("-c", `${state.active.configKey}=true`);
   }
   gitArgs.push("push", ...pushArgs);
   return gitArgs;
+}
+function createSkipControlState(options) {
+  if (options.skipAllChecks) {
+    return {
+      active: {
+        configKey: SKIP_ALL_CHECKS_CONFIG_KEY,
+        kind: "skip-all-checks"
+      },
+      skipAllChecks: true,
+      skipAiCheck: false
+    };
+  }
+  if (options.skipAiCheck) {
+    return {
+      active: {
+        configKey: SKIP_AI_CHECK_CONFIG_KEY,
+        kind: "skip-ai-check"
+      },
+      skipAllChecks: false,
+      skipAiCheck: true
+    };
+  }
+  return {
+    active: {
+      kind: "none"
+    },
+    skipAllChecks: false,
+    skipAiCheck: false
+  };
 }
 async function resolveSkipControlState(repoRoot, env = process.env) {
   const skipAllChecks = await readSkipBooleanConfig(
@@ -9903,19 +9930,19 @@ async function resolveSkipControlState(repoRoot, env = process.env) {
     SKIP_ALL_CHECKS_CONFIG_KEY
   );
   if (skipAllChecks) {
-    return {
+    return createSkipControlState({
       skipAllChecks: true,
       skipAiCheck: false
-    };
+    });
   }
-  return {
+  return createSkipControlState({
     skipAllChecks: false,
     skipAiCheck: await readSkipBooleanConfig(
       repoRoot,
       env,
       SKIP_AI_CHECK_CONFIG_KEY
     )
-  };
+  });
 }
 async function readSkipBooleanConfig(repoRoot, env, key) {
   try {
@@ -9962,8 +9989,10 @@ function parsePushCommandArgs(args) {
   }
   return {
     gitPushArgs,
-    skipAllChecks,
-    skipAiCheck: skipAllChecks ? false : skipAiCheck
+    skipControls: createSkipControlState({
+      skipAllChecks,
+      skipAiCheck
+    })
   };
 }
 
@@ -27089,25 +27118,88 @@ function requireChangedFileResolution(changedFileResolution) {
   );
 }
 
-// src/workflows/run-plan.ts
-function buildPrePushRunPlan(config2, skipControls) {
+// src/workflows/run-decisions.ts
+function buildPrePushConfigDecision(skipControls) {
+  if (skipControls.active.kind === "skip-all-checks") {
+    return {
+      kind: "skip",
+      reason: {
+        configKey: SKIP_ALL_CHECKS_CONFIG_KEY,
+        control: "skip-all-checks",
+        kind: "skip-control",
+        scope: "all-local-checks"
+      }
+    };
+  }
+  return { kind: "load-config" };
+}
+function buildPrePushRunDecision(config2, skipControls) {
   const deterministicPlan = buildDeterministicCheckPlan(config2);
-  const localAiSkipReason = getLocalAiSkipReason(config2, skipControls);
-  const runLocalAi = localAiSkipReason === null;
+  const deterministicChecks = deterministicPlan.runChecks ? {
+    checkCount: deterministicPlan.checkCount,
+    kind: "configured"
+  } : {
+    kind: "not-configured"
+  };
+  const localAi = getLocalAiDecision(config2, skipControls);
   return {
-    localAiSkipReason,
-    needsChangedFiles: deterministicPlan.needsChangedFileResolution || runLocalAi,
-    runLocalAi
+    changedFiles: getChangedFileResolutionDecision({
+      deterministicChecks,
+      localAi
+    }),
+    deterministicChecks,
+    localAi
   };
 }
-function getLocalAiSkipReason(config2, skipControls) {
+function formatRunSkipReason(reason) {
+  if (reason.kind === "local-ai-mode-off") {
+    return null;
+  }
+  if (reason.control === "skip-all-checks") {
+    return `Skipping all local Pushgate checks because ${reason.configKey}=true.`;
+  }
+  return `Skipping local AI because ${reason.configKey}=true.`;
+}
+function getLocalAiDecision(config2, skipControls) {
   if (config2.ai.mode === "off") {
-    return "mode-off";
+    return {
+      kind: "skip",
+      reason: {
+        kind: "local-ai-mode-off"
+      }
+    };
   }
-  if (skipControls.skipAiCheck) {
-    return "skip-control";
+  if (skipControls.active.kind === "skip-ai-check") {
+    return {
+      kind: "skip",
+      reason: {
+        configKey: SKIP_AI_CHECK_CONFIG_KEY,
+        control: "skip-ai-check",
+        kind: "skip-control",
+        scope: "local-ai"
+      }
+    };
   }
-  return null;
+  return { kind: "run" };
+}
+function getChangedFileResolutionDecision(options) {
+  const requiredBy = [];
+  if (options.deterministicChecks.kind === "configured") {
+    requiredBy.push("deterministic-checks");
+  }
+  if (options.localAi.kind === "run") {
+    requiredBy.push("local-ai-review");
+  }
+  if (requiredBy.length === 0) {
+    return {
+      kind: "not-required",
+      requiredBy: []
+    };
+  }
+  return {
+    kind: "required",
+    requiredBy
+  };
 }
 
 // src/workflows/terminal.ts
@@ -27298,10 +27390,9 @@ async function runPrePushWorkflow(io) {
   await drainStdin(io.stdin);
   const repoRoot = await resolveGitRepositoryRoot(io.env);
   const skipControls = await resolveSkipControlState(repoRoot, io.env);
-  if (skipControls.skipAllChecks) {
-    io.stdout.write(
-      "[pushgate] Skipping all local Pushgate checks because pushgate.skip-all-checks=true.\n"
-    );
+  const configDecision = buildPrePushConfigDecision(skipControls);
+  if (configDecision.kind === "skip") {
+    writeVisibleSkipReason(io.stdout, configDecision.reason);
     return 0;
   }
   const loaded = await loadConfig(repoRoot);
@@ -27309,10 +27400,10 @@ async function runPrePushWorkflow(io) {
     io.stdout.write(`[pushgate] Warning: ${warning}
 `);
   }
-  const runPlan = buildPrePushRunPlan(loaded.config, skipControls);
+  const runDecision = buildPrePushRunDecision(loaded.config, skipControls);
   const changedFileResolution = await maybeResolveChangedFiles(loaded.config, {
     repoRoot,
-    runPlan
+    runDecision
   });
   const summary = await runDeterministicChecks({
     changedFileResolution,
@@ -27336,7 +27427,7 @@ async function runPrePushWorkflow(io) {
   }
   const localAiSummary = await runLocalAiPhase(
     loaded.config,
-    runPlan,
+    runDecision.localAi,
     changedFileResolution,
     {
       env: io.env,
@@ -27357,14 +27448,9 @@ async function runPrePushWorkflow(io) {
   }
   return 0;
 }
-async function runLocalAiPhase(config2, runPlan, changedFileResolution, options) {
-  if (runPlan.localAiSkipReason === "mode-off") {
-    return { exitCode: 0, warningCount: 0 };
-  }
-  if (runPlan.localAiSkipReason === "skip-control") {
-    options.stdout.write(
-      "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n"
-    );
+async function runLocalAiPhase(config2, decision, changedFileResolution, options) {
+  if (decision.kind === "skip") {
+    writeVisibleSkipReason(options.stdout, decision.reason);
     return { exitCode: 0, warningCount: 0 };
   }
   return await runLocalAiReview({
@@ -27414,7 +27500,7 @@ async function confirmWarningsBeforeContinuing(options) {
   }
 }
 async function maybeResolveChangedFiles(config2, options) {
-  if (!options.runPlan.needsChangedFiles) {
+  if (options.runDecision.changedFiles.kind === "not-required") {
     return null;
   }
   return await resolveChangedFiles({
@@ -27422,6 +27508,13 @@ async function maybeResolveChangedFiles(config2, options) {
     targetBranch: config2.review.target_branch,
     ignorePaths: config2.ignore_paths
   });
+}
+function writeVisibleSkipReason(stdout, reason) {
+  const message = formatRunSkipReason(reason);
+  if (message !== null) {
+    stdout.write(`[pushgate] ${message}
+`);
+  }
 }
 function requireChangedFileResolution2(changedFileResolution, phaseName) {
   if (changedFileResolution !== null) {
@@ -27492,10 +27585,7 @@ async function runPushCommand(args, io) {
   try {
     const parsed = parsePushCommandArgs(args);
     const result = await runGitPush(
-      buildGitPushArgs(parsed.gitPushArgs, {
-        skipAllChecks: parsed.skipAllChecks,
-        skipAiCheck: parsed.skipAiCheck
-      }),
+      buildGitPushArgs(parsed.gitPushArgs, parsed.skipControls),
       { env: io.env }
     ).catch((error51) => {
       const spawnError = error51;
