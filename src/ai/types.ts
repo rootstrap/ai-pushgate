@@ -105,7 +105,7 @@ export type LocalAiTranscriptEvent =
       kind: "skip-no-files";
     }
   | {
-      kind: "skip-changed-lines";
+      kind: "block-changed-lines";
       changedLineCount: number;
       maxChangedLines: number;
     }
@@ -157,6 +157,7 @@ export type LocalAiTranscriptEvent =
 export interface LocalAiVerdict {
   exitCode: number;
   transcriptEvents: readonly LocalAiTranscriptEvent[];
+  warningCount: number;
 }
 
 export interface LocalAiProviderRunOptions {

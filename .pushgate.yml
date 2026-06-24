@@ -1,0 +1,53 @@
+version: 2
+
+ai:
+  mode: blocking
+  max_changed_lines: 1000
+  max_prompt_tokens: 12000
+  timeout_seconds: 120
+  provider: copilot
+  providers:
+    copilot:
+      model: auto
+
+plugins:
+  gitleaks:
+    enabled: true
+    command: gitleaks
+    timeout_seconds: 60
+    mode: blocking
+    fail_fast: false
+    redact: true
+
+policies:
+  diff_size:
+    max_changed_lines: 1000
+    mode: blocking
+
+review:
+  target_branch: main
+  context_lines: 10
+  max_lines_for_full_file: 300
+
+tools:
+  - name: typecheck
+    command: ["pnpm", "run", "typecheck"]
+    run: always
+    timeout_seconds: 120
+    fail_fast: false
+
+  - name: test
+    command: ["pnpm", "test"]
+    run: always
+    timeout_seconds: 180
+    fail_fast: false
+
+ignore_paths:
+  - "*.lock"
+  - "package-lock.json"
+  - "pnpm-lock.yaml"
+  - "yarn.lock"
+  - "dist/**"
+  - "build/**"
+  - "coverage/**"
+  - "*.d.ts"

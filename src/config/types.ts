@@ -102,7 +102,7 @@ export type ProviderConfig = Record<string, unknown>;
 export interface AiConfig {
   /** Local AI behavior after config defaults are applied. */
   mode: AiMode;
-  /** Maximum changed text lines the local AI phase may review. */
+  /** Maximum changed text lines before local AI blocks the push. */
   max_changed_lines: number;
   /** Approximate rendered prompt token budget before local AI is skipped. */
   max_prompt_tokens: number;

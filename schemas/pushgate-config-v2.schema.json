@@ -263,7 +263,7 @@
           "default": "blocking"
         },
         "max_changed_lines": {
-          "description": "Maximum total added plus deleted text lines before local AI review is skipped.",
+          "description": "Maximum total added plus deleted text lines before local AI review blocks the push.",
           "type": "integer",
           "minimum": 1,
           "default": 500

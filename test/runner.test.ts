@@ -3,8 +3,12 @@ import { spawn } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
+import { Readable, Writable } from "node:stream";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { runPrePushWorkflow } from "../src/workflows/pre-push.js";
+import type { WarningConfirmationRequest } from "../src/workflows/warning-confirmation.js";
 
 const runnerSourcePath = fileURLToPath(
   new URL("../bin/pushgate.mjs", import.meta.url),
@@ -80,6 +84,54 @@ test("Gitleaks plugin findings block the pre-push runner", async () => {
     assert.match(result.stdout, /BLOCK plugin:gitleaks/);
     assert.match(result.stdout, /src\/secret\.txt:1 \(generic-api-key\)/);
     assert.doesNotMatch(result.stdout, /Running local AI review/);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("deterministic warnings prompt before local AI runs", async () => {
+  await withWarningToolRepo(async (repoRoot) => {
+    const prompts: WarningConfirmationRequest[] = [];
+
+    const result = await runWorkflowInRepo(repoRoot, {
+      warningConfirmer: async (request) => {
+        prompts.push(request);
+        return true;
+      },
+    });
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /WARN warn-tool: exited with code 7/);
+    assert.match(
+      result.stdout,
+      /Continuing with 1 warning\(s\) from deterministic checks after confirmation/,
+    );
+    assert.deepEqual(prompts, [
+      { phase: "deterministic checks", warningCount: 1 },
+    ]);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("declining deterministic warnings blocks the pre-push runner", async () => {
+  await withWarningToolRepo(async (repoRoot) => {
+    const prompts: WarningConfirmationRequest[] = [];
+
+    const result = await runWorkflowInRepo(repoRoot, {
+      warningConfirmer: async (request) => {
+        prompts.push(request);
+        return false;
+      },
+    });
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /WARN warn-tool: exited with code 7/);
+    assert.match(
+      result.stdout,
+      /Push blocked because deterministic checks produced 1 warning\(s\) and continuation was not confirmed/,
+    );
+    assert.deepEqual(prompts, [
+      { phase: "deterministic checks", warningCount: 1 },
+    ]);
     assert.equal(result.stderr, "");
   });
 });
@@ -171,7 +223,7 @@ test("blocking local AI findings block the pre-push runner", async () => {
   });
 });
 
-test("Copilot local AI findings flow through the pre-push runner", async () => {
+test("Copilot local AI warnings continue after confirmation", async () => {
   await withAiRepo(async (repoRoot, env) => {
     await installCopilotStub(join(repoRoot, "bin"));
     await writeFile(
@@ -188,12 +240,15 @@ test("Copilot local AI findings flow through the pre-push runner", async () => {
         "",
       ].join("\n"),
     );
+    const prompts: WarningConfirmationRequest[] = [];
 
-    const result = await runRunner(
-      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
-      "refs/heads/feature local refs/heads/feature remote\n",
-      { cwd: repoRoot, env },
-    );
+    const result = await runWorkflowInRepo(repoRoot, {
+      env,
+      warningConfirmer: async (request) => {
+        prompts.push(request);
+        return true;
+      },
+    });
 
     assert.equal(result.code, 0, formatResult(result));
     assert.match(result.stdout, /Running local AI review with copilot/);
@@ -202,6 +257,53 @@ test("Copilot local AI findings flow through the pre-push runner", async () => {
       result.stdout,
       /Local AI review finished: 0 blocking finding\(s\), 1 warning\(s\)/,
     );
+    assert.match(
+      result.stdout,
+      /Continuing with 1 warning\(s\) from local AI review after confirmation/,
+    );
+    assert.deepEqual(prompts, [
+      { phase: "local AI review", warningCount: 1 },
+    ]);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("declining local AI warnings blocks the pre-push runner", async () => {
+  await withAiRepo(async (repoRoot, env) => {
+    await installCopilotStub(join(repoRoot, "bin"));
+    await writeFile(
+      join(repoRoot, ".pushgate.yml"),
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: copilot",
+        "  providers:",
+        "    copilot:",
+        "      model: auto",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+    const prompts: WarningConfirmationRequest[] = [];
+
+    const result = await runWorkflowInRepo(repoRoot, {
+      env,
+      warningConfirmer: async (request) => {
+        prompts.push(request);
+        return false;
+      },
+    });
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /WARN AI performance at src\/changed\.ts:2/);
+    assert.match(
+      result.stdout,
+      /Push blocked because local AI review produced 1 warning\(s\) and continuation was not confirmed/,
+    );
+    assert.deepEqual(prompts, [
+      { phase: "local AI review", warningCount: 1 },
+    ]);
     assert.equal(result.stderr, "");
   });
 });
@@ -268,7 +370,7 @@ test("default local AI mode is blocking in the pre-push runner", async () => {
   });
 });
 
-test("advisory local AI provider failures do not block the pre-push runner", async () => {
+test("advisory local AI provider failures continue after confirmation", async () => {
   await withAiRepo(async (repoRoot) => {
     await writeFile(
       join(repoRoot, ".pushgate.yml"),
@@ -283,12 +385,14 @@ test("advisory local AI provider failures do not block the pre-push runner", asy
         "",
       ].join("\n"),
     );
+    const prompts: WarningConfirmationRequest[] = [];
 
-    const result = await runRunner(
-      ["pre-push", "origin", "git@example.test:rootstrap/ai-pushgate.git"],
-      "refs/heads/feature local refs/heads/feature remote\n",
-      { cwd: repoRoot },
-    );
+    const result = await runWorkflowInRepo(repoRoot, {
+      warningConfirmer: async (request) => {
+        prompts.push(request);
+        return true;
+      },
+    });
 
     assert.equal(result.code, 0, formatResult(result));
     assert.match(
@@ -296,11 +400,18 @@ test("advisory local AI provider failures do not block the pre-push runner", asy
       /WARN local AI provider claude failed: Claude Code CLI was not found on PATH/,
     );
     assert.match(result.stdout, /Continuing because ai.mode is advisory/);
+    assert.match(
+      result.stdout,
+      /Continuing with 1 warning\(s\) from local AI review after confirmation/,
+    );
+    assert.deepEqual(prompts, [
+      { phase: "local AI review", warningCount: 1 },
+    ]);
     assert.equal(result.stderr, "");
   });
 });
 
-test("AI changed-line guardrail skips provider invocation visibly", async () => {
+test("AI changed-line guardrail blocks provider invocation visibly", async () => {
   await withAiRepo(async (repoRoot, env) => {
     await writeFile(
       join(repoRoot, ".pushgate.yml"),
@@ -323,11 +434,12 @@ test("AI changed-line guardrail skips provider invocation visibly", async () => 
       { cwd: repoRoot, env },
     );
 
-    assert.equal(result.code, 0, formatResult(result));
+    assert.equal(result.code, 1, formatResult(result));
     assert.match(
       result.stdout,
-      /Skipping local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/,
+      /BLOCK local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/,
     );
+    assert.match(result.stdout, /Local AI review blocked the push/);
     assert.doesNotMatch(result.stdout, /Running local AI review with claude/);
     assert.equal(result.stderr, "");
   });
@@ -463,6 +575,61 @@ function runRunner(
   });
 }
 
+async function runWorkflowInRepo(
+  repoRoot: string,
+  options: {
+    env?: NodeJS.ProcessEnv;
+    warningConfirmer?: (
+      request: WarningConfirmationRequest,
+    ) => Promise<boolean>;
+  } = {},
+): Promise<RunnerResult> {
+  const previousCwd = process.cwd();
+  const stdout = captureOutput();
+  const stderr = captureOutput();
+
+  process.chdir(repoRoot);
+
+  try {
+    const code = await runPrePushWorkflow({
+      env: { ...process.env, ...options.env },
+      stderr: stderr.stream,
+      stdin: Readable.from(""),
+      stdout: stdout.stream,
+      ...(options.warningConfirmer
+        ? { warningConfirmer: options.warningConfirmer }
+        : {}),
+    });
+
+    return {
+      code,
+      stderr: stderr.text(),
+      stdout: stdout.text(),
+    };
+  } finally {
+    process.chdir(previousCwd);
+  }
+}
+
+function captureOutput(): {
+  stream: Writable;
+  text(): string;
+} {
+  let output = "";
+
+  return {
+    stream: new Writable({
+      write(chunk, _encoding, callback) {
+        output += String(chunk);
+        callback();
+      },
+    }),
+    text() {
+      return output;
+    },
+  };
+}
+
 async function withRunnerRepo(
   callback: (repoRoot: string) => Promise<void>,
 ): Promise<void> {
@@ -534,6 +701,56 @@ async function withPolicyRepo(
     });
     await writeRepoFile(repoRoot, "README.md", "base\nfeature\nmore\n");
     await writeRepoFile(repoRoot, "secrets/token.txt", "secret\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
+      cwd: repoRoot,
+    });
+
+    await callback(repoRoot);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+}
+
+async function withWarningToolRepo(
+  callback: (repoRoot: string) => Promise<void>,
+): Promise<void> {
+  const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-warning-cli-"));
+
+  try {
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.email", "runner@example.test"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.name", "Pushgate Runner"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(
+      repoRoot,
+      ".pushgate.yml",
+      [
+        "version: 2",
+        "ai:",
+        "  mode: off",
+        "tools:",
+        "  - name: warn-tool",
+        `    command: ${JSON.stringify([process.execPath, "-e", "process.exit(7);"])}`,
+        "    mode: warning",
+        "    run: always",
+        "",
+      ].join("\n"),
+    );
+    await writeRepoFile(repoRoot, "README.md", "base\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "baseline"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["switch", "--quiet", "-c", "feature"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "README.md", "base\nfeature\n");
     await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
     await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
       cwd: repoRoot,

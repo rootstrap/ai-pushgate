@@ -8550,7 +8550,7 @@ function validate17(data, { instancePath = "", parentData, parentDataProperty, r
   validate17.errors = vErrors;
   return errors === 0;
 }
-var schema22 = { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string", "enum": ["blocking", "advisory", "off"], "default": "blocking" }, "max_changed_lines": { "description": "Maximum total added plus deleted text lines before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 500 }, "max_prompt_tokens": { "description": "Approximate rendered prompt token budget before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 12e3 }, "timeout_seconds": { "description": "Maximum local AI provider runtime before the provider is treated as timed out.", "type": "integer", "minimum": 1, "default": 120 }, "provider": { "type": "string", "minLength": 1 }, "providers": { "type": "object", "default": {}, "propertyNames": { "minLength": 1 }, "additionalProperties": { "$ref": "#/definitions/providerConfig" } } } };
+var schema22 = { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string", "enum": ["blocking", "advisory", "off"], "default": "blocking" }, "max_changed_lines": { "description": "Maximum total added plus deleted text lines before local AI review blocks the push.", "type": "integer", "minimum": 1, "default": 500 }, "max_prompt_tokens": { "description": "Approximate rendered prompt token budget before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 12e3 }, "timeout_seconds": { "description": "Maximum local AI provider runtime before the provider is treated as timed out.", "type": "integer", "minimum": 1, "default": 120 }, "provider": { "type": "string", "minLength": 1 }, "providers": { "type": "object", "default": {}, "propertyNames": { "minLength": 1 }, "additionalProperties": { "$ref": "#/definitions/providerConfig" } } } };
 function validate21(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
   let vErrors = null;
   let errors = 0;
@@ -9992,7 +9992,7 @@ function evaluateChangedFileGuardrails(options) {
   const changedLineCount = countChangedLines(options.changedFiles);
   if (changedLineCount > options.maxChangedLines) {
     return {
-      kind: "skip-changed-lines",
+      kind: "block-changed-lines",
       changedLineCount,
       maxChangedLines: options.maxChangedLines
     };
@@ -26246,10 +26246,10 @@ function renderLocalAiTranscriptEvent(event, stdout) {
     case "skip-no-files":
       writeLine(stdout, "[pushgate] No changed files to review with local AI.");
       return;
-    case "skip-changed-lines":
+    case "block-changed-lines":
       writeLine(
         stdout,
-        `[pushgate] Skipping local AI because ${String(event.changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(event.maxChangedLines)}.`
+        `[pushgate] BLOCK local AI because ${String(event.changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(event.maxChangedLines)}.`
       );
       return;
     case "skip-prompt-tokens":
@@ -26348,13 +26348,15 @@ function buildLocalAiVerdict(aiMode, result) {
       transcriptEvents2.push({ kind: "advisory-continue" });
       return {
         exitCode: 0,
-        transcriptEvents: transcriptEvents2
+        transcriptEvents: transcriptEvents2,
+        warningCount: 1
       };
     }
     transcriptEvents2.push({ kind: "provider-blocked" });
     return {
       exitCode: 1,
-      transcriptEvents: transcriptEvents2
+      transcriptEvents: transcriptEvents2,
+      warningCount: 0
     };
   }
   const transcriptEvents = [];
@@ -26381,20 +26383,23 @@ function buildLocalAiVerdict(aiMode, result) {
   if (result.summary.blockingCount === 0) {
     return {
       exitCode: 0,
-      transcriptEvents
+      transcriptEvents,
+      warningCount: result.summary.warningCount
     };
   }
   if (aiMode === "advisory") {
     transcriptEvents.push({ kind: "advisory-continue" });
     return {
       exitCode: 0,
-      transcriptEvents
+      transcriptEvents,
+      warningCount: result.summary.warningCount + result.summary.blockingCount
     };
   }
   transcriptEvents.push({ kind: "review-blocked" });
   return {
     exitCode: 1,
-    transcriptEvents
+    transcriptEvents,
+    warningCount: result.summary.warningCount
   };
 }
 
@@ -26411,10 +26416,13 @@ async function runLocalAiReview(options) {
   });
   if (changedFileGuardrail.kind !== "run") {
     renderLocalAiTranscript(
-      [transcriptEventForChangedFileGuardrail(changedFileGuardrail)],
+      transcriptEventsForChangedFileGuardrail(changedFileGuardrail),
       stdout
     );
-    return { exitCode: 0 };
+    return {
+      exitCode: changedFileGuardrail.kind === "block-changed-lines" ? 1 : 0,
+      warningCount: 0
+    };
   }
   const payload = await buildLocalAiReviewPayload({
     changedFileResolution: options.changedFileResolution,
@@ -26437,7 +26445,7 @@ async function runLocalAiReview(options) {
       ],
       stdout
     );
-    return { exitCode: 0 };
+    return { exitCode: 0, warningCount: 0 };
   }
   renderLocalAiTranscript(
     [
@@ -26475,17 +26483,23 @@ async function runLocalAiReview(options) {
 function renderVerdict(aiMode, result, stdout) {
   const verdict = buildLocalAiVerdict(aiMode, result);
   renderLocalAiTranscript(verdict.transcriptEvents, stdout);
-  return { exitCode: verdict.exitCode };
-}
-function transcriptEventForChangedFileGuardrail(decision) {
-  if (decision.kind === "skip-no-files") {
-    return { kind: "skip-no-files" };
-  }
   return {
-    kind: "skip-changed-lines",
-    changedLineCount: decision.changedLineCount,
-    maxChangedLines: decision.maxChangedLines
+    exitCode: verdict.exitCode,
+    warningCount: verdict.warningCount
   };
+}
+function transcriptEventsForChangedFileGuardrail(decision) {
+  if (decision.kind === "skip-no-files") {
+    return [{ kind: "skip-no-files" }];
+  }
+  return [
+    {
+      kind: "block-changed-lines",
+      changedLineCount: decision.changedLineCount,
+      maxChangedLines: decision.maxChangedLines
+    },
+    { kind: "review-blocked" }
+  ];
 }
 
 // src/git/repository.ts
@@ -27034,6 +27048,76 @@ function getLocalAiSkipReason(config2, skipControls) {
   return null;
 }
 
+// src/workflows/warning-confirmation.ts
+import {
+  createReadStream,
+  createWriteStream,
+  openSync
+} from "node:fs";
+import { createInterface } from "node:readline/promises";
+var WarningConfirmationError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = new.target.name;
+  }
+};
+function createTerminalWarningConfirmer() {
+  return async (request) => {
+    let input;
+    let output;
+    try {
+      const inputFd = openSync("/dev/tty", "r");
+      const outputFd = openSync("/dev/tty", "w");
+      input = createReadStream("/dev/tty", {
+        autoClose: true,
+        encoding: "utf8",
+        fd: inputFd
+      });
+      output = createWriteStream("/dev/tty", {
+        autoClose: true,
+        fd: outputFd
+      });
+      const readline = createInterface({ input, output });
+      try {
+        for (; ; ) {
+          const answer = normalizeAnswer(
+            await readline.question(formatWarningPrompt(request))
+          );
+          if (answer === "yes") {
+            return true;
+          }
+          if (answer === "no") {
+            return false;
+          }
+          output.write("[pushgate] Please answer yes(y) or no(n).\n");
+        }
+      } finally {
+        readline.close();
+      }
+    } catch (error51) {
+      throw new WarningConfirmationError(
+        `Warning confirmation required for ${request.phase}, but no interactive terminal is available.`
+      );
+    } finally {
+      input?.destroy();
+      output?.end();
+    }
+  };
+}
+function formatWarningPrompt(request) {
+  return `[pushgate] ${request.phase} produced ${String(request.warningCount)} warning(s). Continue with warnings? yes(y) / no(n) `;
+}
+function normalizeAnswer(answer) {
+  const normalized = answer.trim().toLowerCase();
+  if (normalized === "y" || normalized === "yes") {
+    return "yes";
+  }
+  if (normalized === "n" || normalized === "no") {
+    return "no";
+  }
+  return "invalid";
+}
+
 // src/workflows/pre-push.ts
 async function runPrePushWorkflow(io) {
   await drainStdin(io.stdin);
@@ -27065,7 +27149,17 @@ async function runPrePushWorkflow(io) {
   if (summary.exitCode !== 0) {
     return summary.exitCode;
   }
-  return await runLocalAiPhase(
+  if (!await confirmWarningsBeforeContinuing({
+    confirmer: io.warningConfirmer,
+    phase: "deterministic checks",
+    stdout: io.stdout,
+    warningCount: summary.results.filter(
+      (result) => result.status === "warning"
+    ).length
+  })) {
+    return 1;
+  }
+  const localAiSummary = await runLocalAiPhase(
     loaded.config,
     runPlan,
     changedFileResolution,
@@ -27075,18 +27169,30 @@ async function runPrePushWorkflow(io) {
       stdout: io.stdout
     }
   );
+  if (localAiSummary.exitCode !== 0) {
+    return localAiSummary.exitCode;
+  }
+  if (!await confirmWarningsBeforeContinuing({
+    confirmer: io.warningConfirmer,
+    phase: "local AI review",
+    stdout: io.stdout,
+    warningCount: localAiSummary.warningCount
+  })) {
+    return 1;
+  }
+  return 0;
 }
 async function runLocalAiPhase(config2, runPlan, changedFileResolution, options) {
   if (runPlan.localAiSkipReason === "mode-off") {
-    return 0;
+    return { exitCode: 0, warningCount: 0 };
   }
   if (runPlan.localAiSkipReason === "skip-control") {
     options.stdout.write(
       "[pushgate] Skipping local AI because pushgate.skip-ai-check=true.\n"
     );
-    return 0;
+    return { exitCode: 0, warningCount: 0 };
   }
-  return (await runLocalAiReview({
+  return await runLocalAiReview({
     aiConfig: config2.ai,
     changedFileResolution: requireChangedFileResolution2(
       changedFileResolution,
@@ -27096,7 +27202,41 @@ async function runLocalAiPhase(config2, runPlan, changedFileResolution, options)
     repoRoot: options.repoRoot,
     reviewConfig: config2.review,
     stdout: options.stdout
-  })).exitCode;
+  });
+}
+async function confirmWarningsBeforeContinuing(options) {
+  if (options.warningCount === 0) {
+    return true;
+  }
+  const confirmer = options.confirmer ?? createTerminalWarningConfirmer();
+  try {
+    const confirmed = await confirmer({
+      phase: options.phase,
+      warningCount: options.warningCount
+    });
+    if (confirmed) {
+      options.stdout.write(
+        `[pushgate] Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.
+`
+      );
+      return true;
+    }
+    options.stdout.write(
+      `[pushgate] Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.
+`
+    );
+    return false;
+  } catch (error51) {
+    if (error51 instanceof WarningConfirmationError) {
+      options.stdout.write(`[pushgate] ${error51.message}
+`);
+      options.stdout.write(
+        "[pushgate] Push blocked because warning confirmation could not be collected.\n"
+      );
+      return false;
+    }
+    throw error51;
+  }
 }
 async function maybeResolveChangedFiles(config2, options) {
   if (!options.runPlan.needsChangedFiles) {

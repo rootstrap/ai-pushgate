@@ -9,7 +9,7 @@ export type ChangedFileGuardrailDecision =
       kind: "skip-no-files";
     }
   | {
-      kind: "skip-changed-lines";
+      kind: "block-changed-lines";
       changedLineCount: number;
       maxChangedLines: number;
     };
@@ -37,7 +37,7 @@ export function evaluateChangedFileGuardrails(options: {
 
   if (changedLineCount > options.maxChangedLines) {
     return {
-      kind: "skip-changed-lines",
+      kind: "block-changed-lines",
       changedLineCount,
       maxChangedLines: options.maxChangedLines,
     };

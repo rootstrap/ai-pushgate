@@ -15,6 +15,7 @@ import { buildLocalAiVerdict } from "./verdict.js";
 
 export interface LocalAiRunSummary {
   exitCode: number;
+  warningCount: number;
 }
 
 export async function runLocalAiReview(options: {
@@ -39,10 +40,13 @@ export async function runLocalAiReview(options: {
 
   if (changedFileGuardrail.kind !== "run") {
     renderLocalAiTranscript(
-      [transcriptEventForChangedFileGuardrail(changedFileGuardrail)],
+      transcriptEventsForChangedFileGuardrail(changedFileGuardrail),
       stdout,
     );
-    return { exitCode: 0 };
+    return {
+      exitCode: changedFileGuardrail.kind === "block-changed-lines" ? 1 : 0,
+      warningCount: 0,
+    };
   }
 
   const payload = await buildLocalAiReviewPayload({
@@ -67,7 +71,7 @@ export async function runLocalAiReview(options: {
       ],
       stdout,
     );
-    return { exitCode: 0 };
+    return { exitCode: 0, warningCount: 0 };
   }
 
   renderLocalAiTranscript(
@@ -113,22 +117,28 @@ function renderVerdict(
 ): LocalAiRunSummary {
   const verdict = buildLocalAiVerdict(aiMode, result);
   renderLocalAiTranscript(verdict.transcriptEvents, stdout);
-  return { exitCode: verdict.exitCode };
+  return {
+    exitCode: verdict.exitCode,
+    warningCount: verdict.warningCount,
+  };
 }
 
-function transcriptEventForChangedFileGuardrail(
+function transcriptEventsForChangedFileGuardrail(
   decision: Exclude<
     ReturnType<typeof evaluateChangedFileGuardrails>,
     { kind: "run" }
   >,
-): LocalAiTranscriptEvent {
+): LocalAiTranscriptEvent[] {
   if (decision.kind === "skip-no-files") {
-    return { kind: "skip-no-files" };
+    return [{ kind: "skip-no-files" }];
   }
 
-  return {
-    kind: "skip-changed-lines",
-    changedLineCount: decision.changedLineCount,
-    maxChangedLines: decision.maxChangedLines,
-  };
+  return [
+    {
+      kind: "block-changed-lines",
+      changedLineCount: decision.changedLineCount,
+      maxChangedLines: decision.maxChangedLines,
+    },
+    { kind: "review-blocked" },
+  ];
 }

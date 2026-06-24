@@ -18,9 +18,9 @@ git push
 │  Run configured deterministic checks │
 │  (built-in policies, plugins, tools) │
 │  ✗ blocking failure → push blocked  │
-│  ! warning failure → push proceeds  │
+│  ! warning failure → confirm first  │
 └──────────────┬──────────────────────┘
-               │ all pass
+               │ all pass or warnings confirmed
                ▼
 ┌─────────────────────────────────────┐
 │  AI review via selected provider    │
@@ -32,7 +32,7 @@ git push
 
 `git push` stays the main entry point. Pushgate plugs into it through the installed `pre-push` hook; `pushgate push` is an optional friendly wrapper for the same workflow.
 
-Local deterministic checks can block a push. Local AI supports `blocking`, `advisory`, and `off` modes; `blocking` is the default, matching the review gate shown above. CI and PR checks remain the final enforcement point for policy that must survive local hook skips.
+Local deterministic checks can block a push. Warning results require an explicit yes/no confirmation before the push continues. Local AI supports `blocking`, `advisory`, and `off` modes; `blocking` is the default, matching the review gate shown above. CI and PR checks remain the final enforcement point for policy that must survive local hook skips.
 
 `.pushgate.yml` is the primary project config. `.push-review.yml` belongs to migration compatibility rather than the public config contract.
 
@@ -119,7 +119,7 @@ version: 2
 ai:
   # Supported modes: blocking (default), advisory, off.
   mode: blocking
-  max_changed_lines: 500      # skip AI when changed text lines exceed this
+  max_changed_lines: 500      # block push when changed text lines exceed this
   max_prompt_tokens: 12000    # approximate rendered prompt budget
   timeout_seconds: 120        # provider timeout before mode-specific failure handling
   provider: claude
@@ -146,7 +146,7 @@ tools:
     command: ["npx", "eslint", "{changed_files}"]
     extensions: [".js", ".jsx", ".ts", ".tsx"]
     timeout_seconds: 60  # default command budget
-    mode: blocking       # blocking failures stop the push; warning only reports
+    mode: blocking       # blocking failures stop; warning requires confirmation
     run: changed_files   # skip when no matching live changed files exist
     fail_fast: true      # stop later tools after this blocking failure
 
@@ -158,7 +158,7 @@ tools:
 policies:
   diff_size:
     max_changed_lines: 500
-    mode: warning        # report large diffs without blocking
+    mode: warning        # report large diffs and require confirmation
 
   forbidden_paths:
     patterns:
@@ -189,7 +189,7 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. `plugins.gitleaks` delegates secret scanning to the Gitleaks CLI using `gitleaks git --log-opts <merge-base>..HEAD` plus a temporary JSON report, while preserving Gitleaks' own config, baseline, and ignore-file mechanisms. Local AI guardrails skip only the AI phase with visible output when a change exceeds the changed-line or approximate prompt-token budget; deterministic checks still run first. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. Pushgate currently supports `claude` and `copilot` provider IDs. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. `plugins.gitleaks` delegates secret scanning to the Gitleaks CLI using `gitleaks git --log-opts <merge-base>..HEAD` plus a temporary JSON report, while preserving Gitleaks' own config, baseline, and ignore-file mechanisms. Local AI blocks the push when changed text lines exceed `ai.max_changed_lines`, and skips only the AI phase when the approximate prompt-token budget is exceeded; deterministic checks still run first. If deterministic checks or local AI produce warnings, Pushgate asks whether to continue; declining, or running without an interactive terminal for the prompt, blocks the push. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. Pushgate currently supports `claude` and `copilot` provider IDs. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
 
 AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. Providers that support native JSON Schema, strict tool calls, or JSON mode can use stronger generation-time constraints in future adapters; current Claude and Copilot CLI adapters are text fallback providers, so Pushgate prompts them for the schema, safely repairs a small set of low-risk formatting damage, and rejects output that still does not match the contract.
 

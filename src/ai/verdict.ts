@@ -23,6 +23,7 @@ export function buildLocalAiVerdict(
       return {
         exitCode: 0,
         transcriptEvents,
+        warningCount: 1,
       };
     }
 
@@ -30,6 +31,7 @@ export function buildLocalAiVerdict(
     return {
       exitCode: 1,
       transcriptEvents,
+      warningCount: 0,
     };
   }
 
@@ -62,6 +64,7 @@ export function buildLocalAiVerdict(
     return {
       exitCode: 0,
       transcriptEvents,
+      warningCount: result.summary.warningCount,
     };
   }
 
@@ -70,6 +73,7 @@ export function buildLocalAiVerdict(
     return {
       exitCode: 0,
       transcriptEvents,
+      warningCount: result.summary.warningCount + result.summary.blockingCount,
     };
   }
 
@@ -77,5 +81,6 @@ export function buildLocalAiVerdict(
   return {
     exitCode: 1,
     transcriptEvents,
+    warningCount: result.summary.warningCount,
   };
 }
