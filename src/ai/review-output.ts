@@ -6,7 +6,6 @@ import { repairJsonCandidate } from "./review-output/json-repair.js";
 import {
   normalizeFinding,
   summarizeFindings,
-  validateFindingSemantics,
 } from "./review-output/normalization.js";
 import {
   formatSchemaDiagnostics,
@@ -58,15 +57,6 @@ export function parseAiReviewOutput(
       continue;
     }
 
-    const semanticDiagnostics = validateFindingSemantics(rawReview.findings);
-
-    if (semanticDiagnostics.length > 0) {
-      diagnostics.push(
-        `${candidate.source}: ${semanticDiagnostics.join(" ")}`,
-      );
-      continue;
-    }
-
     const findings = rawReview.findings.map((finding) =>
       normalizeFinding(finding, source),
     );
@@ -108,17 +98,6 @@ export function normalizeAiReviewObject(options: {
     throw new AiReviewOutputError(
       "Provider output is invalid.",
       [`${diagnosticSource}: ${formatSchemaDiagnostics(validation.errors)}`],
-    );
-  }
-
-  const semanticDiagnostics = validateFindingSemantics(
-    validation.review.findings,
-  );
-
-  if (semanticDiagnostics.length > 0) {
-    throw new AiReviewOutputError(
-      "Provider output is invalid.",
-      [`${diagnosticSource}: ${semanticDiagnostics.join(" ")}`],
     );
   }
 

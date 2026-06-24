@@ -7,7 +7,9 @@ import { Writable } from "node:stream";
 import test from "node:test";
 
 import {
+  AI_REVIEW_FINDING_FIELD_PROMPT_DOCS,
   AI_REVIEW_FINDING_KEYS,
+  AI_REVIEW_OUTPUT_EXAMPLE,
   AiReviewOutputError,
   AiReviewOutputSchema,
   BASE_REVIEW_PROMPT,
@@ -136,6 +138,36 @@ test("reports readable contract diagnostics for invalid AI review output", () =>
   }
 });
 
+test("validates category severity semantics in the AI review contract", () => {
+  const result = validateAiReviewOutputContract({
+    ...canonicalAiReviewOutput(),
+    findings: [
+      {
+        ...canonicalAiReviewOutput().findings[0],
+        category: "security",
+        severity: "warning",
+      },
+    ],
+  });
+
+  assert.equal(result.valid, false);
+
+  if (!result.valid) {
+    assert.deepEqual(result.errors, [
+      {
+        instancePath: "/findings/0/severity",
+        keyword: "categorySeverity",
+        message: 'Finding "security" must use severity "blocking".',
+        params: {
+          actualSeverity: "warning",
+          category: "security",
+          expectedSeverity: "blocking",
+        },
+      },
+    ]);
+  }
+});
+
 test("keeps checked-in AI review JSON Schema in sync with the Zod contract", async () => {
   assert.deepEqual(
     JSON.parse(await readFile("schemas/ai-review-output-v1.schema.json", "utf8")),
@@ -150,12 +182,18 @@ test("keeps the prompt JSON example aligned with the Zod contract", () => {
     ...BASE_REVIEW_PROMPT.matchAll(/^- `([^`]+)`:/gm),
   ].map((match) => match[1] ?? "");
 
+  assert.deepEqual(promptExample, AI_REVIEW_OUTPUT_EXAMPLE);
   assert.equal(parsed.success, true);
   assert.deepEqual(
     new Set(documentedFindingFields),
     new Set(AI_REVIEW_FINDING_KEYS),
   );
   assert.equal(documentedFindingFields.length, AI_REVIEW_FINDING_KEYS.length);
+  assert.deepEqual(
+    documentedFindingFields,
+    AI_REVIEW_FINDING_FIELD_PROMPT_DOCS.map((field) => field.key),
+  );
+  assert.doesNotMatch(BASE_REVIEW_PROMPT, /\{\{AI_REVIEW_/);
 });
 
 test("normalizes parsed AI review objects for native structured providers", () => {

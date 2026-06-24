@@ -1,8 +1,17 @@
 import type { ChangedFile } from "../path-policy/index.js";
 import type { LocalAiFullFileContext } from "./types.js";
 import reviewPromptMarkdown from "./prompts/review-prompt.md";
+import {
+  AI_BLOCKING_CATEGORIES,
+  AI_FINDING_CATEGORIES,
+  AI_REVIEW_FINDING_FIELD_PROMPT_DOCS,
+  AI_REVIEW_OUTPUT_EXAMPLE,
+  AI_WARNING_CATEGORIES,
+} from "./review-contract.js";
 
-export const BASE_REVIEW_PROMPT = reviewPromptMarkdown;
+export const BASE_REVIEW_PROMPT = renderReviewPromptTemplate(
+  reviewPromptMarkdown,
+);
 
 export function renderLocalAiPrompt(options: {
   changedFiles: readonly ChangedFile[];
@@ -64,4 +73,44 @@ function formatFullFiles(fullFiles: readonly LocalAiFullFileContext[]): string {
       return [title, file.content].filter(Boolean).join("\n");
     })
     .join("\n\n");
+}
+
+function renderReviewPromptTemplate(template: string): string {
+  return template
+    .replace(
+      "{{AI_REVIEW_FOCUS_AREAS}}",
+      formatBulletList(AI_FINDING_CATEGORIES),
+    )
+    .replace("{{AI_REVIEW_FINDING_CATEGORIES}}", formatFindingCategories())
+    .replace(
+      "{{AI_REVIEW_OUTPUT_EXAMPLE}}",
+      formatJsonExample(AI_REVIEW_OUTPUT_EXAMPLE),
+    )
+    .replace("{{AI_REVIEW_FINDING_FIELDS}}", formatFindingFieldDocs());
+}
+
+function formatFindingCategories(): string {
+  return [
+    "Blocking categories:",
+    "",
+    formatBulletList(AI_BLOCKING_CATEGORIES),
+    "",
+    "Warning categories:",
+    "",
+    formatBulletList(AI_WARNING_CATEGORIES),
+  ].join("\n");
+}
+
+function formatFindingFieldDocs(): string {
+  return AI_REVIEW_FINDING_FIELD_PROMPT_DOCS.map(
+    (field) => `- \`${field.key}\`: ${field.description}`,
+  ).join("\n");
+}
+
+function formatJsonExample(value: unknown): string {
+  return ["```json", JSON.stringify(value, null, 2), "```"].join("\n");
+}
+
+function formatBulletList(values: readonly string[]): string {
+  return values.map((value) => `- ${value}`).join("\n");
 }
