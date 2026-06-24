@@ -1,12 +1,18 @@
-import { runTimedCommand } from "../../process/timed-command.js";
+import {
+  isProcessCompletionOutcome,
+  runProcessOutcome,
+  type ProcessCompletionFailure,
+} from "../../process/outcome-policy.js";
 
 const DEFAULT_OUTPUT_TAIL_LIMIT = 8 * 1024;
 
 export type ProviderCommandResult =
   | {
       code: number | null;
+      failure?: ProcessCompletionFailure;
       kind: "completed";
       output?: string;
+      signal?: NodeJS.Signals | null;
       stdout: string;
     }
   | {
@@ -27,34 +33,52 @@ export async function runProviderCommand(options: {
   prompt: string;
   timeoutSeconds: number;
 }): Promise<ProviderCommandResult> {
-  const commandResult = await runTimedCommand({
+  const commandResult = await runProcessOutcome({
     args: options.args,
     command: options.command,
     cwd: options.cwd,
     env: options.env,
     outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
-    // Provider CLIs may exit before stdin fully drains; runTimedCommand still
+    // Provider CLIs may exit before stdin fully drains; the process runner still
     // lets the close path report the real provider result.
     stdin: options.prompt,
     timeoutSeconds: options.timeoutSeconds,
   });
 
-  if (commandResult.kind === "spawn-error") {
-    return { kind: "spawn-error" };
-  }
+  if (!isProcessCompletionOutcome(commandResult)) {
+    if (commandResult.failure.kind === "spawn-error") {
+      return { kind: "spawn-error" };
+    }
 
-  if (commandResult.kind === "timeout") {
     return {
       kind: "timeout",
       output: commandResult.outputTail,
     };
   }
 
+  if (commandResult.kind === "failed") {
+    return {
+      code:
+        commandResult.failure.kind === "exit-code"
+          ? commandResult.failure.code
+          : null,
+      failure: commandResult.failure,
+      kind: "completed",
+      output: commandResult.outputTail,
+      signal:
+        commandResult.failure.kind === "signal"
+          ? commandResult.failure.signal
+          : null,
+      stdout: commandResult.stdout,
+    };
+  }
+
   return {
-    code: commandResult.code,
+    code: 0,
     kind: "completed",
     output: commandResult.outputTail,
+    signal: null,
     stdout: commandResult.stdout,
   };
 }

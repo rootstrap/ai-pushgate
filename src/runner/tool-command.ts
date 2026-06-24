@@ -1,5 +1,8 @@
 import type { ToolConfig } from "../config/index.js";
-import { runTimedCommand } from "../process/timed-command.js";
+import {
+  formatProcessFailure,
+  runProcessOutcome,
+} from "../process/outcome-policy.js";
 
 export const CHANGED_FILES_TOKEN = "{changed_files}" as const;
 
@@ -8,10 +11,6 @@ export interface ToolCommandResult {
   detail?: string;
   outputTail?: string;
 }
-
-const OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-const OUTPUT_TAIL_LIMIT = 4 * 1024;
-const TIMEOUT_KILL_GRACE_MS = 1_000;
 
 export async function runToolCommand(
   tool: ToolConfig,
@@ -29,43 +28,21 @@ export async function runToolCommand(
     };
   }
 
-  const commandResult = await runTimedCommand({
+  const commandResult = await runProcessOutcome({
     args,
     command: executable,
     cwd: repoRoot,
     env,
-    killGraceMs: TIMEOUT_KILL_GRACE_MS,
-    outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
-    outputTailLimit: OUTPUT_TAIL_LIMIT,
     timeoutSeconds: tool.timeout_seconds,
   });
 
-  if (commandResult.kind === "spawn-error") {
-    return {
-      passed: false,
-      detail: `failed to start: ${commandResult.error.message}`,
-      outputTail: commandResult.outputTail,
-    };
-  }
-
-  if (commandResult.kind === "timeout") {
-    return {
-      passed: false,
-      detail: `timed out after ${String(tool.timeout_seconds)}s`,
-      outputTail: commandResult.outputTail,
-    };
-  }
-
-  if (commandResult.code === 0) {
+  if (commandResult.kind === "passed") {
     return { passed: true };
   }
 
   return {
     passed: false,
-    detail:
-      commandResult.code === null
-        ? `ended by signal ${commandResult.signal ?? "unknown"}`
-        : `exited with code ${String(commandResult.code)}`,
+    detail: formatProcessFailure(commandResult.failure),
     outputTail: commandResult.outputTail,
   };
 }

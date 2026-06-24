@@ -25412,9 +25412,9 @@ function normalizeProviderReviewObject(options) {
 }
 
 // src/process/timed-command.ts
-var DEFAULT_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-var DEFAULT_OUTPUT_TAIL_LIMIT = 4 * 1024;
-var DEFAULT_KILL_GRACE_MS = 1e3;
+var DEFAULT_TIMED_COMMAND_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
+var DEFAULT_TIMED_COMMAND_OUTPUT_TAIL_LIMIT = 4 * 1024;
+var DEFAULT_TIMED_COMMAND_KILL_GRACE_MS = 1e3;
 async function runTimedCommand(options) {
   const commandResult = await runCapturedCommand({
     args: options.args,
@@ -25422,10 +25422,10 @@ async function runTimedCommand(options) {
     cwd: options.cwd,
     env: options.env,
     ignoreStdinErrors: true,
-    killGraceMs: options.killGraceMs ?? DEFAULT_KILL_GRACE_MS,
-    outputCaptureLimit: options.outputCaptureLimit === null ? void 0 : options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
+    killGraceMs: options.killGraceMs ?? DEFAULT_TIMED_COMMAND_KILL_GRACE_MS,
+    outputCaptureLimit: options.outputCaptureLimit === null ? void 0 : options.outputCaptureLimit ?? DEFAULT_TIMED_COMMAND_OUTPUT_CAPTURE_LIMIT,
     outputEncoding: "utf8",
-    outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
+    outputTailLimit: options.outputTailLimit ?? DEFAULT_TIMED_COMMAND_OUTPUT_TAIL_LIMIT,
     shell: false,
     stdin: options.stdin,
     timeoutMs: options.timeoutSeconds * 1e3
@@ -25453,34 +25453,120 @@ async function runTimedCommand(options) {
   };
 }
 
+// src/process/outcome-policy.ts
+async function runProcessOutcome(options) {
+  return classifyProcessOutcome(await runTimedCommand(options), {
+    timeoutSeconds: options.timeoutSeconds
+  });
+}
+function classifyProcessOutcome(result, options) {
+  if (result.kind === "spawn-error") {
+    return {
+      failure: {
+        error: result.error,
+        kind: "spawn-error"
+      },
+      kind: "failed",
+      outputTail: result.outputTail
+    };
+  }
+  if (result.kind === "timeout") {
+    return {
+      failure: {
+        kind: "timeout",
+        timeoutSeconds: options.timeoutSeconds
+      },
+      kind: "failed",
+      outputTail: result.outputTail
+    };
+  }
+  const failure = completedCommandFailure(result);
+  if (!failure) {
+    return {
+      kind: "passed",
+      outputTail: result.outputTail,
+      stderr: result.stderr,
+      stdout: result.stdout
+    };
+  }
+  return {
+    failure,
+    kind: "failed",
+    outputTail: result.outputTail,
+    stderr: result.stderr,
+    stdout: result.stdout
+  };
+}
+function formatProcessFailure(failure, options = {}) {
+  switch (failure.kind) {
+    case "spawn-error":
+      return options.subject ? `failed to start ${options.subject}: ${failure.error.message}` : `failed to start: ${failure.error.message}`;
+    case "timeout":
+      return options.subject ? `${options.subject} timed out after ${String(failure.timeoutSeconds)}s` : `timed out after ${String(failure.timeoutSeconds)}s`;
+    case "exit-code":
+      return options.subject ? `${options.subject} exited with code ${String(failure.code)}` : `exited with code ${String(failure.code)}`;
+    case "signal":
+      return options.subject ? `${options.subject} ended by signal ${failure.signal ?? "unknown"}` : `ended by signal ${failure.signal ?? "unknown"}`;
+  }
+}
+function isProcessCompletionOutcome(outcome) {
+  return outcome.kind === "passed" || outcome.failure.kind === "exit-code" || outcome.failure.kind === "signal";
+}
+function completedCommandFailure(result) {
+  if (result.code === 0) {
+    return null;
+  }
+  if (result.code === null) {
+    return {
+      kind: "signal",
+      signal: result.signal
+    };
+  }
+  return {
+    code: result.code,
+    kind: "exit-code"
+  };
+}
+
 // src/ai/providers/run-provider-command.ts
-var DEFAULT_OUTPUT_TAIL_LIMIT2 = 8 * 1024;
+var DEFAULT_OUTPUT_TAIL_LIMIT = 8 * 1024;
 async function runProviderCommand(options) {
-  const commandResult = await runTimedCommand({
+  const commandResult = await runProcessOutcome({
     args: options.args,
     command: options.command,
     cwd: options.cwd,
     env: options.env,
     outputCaptureLimit: options.outputCaptureLimit ?? null,
-    outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT2,
-    // Provider CLIs may exit before stdin fully drains; runTimedCommand still
+    outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
+    // Provider CLIs may exit before stdin fully drains; the process runner still
     // lets the close path report the real provider result.
     stdin: options.prompt,
     timeoutSeconds: options.timeoutSeconds
   });
-  if (commandResult.kind === "spawn-error") {
-    return { kind: "spawn-error" };
-  }
-  if (commandResult.kind === "timeout") {
+  if (!isProcessCompletionOutcome(commandResult)) {
+    if (commandResult.failure.kind === "spawn-error") {
+      return { kind: "spawn-error" };
+    }
     return {
       kind: "timeout",
       output: commandResult.outputTail
     };
   }
+  if (commandResult.kind === "failed") {
+    return {
+      code: commandResult.failure.kind === "exit-code" ? commandResult.failure.code : null,
+      failure: commandResult.failure,
+      kind: "completed",
+      output: commandResult.outputTail,
+      signal: commandResult.failure.kind === "signal" ? commandResult.failure.signal : null,
+      stdout: commandResult.stdout
+    };
+  }
   return {
-    code: commandResult.code,
+    code: 0,
     kind: "completed",
     output: commandResult.outputTail,
+    signal: null,
     stdout: commandResult.stdout
   };
 }
@@ -26609,35 +26695,24 @@ function violationResult(mode, name, detail) {
 import { mkdtemp, readFile as readFile3, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join as join3 } from "node:path";
-var OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-var OUTPUT_TAIL_LIMIT = 4 * 1024;
-var TIMEOUT_KILL_GRACE_MS = 1e3;
 var FINDING_DETAIL_LIMIT = 5;
 async function runGitleaksPlugin(plugin, changedFileResolution, repoRoot, env) {
   const tempDir = await mkdtemp(join3(tmpdir(), "pushgate-gitleaks-"));
   const reportPath = join3(tempDir, "report.json");
   try {
-    const commandResult = await runTimedCommand({
+    const commandResult = await runProcessOutcome({
       args: buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath),
       command: plugin.command,
       cwd: repoRoot,
       env,
-      killGraceMs: TIMEOUT_KILL_GRACE_MS,
-      outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
-      outputTailLimit: OUTPUT_TAIL_LIMIT,
       timeoutSeconds: plugin.timeout_seconds
     });
-    if (commandResult.kind === "spawn-error") {
+    if (!isProcessCompletionOutcome(commandResult)) {
       return {
         passed: false,
-        detail: `failed to start Gitleaks: ${commandResult.error.message}`,
-        outputTail: commandResult.outputTail
-      };
-    }
-    if (commandResult.kind === "timeout") {
-      return {
-        passed: false,
-        detail: `Gitleaks timed out after ${String(plugin.timeout_seconds)}s`,
+        detail: formatProcessFailure(commandResult.failure, {
+          subject: "Gitleaks"
+        }),
         outputTail: commandResult.outputTail
       };
     }
@@ -26649,12 +26724,12 @@ async function runGitleaksPlugin(plugin, changedFileResolution, repoRoot, env) {
         outputTail: commandResult.outputTail
       };
     }
-    if (commandResult.code === 0) {
+    if (commandResult.kind === "passed") {
       return { passed: true };
     }
     return {
       passed: false,
-      detail: formatCommandFailure(commandResult, report),
+      detail: formatCommandFailure(commandResult.failure, report),
       outputTail: commandResult.outputTail
     };
   } finally {
@@ -26758,8 +26833,8 @@ function formatFinding(finding) {
   const rule = stringValue(finding.RuleID) ?? stringValue(finding.Description) ?? stringValue(finding.Fingerprint) ?? "unknown rule";
   return `${path}${line === void 0 ? "" : `:${String(line)}`} (${rule})`;
 }
-function formatCommandFailure(commandResult, report) {
-  const exitDetail = commandResult.code === null ? `Gitleaks ended by signal ${commandResult.signal ?? "unknown"}` : `Gitleaks exited with code ${String(commandResult.code)}`;
+function formatCommandFailure(failure, report) {
+  const exitDetail = formatProcessFailure(failure, { subject: "Gitleaks" });
   return report.parseError ? `${exitDetail}; ${report.parseError}` : exitDetail;
 }
 function stringValue(value) {
@@ -26858,9 +26933,6 @@ function writeLine2(stream, line) {
 
 // src/runner/tool-command.ts
 var CHANGED_FILES_TOKEN = "{changed_files}";
-var OUTPUT_CAPTURE_LIMIT2 = 64 * 1024;
-var OUTPUT_TAIL_LIMIT2 = 4 * 1024;
-var TIMEOUT_KILL_GRACE_MS2 = 1e3;
 async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
   const command = expandChangedFilesToken(tool.command, changedFilePaths);
   const [executable, ...args] = command;
@@ -26870,36 +26942,19 @@ async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
       detail: "command was empty"
     };
   }
-  const commandResult = await runTimedCommand({
+  const commandResult = await runProcessOutcome({
     args,
     command: executable,
     cwd: repoRoot,
     env,
-    killGraceMs: TIMEOUT_KILL_GRACE_MS2,
-    outputCaptureLimit: OUTPUT_CAPTURE_LIMIT2,
-    outputTailLimit: OUTPUT_TAIL_LIMIT2,
     timeoutSeconds: tool.timeout_seconds
   });
-  if (commandResult.kind === "spawn-error") {
-    return {
-      passed: false,
-      detail: `failed to start: ${commandResult.error.message}`,
-      outputTail: commandResult.outputTail
-    };
-  }
-  if (commandResult.kind === "timeout") {
-    return {
-      passed: false,
-      detail: `timed out after ${String(tool.timeout_seconds)}s`,
-      outputTail: commandResult.outputTail
-    };
-  }
-  if (commandResult.code === 0) {
+  if (commandResult.kind === "passed") {
     return { passed: true };
   }
   return {
     passed: false,
-    detail: commandResult.code === null ? `ended by signal ${commandResult.signal ?? "unknown"}` : `exited with code ${String(commandResult.code)}`,
+    detail: formatProcessFailure(commandResult.failure),
     outputTail: commandResult.outputTail
   };
 }

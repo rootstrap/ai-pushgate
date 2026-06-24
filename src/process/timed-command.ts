@@ -1,8 +1,8 @@
 import { runCapturedCommand } from "./captured-command.js";
 
-const DEFAULT_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-const DEFAULT_OUTPUT_TAIL_LIMIT = 4 * 1024;
-const DEFAULT_KILL_GRACE_MS = 1_000;
+export const DEFAULT_TIMED_COMMAND_OUTPUT_CAPTURE_LIMIT = 64 * 1024;
+export const DEFAULT_TIMED_COMMAND_OUTPUT_TAIL_LIMIT = 4 * 1024;
+export const DEFAULT_TIMED_COMMAND_KILL_GRACE_MS = 1_000;
 
 export type TimedCommandResult =
   | {
@@ -44,13 +44,15 @@ export async function runTimedCommand(
     cwd: options.cwd,
     env: options.env,
     ignoreStdinErrors: true,
-    killGraceMs: options.killGraceMs ?? DEFAULT_KILL_GRACE_MS,
+    killGraceMs: options.killGraceMs ?? DEFAULT_TIMED_COMMAND_KILL_GRACE_MS,
     outputCaptureLimit:
       options.outputCaptureLimit === null
         ? undefined
-        : (options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT),
+        : (options.outputCaptureLimit ??
+          DEFAULT_TIMED_COMMAND_OUTPUT_CAPTURE_LIMIT),
     outputEncoding: "utf8",
-    outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
+    outputTailLimit:
+      options.outputTailLimit ?? DEFAULT_TIMED_COMMAND_OUTPUT_TAIL_LIMIT,
     shell: false,
     stdin: options.stdin,
     timeoutMs: options.timeoutSeconds * 1_000,

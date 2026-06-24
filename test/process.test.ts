@@ -3,6 +3,10 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { runCommand } from "../src/process/run-command.js";
+import {
+  formatProcessFailure,
+  runProcessOutcome,
+} from "../src/process/outcome-policy.js";
 import { runTimedCommand } from "../src/process/timed-command.js";
 
 test("runCommand captures successful stdout and stderr as utf8", async () => {
@@ -135,4 +139,96 @@ test("runTimedCommand keeps capture and output tail limits stable", async () => 
     assert.equal(result.stderr, "abcdef");
     assert.equal(result.outputTail, "9\nabcdef");
   }
+});
+
+test("process outcome policy classifies failures and formats diagnostics", async () => {
+  const missingCommand = join(
+    process.cwd(),
+    `.missing-pushgate-outcome-command-${String(process.pid)}`,
+  );
+
+  const spawnError = await runProcessOutcome({
+    args: [],
+    command: missingCommand,
+    cwd: process.cwd(),
+    env: process.env,
+    timeoutSeconds: 1,
+  });
+
+  assert.equal(spawnError.kind, "failed");
+  if (spawnError.kind !== "failed") {
+    assert.fail("Expected missing command to fail.");
+  }
+  assert.equal(spawnError.failure.kind, "spawn-error");
+  assert.match(formatProcessFailure(spawnError.failure), /^failed to start:/);
+  assert.match(
+    formatProcessFailure(spawnError.failure, { subject: "Gitleaks" }),
+    /^failed to start Gitleaks:/,
+  );
+
+  const exitCode = await runProcessOutcome({
+    args: ["-e", "process.stderr.write('failure tail'); process.exit(12);"],
+    command: process.execPath,
+    cwd: process.cwd(),
+    env: process.env,
+    timeoutSeconds: 1,
+  });
+
+  assert.equal(exitCode.kind, "failed");
+  if (exitCode.kind !== "failed") {
+    assert.fail("Expected non-zero exit to fail.");
+  }
+  assert.deepEqual(exitCode.failure, { code: 12, kind: "exit-code" });
+  assert.equal(exitCode.outputTail, "failure tail");
+  assert.equal(formatProcessFailure(exitCode.failure), "exited with code 12");
+  assert.equal(
+    formatProcessFailure(exitCode.failure, { subject: "Gitleaks" }),
+    "Gitleaks exited with code 12",
+  );
+
+  const signal = await runProcessOutcome({
+    args: ["-e", "process.kill(process.pid, 'SIGTERM');"],
+    command: process.execPath,
+    cwd: process.cwd(),
+    env: process.env,
+    timeoutSeconds: 1,
+  });
+
+  assert.equal(signal.kind, "failed");
+  if (signal.kind !== "failed") {
+    assert.fail("Expected signaled command to fail.");
+  }
+  assert.deepEqual(signal.failure, { kind: "signal", signal: "SIGTERM" });
+  assert.equal(
+    formatProcessFailure(signal.failure, { subject: "Gitleaks" }),
+    "Gitleaks ended by signal SIGTERM",
+  );
+
+  const timeout = await runProcessOutcome({
+    args: [
+      "-e",
+      [
+        "process.stdout.write('stdout before policy timeout\\n');",
+        "process.stderr.write('stderr before policy timeout\\n');",
+        "setInterval(() => {}, 1000);",
+      ].join(" "),
+    ],
+    command: process.execPath,
+    cwd: process.cwd(),
+    env: process.env,
+    killGraceMs: 10,
+    outputTailLimit: 256,
+    timeoutSeconds: 1,
+  });
+
+  assert.equal(timeout.kind, "failed");
+  if (timeout.kind !== "failed") {
+    assert.fail("Expected timeout to fail.");
+  }
+  assert.deepEqual(timeout.failure, { kind: "timeout", timeoutSeconds: 1 });
+  assert.equal(
+    timeout.outputTail,
+    "stdout before policy timeout\nstderr before policy timeout",
+  );
+  assert.equal(formatProcessFailure(timeout.failure), "timed out after 1s");
 });
