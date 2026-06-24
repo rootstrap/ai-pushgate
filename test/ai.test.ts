@@ -591,6 +591,31 @@ test("builds a shared AI review payload with diff and full-file context", async 
   });
 });
 
+test("collects local AI diff context from the resolved review range", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+
+    const context = await collectLocalAiReviewContext({
+      changedFileResolution: {
+        ...changedFileResolution,
+        reviewRange: "HEAD",
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+    });
+
+    assert.equal(context.diff, "");
+  });
+});
+
 test("collects local AI review context for omitted, truncated, and missing files", async () => {
   const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-ai-context-"));
 
@@ -2006,6 +2031,8 @@ test("reports unsupported local AI providers through the public gate", async () 
           status: "modified",
         },
       ],
+      reviewRange: "target...HEAD",
+      scanRange: "base..HEAD",
       targetCommit: "target",
       targetRef: "main",
     },
