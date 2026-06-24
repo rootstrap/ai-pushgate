@@ -8,10 +8,8 @@ test("skips changed-file planning when deterministic checks and local AI are ina
   const plan = buildPrePushRunPlan(baseConfig(), { skipAiCheck: false });
 
   assert.deepEqual(plan, {
-    deterministicCheckCount: 0,
     localAiSkipReason: "mode-off",
     needsChangedFiles: false,
-    runDeterministic: false,
     runLocalAi: false,
   });
 });
@@ -37,8 +35,6 @@ test("plans changed files for configured deterministic tools and policies", () =
     { skipAiCheck: false },
   );
 
-  assert.equal(plan.deterministicCheckCount, 3);
-  assert.equal(plan.runDeterministic, true);
   assert.equal(plan.runLocalAi, false);
   assert.equal(plan.needsChangedFiles, true);
 });
@@ -60,8 +56,6 @@ test("plans changed files for enabled deterministic plugins", () => {
     { skipAiCheck: false },
   );
 
-  assert.equal(plan.deterministicCheckCount, 1);
-  assert.equal(plan.runDeterministic, true);
   assert.equal(plan.runLocalAi, false);
   assert.equal(plan.needsChangedFiles, true);
 });
@@ -84,10 +78,8 @@ test("skips disabled deterministic plugins", () => {
   );
 
   assert.deepEqual(plan, {
-    deterministicCheckCount: 0,
     localAiSkipReason: "mode-off",
     needsChangedFiles: false,
-    runDeterministic: false,
     runLocalAi: false,
   });
 });
@@ -105,10 +97,8 @@ test("plans changed files for active local AI without deterministic checks", () 
   );
 
   assert.deepEqual(plan, {
-    deterministicCheckCount: 0,
     localAiSkipReason: null,
     needsChangedFiles: true,
-    runDeterministic: false,
     runLocalAi: true,
   });
 });
@@ -126,10 +116,8 @@ test("skip-ai-check removes local AI changed-file work", () => {
   );
 
   assert.deepEqual(plan, {
-    deterministicCheckCount: 0,
     localAiSkipReason: "skip-control",
     needsChangedFiles: false,
-    runDeterministic: false,
     runLocalAi: false,
   });
 });

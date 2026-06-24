@@ -1,7 +1,6 @@
 import type { PushgateConfig } from "../config/index.js";
 import {
   selectToolChangedFilePaths,
-  type ChangedFile,
   type ChangedFileResolution,
 } from "../path-policy/index.js";
 import {
@@ -9,7 +8,6 @@ import {
   runBuiltInPolicies,
 } from "./policies.js";
 import { runGitleaksPlugin } from "./plugins/gitleaks.js";
-import { countPluginChecks } from "./plugins.js";
 import { summarizeDeterministicResults } from "./summary.js";
 import { createDeterministicTranscript } from "./transcript.js";
 import { runToolCommand } from "./tool-command.js";
@@ -33,35 +31,58 @@ export interface DeterministicCheckSummary {
   results: ToolResult[];
 }
 
-export interface DeterministicCheckOptions {
-  changedFileResolution?: ChangedFileResolution;
+export interface DeterministicCheckPlan {
+  checkCount: number;
+  needsChangedFileResolution: boolean;
+  runChecks: boolean;
+}
+
+export interface DeterministicCheckRequest {
+  changedFileResolution?: ChangedFileResolution | null;
+  config: PushgateConfig;
   env?: NodeJS.ProcessEnv;
   repoRoot?: string;
-  stderr?: NodeJS.WritableStream;
   stdout?: NodeJS.WritableStream;
 }
 
-export async function runDeterministicChecks(
+export function buildDeterministicCheckPlan(
   config: PushgateConfig,
-  changedFiles: readonly ChangedFile[],
-  options: DeterministicCheckOptions = {},
+): DeterministicCheckPlan {
+  const checkCount =
+    countBuiltInPolicies(config.policies) +
+    countPluginChecks(config) +
+    config.tools.length;
+
+  return {
+    checkCount,
+    needsChangedFileResolution: checkCount > 0,
+    runChecks: checkCount > 0,
+  };
+}
+
+export async function runDeterministicChecks(
+  request: DeterministicCheckRequest,
 ): Promise<DeterministicCheckSummary> {
-  const stdout = options.stdout ?? process.stdout;
-  const repoRoot = options.repoRoot ?? process.cwd();
-  const env = options.env ?? process.env;
+  const { config } = request;
+  const stdout = request.stdout ?? process.stdout;
+  const repoRoot = request.repoRoot ?? process.cwd();
+  const env = request.env ?? process.env;
   const results: ToolResult[] = [];
   const transcript = createDeterministicTranscript(stdout);
-  const policyCount = countBuiltInPolicies(config.policies);
-  const pluginCount = countPluginChecks(config.plugins);
-  const checkCount = policyCount + pluginCount + config.tools.length;
+  const plan = buildDeterministicCheckPlan(config);
   let stopAfterBlockingPlugin = false;
 
-  if (checkCount === 0) {
+  if (!plan.runChecks) {
     transcript.writeNoChecks();
     return { exitCode: 0, results };
   }
 
-  transcript.writeStart(checkCount);
+  const changedFileResolution = requireChangedFileResolution(
+    request.changedFileResolution,
+  );
+  const changedFiles = changedFileResolution.files;
+
+  transcript.writeStart(plan.checkCount);
 
   for (const policyResult of runBuiltInPolicies(
     config.policies,
@@ -74,17 +95,12 @@ export async function runDeterministicChecks(
   if (config.plugins.gitleaks?.enabled) {
     const plugin = config.plugins.gitleaks;
     const name = "plugin:gitleaks";
-    const commandResult = options.changedFileResolution
-      ? await runGitleaksPlugin(
-          plugin,
-          options.changedFileResolution,
-          repoRoot,
-          env,
-        )
-      : {
-          passed: false,
-          detail: "requires resolved Git diff metadata",
-        };
+    const commandResult = await runGitleaksPlugin(
+      plugin,
+      changedFileResolution,
+      repoRoot,
+      env,
+    );
 
     if (commandResult.passed) {
       const result: ToolResult = { name, status: "passed" };
@@ -173,4 +189,20 @@ export async function runDeterministicChecks(
 
   transcript.writeSummary(resultSummary);
   return { exitCode: resultSummary.exitCode, results };
+}
+
+function countPluginChecks(config: PushgateConfig): number {
+  return Number(Boolean(config.plugins.gitleaks?.enabled));
+}
+
+function requireChangedFileResolution(
+  changedFileResolution: ChangedFileResolution | null | undefined,
+): ChangedFileResolution {
+  if (changedFileResolution) {
+    return changedFileResolution;
+  }
+
+  throw new Error(
+    "Pushgate could not prepare changed files for deterministic checks.",
+  );
 }
