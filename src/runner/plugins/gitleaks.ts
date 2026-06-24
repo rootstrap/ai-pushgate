@@ -4,7 +4,12 @@ import { join } from "node:path";
 
 import type { GitleaksPluginConfig } from "../../config/index.js";
 import type { ChangedFileResolution } from "../../path-policy/index.js";
-import { runTimedCommand } from "../../process/timed-command.js";
+import {
+  formatProcessFailure,
+  isProcessCompletionOutcome,
+  runProcessOutcome,
+  type ProcessCompletionFailure,
+} from "../../process/outcome-policy.js";
 
 export interface GitleaksPluginResult {
   passed: boolean;
@@ -26,9 +31,6 @@ interface ParsedGitleaksReport {
   parseError?: string;
 }
 
-const OUTPUT_CAPTURE_LIMIT = 64 * 1024;
-const OUTPUT_TAIL_LIMIT = 4 * 1024;
-const TIMEOUT_KILL_GRACE_MS = 1_000;
 const FINDING_DETAIL_LIMIT = 5;
 
 export async function runGitleaksPlugin(
@@ -41,29 +43,20 @@ export async function runGitleaksPlugin(
   const reportPath = join(tempDir, "report.json");
 
   try {
-    const commandResult = await runTimedCommand({
+    const commandResult = await runProcessOutcome({
       args: buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath),
       command: plugin.command,
       cwd: repoRoot,
       env,
-      killGraceMs: TIMEOUT_KILL_GRACE_MS,
-      outputCaptureLimit: OUTPUT_CAPTURE_LIMIT,
-      outputTailLimit: OUTPUT_TAIL_LIMIT,
       timeoutSeconds: plugin.timeout_seconds,
     });
 
-    if (commandResult.kind === "spawn-error") {
+    if (!isProcessCompletionOutcome(commandResult)) {
       return {
         passed: false,
-        detail: `failed to start Gitleaks: ${commandResult.error.message}`,
-        outputTail: commandResult.outputTail,
-      };
-    }
-
-    if (commandResult.kind === "timeout") {
-      return {
-        passed: false,
-        detail: `Gitleaks timed out after ${String(plugin.timeout_seconds)}s`,
+        detail: formatProcessFailure(commandResult.failure, {
+          subject: "Gitleaks",
+        }),
         outputTail: commandResult.outputTail,
       };
     }
@@ -78,13 +71,13 @@ export async function runGitleaksPlugin(
       };
     }
 
-    if (commandResult.code === 0) {
+    if (commandResult.kind === "passed") {
       return { passed: true };
     }
 
     return {
       passed: false,
-      detail: formatCommandFailure(commandResult, report),
+      detail: formatCommandFailure(commandResult.failure, report),
       outputTail: commandResult.outputTail,
     };
   } finally {
@@ -236,16 +229,10 @@ function formatFinding(finding: GitleaksFinding): string {
 }
 
 function formatCommandFailure(
-  commandResult: Extract<
-    Awaited<ReturnType<typeof runTimedCommand>>,
-    { kind: "completed" }
-  >,
+  failure: ProcessCompletionFailure,
   report: ParsedGitleaksReport,
 ): string {
-  const exitDetail =
-    commandResult.code === null
-      ? `Gitleaks ended by signal ${commandResult.signal ?? "unknown"}`
-      : `Gitleaks exited with code ${String(commandResult.code)}`;
+  const exitDetail = formatProcessFailure(failure, { subject: "Gitleaks" });
 
   return report.parseError ? `${exitDetail}; ${report.parseError}` : exitDetail;
 }
