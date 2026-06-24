@@ -89,6 +89,10 @@ claude
 ```
 
 Inside Claude, run `/login` in the same user environment that runs `git push`.
+Pushgate uses Claude Code safe mode by default so your local login still works
+while project-specific Claude customizations stay disabled. If you opt into
+`ai.providers.claude.bare: true`, Claude Code skips OAuth/keychain reads and
+requires `ANTHROPIC_API_KEY` or an `apiKeyHelper` passed through Claude settings.
 
 GitHub Copilot feedback requires the standalone GitHub Copilot CLI. Authenticate
 interactively with `copilot login` or configure one of the supported token
@@ -123,6 +127,8 @@ ai:
     claude:
       # Provider-specific settings live below the selected provider block.
       model: claude-sonnet-4-20250514
+      # Optional: use Claude Code --bare for API-key automation.
+      # bare: true
     # To use GitHub Copilot CLI instead, set provider: copilot above:
     # copilot:
     #   model: auto

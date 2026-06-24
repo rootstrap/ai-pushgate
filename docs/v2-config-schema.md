@@ -55,6 +55,8 @@ ai:
   providers:
     claude:
       model: claude-sonnet-4-20250514
+      # Optional API-key/script mode. Defaults to false.
+      # bare: true
     copilot:
       model: auto
 
@@ -106,6 +108,11 @@ Code CLI. `copilot` invokes the standalone GitHub Copilot CLI through its
 programmatic prompt path, using the shared Pushgate prompt and normalized JSON
 review-output contract. `ai.providers.<provider>.model` is optional for both
 providers; when omitted, the provider CLI chooses its default model.
+`ai.providers.claude.bare` is optional and defaults to `false`; Pushgate uses
+Claude Code safe mode by default so local OAuth login still works while local
+Claude customizations stay disabled. Set `bare: true` only for API-key or
+settings-helper automation, because Claude Code bare mode skips OAuth/keychain
+reads.
 
 ## Local AI Modes And Guardrails
 

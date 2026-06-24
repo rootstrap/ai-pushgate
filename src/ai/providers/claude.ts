@@ -1,7 +1,7 @@
 import { runCommand } from "../../process/run-command.js";
 import { generateAiReviewOutputJsonSchema } from "../review-contract.js";
 import type { LocalAiProviderAdapter } from "../types.js";
-import { selectProviderModel } from "./config.js";
+import { selectProviderBoolean, selectProviderModel } from "./config.js";
 import { normalizeProviderReviewObject } from "./normalize-review.js";
 import { runProviderCommand } from "./run-provider-command.js";
 
@@ -10,7 +10,8 @@ export const claudeProvider: LocalAiProviderAdapter = {
   structuredOutputCapability: "native_json_schema",
   async runReview(options) {
     const model = selectProviderModel(options.providerConfig);
-    const args = buildClaudeArgs(options.repoRoot, model);
+    const bare = selectProviderBoolean(options.providerConfig, "bare");
+    const args = buildClaudeArgs(options.repoRoot, model, bare);
     const commandResult = await runProviderCommand({
       args,
       command: "claude",
@@ -62,8 +63,7 @@ export const claudeProvider: LocalAiProviderAdapter = {
           kind: "provider-error",
           code: "not_authenticated",
           provider: "claude",
-          message:
-            "Claude Code CLI is not authenticated. Run `claude` and complete `/login` in the same user environment that runs `git push` before pushing again.",
+          message: formatClaudeAuthFailureMessage(bare),
           output: commandResult.output,
         };
       }
@@ -82,8 +82,7 @@ export const claudeProvider: LocalAiProviderAdapter = {
         kind: "provider-error",
         code: "not_authenticated",
         provider: "claude",
-        message:
-          "Claude Code CLI is not authenticated. Run `claude` and complete `/login` in the same user environment that runs `git push` before pushing again.",
+        message: formatClaudeAuthFailureMessage(bare),
         output: commandResult.output,
       };
     }
@@ -137,7 +136,11 @@ export const claudeProvider: LocalAiProviderAdapter = {
   },
 };
 
-function buildClaudeArgs(repoRoot: string, model?: string): string[] {
+function buildClaudeArgs(
+  repoRoot: string,
+  model: string | undefined,
+  bare: boolean,
+): string[] {
   const reviewSchema = JSON.stringify(generateAiReviewOutputJsonSchema());
   const args = [
     "-p",
@@ -146,7 +149,7 @@ function buildClaudeArgs(repoRoot: string, model?: string): string[] {
     "json",
     "--json-schema",
     reviewSchema,
-    "--bare",
+    bare ? "--bare" : "--safe-mode",
     "--tools",
     "Read",
     "--allowedTools",
@@ -319,6 +322,14 @@ function isClaudeAuthFailure(output: string): boolean {
     /claude auth login/i,
     /api key.*required/i,
   ].some((pattern) => pattern.test(output));
+}
+
+function formatClaudeAuthFailureMessage(bare: boolean): string {
+  if (bare) {
+    return "Claude Code CLI is not authenticated in bare mode. Set `ANTHROPIC_API_KEY` or configure an `apiKeyHelper` through Claude settings, or remove `ai.providers.claude.bare: true` to use local Claude login.";
+  }
+
+  return "Claude Code CLI is not authenticated. Run `claude` and complete `/login` in the same user environment that runs `git push` before pushing again.";
 }
 
 async function isClaudeUnauthenticated(

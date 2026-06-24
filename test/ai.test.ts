@@ -829,7 +829,7 @@ test("runs the Claude adapter through the provider interface with model selectio
       generateAiReviewOutputJsonSchema(),
     );
     assert.deepEqual(args.slice(6), [
-      "--bare",
+      "--safe-mode",
       "--tools",
       "Read",
       "--allowedTools",
@@ -842,6 +842,54 @@ test("runs the Claude adapter through the provider interface with model selectio
       "--model",
       "claude-sonnet-4-20250514",
     ]);
+  });
+});
+
+test("lets Claude provider config opt into bare mode for API-key scripts", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const argsPath = join(repoRoot, "claude-args.txt");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "printf '%s\\n' \"$@\" > \"$PUSHGATE_CLAUDE_ARGS_OUT\"",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStructuredOutputJson({
+          schema_version: 1,
+          findings: [],
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+        PUSHGATE_CLAUDE_ARGS_OUT: argsPath,
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {
+        bare: true,
+      },
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Claude review result, got ${result.kind}.`);
+    }
+
+    const args = await readArgLines(argsPath);
+
+    assert.ok(args.includes("--bare"));
+    assert.equal(args.includes("--safe-mode"), false);
   });
 });
 

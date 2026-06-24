@@ -9,3 +9,10 @@ export function selectProviderModel(
     ? model.trim()
     : undefined;
 }
+
+export function selectProviderBoolean(
+  providerConfig: ProviderConfig,
+  key: string,
+): boolean {
+  return providerConfig[key] === true;
+}
