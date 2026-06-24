@@ -25527,12 +25527,12 @@ var claudeProvider = {
           output: commandResult.output
         };
       }
-      if (await isClaudeUnauthenticated(options.repoRoot, options.env)) {
+      if (isClaudeAuthFailure(output) || await isClaudeUnauthenticated(options.repoRoot, options.env)) {
         return {
           kind: "provider-error",
           code: "not_authenticated",
           provider: "claude",
-          message: "Claude Code CLI is not authenticated. Run `claude auth login` before pushing again.",
+          message: "Claude Code CLI is not authenticated. Run `claude` and complete `/login` in the same user environment that runs `git push` before pushing again.",
           output: commandResult.output
         };
       }
@@ -25541,6 +25541,15 @@ var claudeProvider = {
         code: "command_failed",
         provider: "claude",
         message: `Claude Code CLI exited with code ${String(commandResult.code)}.`,
+        output: commandResult.output
+      };
+    }
+    if (isClaudeAuthFailure(commandResult.output ?? commandResult.stdout)) {
+      return {
+        kind: "provider-error",
+        code: "not_authenticated",
+        provider: "claude",
+        message: "Claude Code CLI is not authenticated. Run `claude` and complete `/login` in the same user environment that runs `git push` before pushing again.",
         output: commandResult.output
       };
     }
@@ -25698,6 +25707,18 @@ function isClaudeStructuredOutputUnsupported(output) {
     /--json-schema.*(?:unknown|unrecognized|invalid)/i,
     /structured output.*not supported/i,
     /json schema.*not supported/i
+  ].some((pattern) => pattern.test(output));
+}
+function isClaudeAuthFailure(output) {
+  return [
+    /not authenticated/i,
+    /authentication required/i,
+    /must authenticate/i,
+    /please authenticate/i,
+    /not logged in/i,
+    /\/login/i,
+    /claude auth login/i,
+    /api key.*required/i
   ].some((pattern) => pattern.test(output));
 }
 async function isClaudeUnauthenticated(repoRoot, env) {

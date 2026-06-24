@@ -1138,6 +1138,54 @@ test("reports Claude auth failures before generic command failures", async () =>
   });
 });
 
+test("classifies Claude prompt-mode login output as an auth failure", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "if [ \"${1:-}\" = \"auth\" ] && [ \"${2:-}\" = \"status\" ]; then",
+        "  exit 0",
+        "fi",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        JSON.stringify({
+          type: "result",
+          subtype: "success",
+          is_error: true,
+          result: "Not logged in - Please run /login",
+        }),
+        "EOF",
+        "exit 1",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "provider-error") {
+      assert.fail(`Expected Claude provider error, got ${result.kind}.`);
+    }
+
+    assert.equal(result.code, "not_authenticated");
+    assert.match(result.message, /complete `\/login`/);
+    assert.match(result.output ?? "", /Not logged in/);
+  });
+});
+
 test("reports generic Claude command failures", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");

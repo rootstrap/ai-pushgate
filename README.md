@@ -85,8 +85,10 @@ Claude feedback requires Claude Code CLI:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
-claude auth login
+claude
 ```
+
+Inside Claude, run `/login` in the same user environment that runs `git push`.
 
 GitHub Copilot feedback requires the standalone GitHub Copilot CLI. Authenticate
 interactively with `copilot login` or configure one of the supported token
