@@ -27049,6 +27049,7 @@ function getLocalAiSkipReason(config2, skipControls) {
 
 // src/workflows/terminal.ts
 import { closeSync, openSync, readSync, writeSync } from "node:fs";
+var pendingInputByFd = /* @__PURE__ */ new Map();
 var InteractiveTerminalError = class extends Error {
   constructor(message) {
     super(message);
@@ -27103,19 +27104,41 @@ function normalizeAnswer(answer) {
   return "invalid";
 }
 function readLineSync(fd) {
-  const buffer = Buffer.alloc(1);
   let line = "";
   for (; ; ) {
-    const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
-    if (bytesRead === 0) {
+    const char = readCharSync(fd);
+    if (char === null) {
       throw new InteractiveTerminalError("No terminal input was available.");
     }
-    const char = buffer.toString("utf8", 0, bytesRead);
-    if (char === "\n" || char === "\r") {
+    if (char === "\n") {
+      return line;
+    }
+    if (char === "\r") {
+      consumeOptionalLfAfterCarriageReturn(fd);
       return line;
     }
     line += char;
   }
+}
+function consumeOptionalLfAfterCarriageReturn(fd) {
+  const char = readCharSync(fd);
+  if (char === "\n" || char === null) {
+    return;
+  }
+  pendingInputByFd.set(fd, char);
+}
+function readCharSync(fd) {
+  const pendingChar = pendingInputByFd.get(fd);
+  if (pendingChar !== void 0) {
+    pendingInputByFd.delete(fd);
+    return pendingChar;
+  }
+  const buffer = Buffer.alloc(1);
+  const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
+  if (bytesRead === 0) {
+    return null;
+  }
+  return buffer.toString("utf8", 0, bytesRead);
 }
 function openInteractiveTerminal() {
   const attachedTerminal = openAttachedTerminal();
@@ -27174,6 +27197,7 @@ function closeFd(fd) {
   if (fd === void 0) {
     return;
   }
+  pendingInputByFd.delete(fd);
   try {
     closeSync(fd);
   } catch {

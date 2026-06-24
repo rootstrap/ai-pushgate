@@ -15,6 +15,8 @@ interface TerminalDevicePath {
   output: string;
 }
 
+const pendingInputByFd = new Map<number, string>();
+
 export class InteractiveTerminalError extends Error {
   constructor(message: string) {
     super(message);
@@ -84,24 +86,54 @@ function normalizeAnswer(answer: string): "yes" | "no" | "invalid" {
 }
 
 function readLineSync(fd: number): string {
-  const buffer = Buffer.alloc(1);
   let line = "";
 
   for (;;) {
-    const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
+    const char = readCharSync(fd);
 
-    if (bytesRead === 0) {
+    if (char === null) {
       throw new InteractiveTerminalError("No terminal input was available.");
     }
 
-    const char = buffer.toString("utf8", 0, bytesRead);
+    if (char === "\n") {
+      return line;
+    }
 
-    if (char === "\n" || char === "\r") {
+    if (char === "\r") {
+      consumeOptionalLfAfterCarriageReturn(fd);
       return line;
     }
 
     line += char;
   }
+}
+
+function consumeOptionalLfAfterCarriageReturn(fd: number): void {
+  const char = readCharSync(fd);
+
+  if (char === "\n" || char === null) {
+    return;
+  }
+
+  pendingInputByFd.set(fd, char);
+}
+
+function readCharSync(fd: number): string | null {
+  const pendingChar = pendingInputByFd.get(fd);
+
+  if (pendingChar !== undefined) {
+    pendingInputByFd.delete(fd);
+    return pendingChar;
+  }
+
+  const buffer = Buffer.alloc(1);
+  const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
+
+  if (bytesRead === 0) {
+    return null;
+  }
+
+  return buffer.toString("utf8", 0, bytesRead);
 }
 
 function openInteractiveTerminal(): TerminalFileDescriptors {
@@ -186,6 +218,8 @@ function closeFd(fd: number | undefined): void {
   if (fd === undefined) {
     return;
   }
+
+  pendingInputByFd.delete(fd);
 
   try {
     closeSync(fd);
