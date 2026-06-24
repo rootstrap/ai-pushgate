@@ -46,17 +46,13 @@ export async function runPrePushWorkflow(
     runPlan,
   });
 
-  const summary = await runDeterministicPhase(
-    loaded.config,
-    runPlan,
+  const summary = await runDeterministicChecks({
     changedFileResolution,
-    {
-      env: io.env,
-      repoRoot,
-      stderr: io.stderr,
-      stdout: io.stdout,
-    },
-  );
+    config: loaded.config,
+    env: io.env,
+    repoRoot,
+    stdout: io.stdout,
+  });
 
   if (summary.exitCode !== 0) {
     return summary.exitCode;
@@ -70,36 +66,6 @@ export async function runPrePushWorkflow(
       env: io.env,
       repoRoot,
       stdout: io.stdout,
-    },
-  );
-}
-
-async function runDeterministicPhase(
-  config: PushgateConfig,
-  runPlan: PrePushRunPlan,
-  changedFileResolution: ChangedFileResolution | null,
-  options: {
-    env: NodeJS.ProcessEnv;
-    repoRoot: string;
-    stderr: NodeJS.WritableStream;
-    stdout: NodeJS.WritableStream;
-  },
-) {
-  if (!runPlan.runDeterministic) {
-    return runDeterministicChecks(config, [], options);
-  }
-
-  const resolvedChangedFiles = requireChangedFileResolution(
-    changedFileResolution,
-    "deterministic phase",
-  );
-
-  return runDeterministicChecks(
-    config,
-    resolvedChangedFiles.files,
-    {
-      ...options,
-      changedFileResolution: resolvedChangedFiles,
     },
   );
 }

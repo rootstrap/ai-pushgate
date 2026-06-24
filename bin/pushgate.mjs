@@ -26660,11 +26660,6 @@ function numberValue(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : void 0;
 }
 
-// src/runner/plugins.ts
-function countPluginChecks(plugins) {
-  return Number(Boolean(plugins.gitleaks?.enabled));
-}
-
 // src/runner/summary.ts
 function summarizeDeterministicResults(results) {
   const blockedCount = results.filter((result) => result.status === "blocked").length;
@@ -26806,21 +26801,32 @@ function expandChangedFilesToken(command, changedFilePaths) {
 }
 
 // src/runner/deterministic.ts
-async function runDeterministicChecks(config2, changedFiles, options = {}) {
-  const stdout = options.stdout ?? process.stdout;
-  const repoRoot = options.repoRoot ?? process.cwd();
-  const env = options.env ?? process.env;
+function buildDeterministicCheckPlan(config2) {
+  const checkCount = countBuiltInPolicies(config2.policies) + countPluginChecks(config2) + config2.tools.length;
+  return {
+    checkCount,
+    needsChangedFileResolution: checkCount > 0,
+    runChecks: checkCount > 0
+  };
+}
+async function runDeterministicChecks(request) {
+  const { config: config2 } = request;
+  const stdout = request.stdout ?? process.stdout;
+  const repoRoot = request.repoRoot ?? process.cwd();
+  const env = request.env ?? process.env;
   const results = [];
   const transcript = createDeterministicTranscript(stdout);
-  const policyCount = countBuiltInPolicies(config2.policies);
-  const pluginCount = countPluginChecks(config2.plugins);
-  const checkCount = policyCount + pluginCount + config2.tools.length;
+  const plan = buildDeterministicCheckPlan(config2);
   let stopAfterBlockingPlugin = false;
-  if (checkCount === 0) {
+  if (!plan.runChecks) {
     transcript.writeNoChecks();
     return { exitCode: 0, results };
   }
-  transcript.writeStart(checkCount);
+  const changedFileResolution = requireChangedFileResolution(
+    request.changedFileResolution
+  );
+  const changedFiles = changedFileResolution.files;
+  transcript.writeStart(plan.checkCount);
   for (const policyResult of runBuiltInPolicies(
     config2.policies,
     changedFiles
@@ -26831,15 +26837,12 @@ async function runDeterministicChecks(config2, changedFiles, options = {}) {
   if (config2.plugins.gitleaks?.enabled) {
     const plugin = config2.plugins.gitleaks;
     const name = "plugin:gitleaks";
-    const commandResult = options.changedFileResolution ? await runGitleaksPlugin(
+    const commandResult = await runGitleaksPlugin(
       plugin,
-      options.changedFileResolution,
+      changedFileResolution,
       repoRoot,
       env
-    ) : {
-      passed: false,
-      detail: "requires resolved Git diff metadata"
-    };
+    );
     if (commandResult.passed) {
       const result = { name, status: "passed" };
       results.push(result);
@@ -26910,18 +26913,26 @@ async function runDeterministicChecks(config2, changedFiles, options = {}) {
   transcript.writeSummary(resultSummary);
   return { exitCode: resultSummary.exitCode, results };
 }
+function countPluginChecks(config2) {
+  return Number(Boolean(config2.plugins.gitleaks?.enabled));
+}
+function requireChangedFileResolution(changedFileResolution) {
+  if (changedFileResolution) {
+    return changedFileResolution;
+  }
+  throw new Error(
+    "Pushgate could not prepare changed files for deterministic checks."
+  );
+}
 
 // src/workflows/run-plan.ts
 function buildPrePushRunPlan(config2, skipControls) {
-  const deterministicCheckCount = config2.tools.length + countBuiltInPolicies(config2.policies) + countPluginChecks(config2.plugins);
-  const runDeterministic = deterministicCheckCount > 0;
+  const deterministicPlan = buildDeterministicCheckPlan(config2);
   const localAiSkipReason = getLocalAiSkipReason(config2, skipControls);
   const runLocalAi = localAiSkipReason === null;
   return {
-    deterministicCheckCount,
     localAiSkipReason,
-    needsChangedFiles: runDeterministic || runLocalAi,
-    runDeterministic,
+    needsChangedFiles: deterministicPlan.needsChangedFileResolution || runLocalAi,
     runLocalAi
   };
 }
@@ -26956,17 +26967,13 @@ async function runPrePushWorkflow(io) {
     repoRoot,
     runPlan
   });
-  const summary = await runDeterministicPhase(
-    loaded.config,
-    runPlan,
+  const summary = await runDeterministicChecks({
     changedFileResolution,
-    {
-      env: io.env,
-      repoRoot,
-      stderr: io.stderr,
-      stdout: io.stdout
-    }
-  );
+    config: loaded.config,
+    env: io.env,
+    repoRoot,
+    stdout: io.stdout
+  });
   if (summary.exitCode !== 0) {
     return summary.exitCode;
   }
@@ -26978,23 +26985,6 @@ async function runPrePushWorkflow(io) {
       env: io.env,
       repoRoot,
       stdout: io.stdout
-    }
-  );
-}
-async function runDeterministicPhase(config2, runPlan, changedFileResolution, options) {
-  if (!runPlan.runDeterministic) {
-    return runDeterministicChecks(config2, [], options);
-  }
-  const resolvedChangedFiles = requireChangedFileResolution(
-    changedFileResolution,
-    "deterministic phase"
-  );
-  return runDeterministicChecks(
-    config2,
-    resolvedChangedFiles.files,
-    {
-      ...options,
-      changedFileResolution: resolvedChangedFiles
     }
   );
 }
@@ -27010,7 +27000,7 @@ async function runLocalAiPhase(config2, runPlan, changedFileResolution, options)
   }
   return (await runLocalAiReview({
     aiConfig: config2.ai,
-    changedFileResolution: requireChangedFileResolution(
+    changedFileResolution: requireChangedFileResolution2(
       changedFileResolution,
       "local AI phase"
     ),
@@ -27030,7 +27020,7 @@ async function maybeResolveChangedFiles(config2, options) {
     ignorePaths: config2.ignore_paths
   });
 }
-function requireChangedFileResolution(changedFileResolution, phaseName) {
+function requireChangedFileResolution2(changedFileResolution, phaseName) {
   if (changedFileResolution !== null) {
     return changedFileResolution;
   }

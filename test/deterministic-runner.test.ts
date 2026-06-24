@@ -15,6 +15,7 @@ import type {
   ChangedFileResolution,
 } from "../src/path-policy/index.js";
 import {
+  buildDeterministicCheckPlan,
   expandChangedFilesToken,
   runDeterministicChecks,
 } from "../src/runner/deterministic.js";
@@ -52,20 +53,45 @@ const changedFileResolution: ChangedFileResolution = {
   targetRef: "main",
 };
 
+test("plans deterministic check count and changed-file needs in the runner module", () => {
+  assert.deepEqual(
+    buildDeterministicCheckPlan({
+      ...configWithTools([
+        tool({
+          command: [process.execPath, "-e", ""],
+        }),
+      ]),
+      policies: {
+        diff_size: {
+          max_changed_lines: 10,
+          mode: "warning",
+        },
+      },
+      plugins: {
+        gitleaks: gitleaksPlugin(),
+      },
+    }),
+    {
+      checkCount: 3,
+      needsChangedFileResolution: true,
+      runChecks: true,
+    },
+  );
+});
+
 test("expands changed files as argv entries without shell interpolation", async () => {
   await withTempDir(async (repoRoot) => {
     const recorder = await writeArgRecorder(repoRoot);
     const argsPath = join(repoRoot, "args.json");
     const output = captureOutput();
 
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: [process.execPath, recorder, "{changed_files}"],
           extensions: [".ts"],
         }),
       ]),
-      changedFiles,
       {
         env: { ...process.env, PUSHGATE_ARGS_OUT: argsPath },
         repoRoot,
@@ -86,14 +112,13 @@ test("skips changed-file tools when no live scoped files match", async () => {
     const argsPath = join(repoRoot, "args.json");
     const output = captureOutput();
 
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: [process.execPath, recorder, "{changed_files}"],
           extensions: [".rb"],
         }),
       ]),
-      changedFiles,
       {
         env: { ...process.env, PUSHGATE_ARGS_OUT: argsPath },
         repoRoot,
@@ -113,7 +138,7 @@ test("runs always-mode tools even when scoped changed files are empty", async ()
     const argsPath = join(repoRoot, "args.json");
     const output = captureOutput();
 
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: [process.execPath, recorder, "{changed_files}"],
@@ -121,7 +146,6 @@ test("runs always-mode tools even when scoped changed files are empty", async ()
           run: "always",
         }),
       ]),
-      changedFiles,
       {
         env: { ...process.env, PUSHGATE_ARGS_OUT: argsPath },
         repoRoot,
@@ -137,7 +161,7 @@ test("runs always-mode tools even when scoped changed files are empty", async ()
 test("blocks on blocking command failures", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: [
@@ -147,7 +171,6 @@ test("blocks on blocking command failures", async () => {
           ],
         }),
       ]),
-      changedFiles,
       { repoRoot, stdout: output.stream },
     );
 
@@ -162,14 +185,13 @@ test("blocks on blocking command failures", async () => {
 test("warning-mode command failures do not block", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: [process.execPath, "-e", "process.exit(7);"],
           mode: "warning",
         }),
       ]),
-      changedFiles,
       { repoRoot, stdout: output.stream },
     );
 
@@ -182,14 +204,13 @@ test("warning-mode command failures do not block", async () => {
 test("reports timeout failures deterministically", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: [process.execPath, "-e", "setTimeout(() => {}, 5000);"],
           timeout_seconds: 1,
         }),
       ]),
-      changedFiles,
       { repoRoot, stdout: output.stream },
     );
 
@@ -205,12 +226,11 @@ test("fail_fast controls whether later tools run after blocking failures", async
     const failFastArgsPath = join(repoRoot, "fail-fast.json");
     const aggregateArgsPath = join(repoRoot, "aggregate.json");
 
-    const failFastSummary = await runDeterministicChecks(
+    const failFastSummary = await runChecks(
       configWithTools([
         tool({ command: [process.execPath, "-e", "process.exit(1);"] }),
         tool({ command: [process.execPath, recorder] }),
       ]),
-      changedFiles,
       {
         env: { ...process.env, PUSHGATE_ARGS_OUT: failFastArgsPath },
         repoRoot,
@@ -222,7 +242,7 @@ test("fail_fast controls whether later tools run after blocking failures", async
     assert.equal(failFastSummary.results.length, 1);
     await assert.rejects(readFile(failFastArgsPath, "utf8"));
 
-    const aggregateSummary = await runDeterministicChecks(
+    const aggregateSummary = await runChecks(
       configWithTools([
         tool({
           command: [process.execPath, "-e", "process.exit(1);"],
@@ -230,7 +250,6 @@ test("fail_fast controls whether later tools run after blocking failures", async
         }),
         tool({ command: [process.execPath, recorder] }),
       ]),
-      changedFiles,
       {
         env: { ...process.env, PUSHGATE_ARGS_OUT: aggregateArgsPath },
         repoRoot,
@@ -247,14 +266,13 @@ test("fail_fast controls whether later tools run after blocking failures", async
 test("missing commands are handled according to tool mode", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       configWithTools([
         tool({
           command: ["pushgate-command-that-does-not-exist"],
           mode: "warning",
         }),
       ]),
-      changedFiles,
       { repoRoot, stdout: output.stream },
     );
 
@@ -269,16 +287,14 @@ test("runs Gitleaks plugin over the resolved branch commit range", async () => {
     const gitleaks = await writeGitleaksStub(repoRoot);
     const argsPath = join(repoRoot, "gitleaks-args.json");
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       {
         ...configWithTools([]),
         plugins: {
           gitleaks: gitleaksPlugin({ command: gitleaks }),
         },
       },
-      changedFiles,
       {
-        changedFileResolution,
         env: {
           ...process.env,
           PUSHGATE_GITLEAKS_ARGS_OUT: argsPath,
@@ -316,7 +332,7 @@ test("warning-mode Gitleaks findings do not stop later tools", async () => {
     const recorder = await writeArgRecorder(repoRoot);
     const argsPath = join(repoRoot, "tool-args.json");
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       {
         ...configWithTools([
           tool({
@@ -330,9 +346,7 @@ test("warning-mode Gitleaks findings do not stop later tools", async () => {
           }),
         },
       },
-      changedFiles,
       {
-        changedFileResolution,
         env: {
           ...process.env,
           PUSHGATE_ARGS_OUT: argsPath,
@@ -364,7 +378,7 @@ test("warning-mode Gitleaks findings do not stop later tools", async () => {
 test("runs built-in policies and makes warning versus blocking behavior explicit", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       {
         ...configWithTools([]),
         policies: {
@@ -378,7 +392,6 @@ test("runs built-in policies and makes warning versus blocking behavior explicit
           },
         },
       },
-      changedFiles,
       { repoRoot, stdout: output.stream },
     );
 
@@ -395,7 +408,7 @@ test("runs built-in policies and makes warning versus blocking behavior explicit
 test("warning-mode built-in policy failures do not block", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
-    const summary = await runDeterministicChecks(
+    const summary = await runChecks(
       {
         ...configWithTools([]),
         policies: {
@@ -405,7 +418,6 @@ test("warning-mode built-in policy failures do not block", async () => {
           },
         },
       },
-      changedFiles,
       { repoRoot, stdout: output.stream },
     );
 
@@ -490,6 +502,20 @@ test("renders deterministic transcript without running commands", () => {
     ].join("\n"),
   );
 });
+
+async function runChecks(
+  config: PushgateConfig,
+  options: Omit<
+    Parameters<typeof runDeterministicChecks>[0],
+    "config"
+  > = {},
+) {
+  return await runDeterministicChecks({
+    changedFileResolution,
+    ...options,
+    config,
+  });
+}
 
 function configWithTools(tools: ToolConfig[]): PushgateConfig {
   return {
