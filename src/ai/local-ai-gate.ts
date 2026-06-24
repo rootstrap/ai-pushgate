@@ -4,7 +4,7 @@ import {
   evaluateChangedFileGuardrails,
   evaluatePromptGuardrail,
 } from "./guardrails.js";
-import { resolveProvider } from "./provider-registry.js";
+import { resolveLocalAiProviderRuntime } from "./provider-runtime.js";
 import { buildLocalAiReviewPayload } from "./review-context.js";
 import { renderLocalAiTranscript } from "./transcript.js";
 import type {
@@ -26,19 +26,10 @@ export async function runLocalAiReview(options: {
   stdout?: NodeJS.WritableStream;
 }): Promise<LocalAiRunSummary> {
   const stdout = options.stdout ?? process.stdout;
-  const provider = resolveProvider(options.aiConfig.provider);
+  const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
 
-  if (provider === null) {
-    return renderVerdict(
-      options.aiConfig.mode,
-      {
-        kind: "provider-error",
-        code: "unsupported_provider",
-        provider: options.aiConfig.provider ?? "unknown",
-        message: `Pushgate does not implement the configured AI provider ${JSON.stringify(options.aiConfig.provider)} yet.`,
-      },
-      stdout,
-    );
+  if (providerRuntime.kind === "provider-error") {
+    return renderVerdict(options.aiConfig.mode, providerRuntime.result, stdout);
   }
 
   const changedFileGuardrail = evaluateChangedFileGuardrails({
@@ -83,7 +74,7 @@ export async function runLocalAiReview(options: {
     [
       {
         kind: "review-start",
-        providerId: provider.id,
+        providerId: providerRuntime.providerId,
         changedFileCount: payload.changedFiles.length,
       },
     ],
@@ -105,13 +96,9 @@ export async function runLocalAiReview(options: {
 
   return renderVerdict(
     options.aiConfig.mode,
-    await provider.runReview({
+    await providerRuntime.runReview({
       env: options.env ?? process.env,
       payload,
-      providerConfig:
-        options.aiConfig.providers[provider.id] ??
-        options.aiConfig.providers[options.aiConfig.provider ?? provider.id] ??
-        {},
       repoRoot: options.repoRoot,
       timeoutSeconds: options.aiConfig.timeout_seconds,
     }),

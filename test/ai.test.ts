@@ -24,10 +24,14 @@ import {
   evaluateChangedFileGuardrails,
   evaluatePromptGuardrail,
 } from "../src/ai/guardrails.js";
+import { resolveLocalAiProviderRuntime } from "../src/ai/provider-runtime.js";
+import { createCommandProviderAdapter } from "../src/ai/providers/command-provider-adapter.js";
 import { claudeProvider } from "../src/ai/providers/claude.js";
 import { copilotProvider } from "../src/ai/providers/copilot.js";
+import type { ProviderCommandResult } from "../src/ai/providers/run-provider-command.js";
 import { renderLocalAiTranscript } from "../src/ai/transcript.js";
 import { buildLocalAiVerdict } from "../src/ai/verdict.js";
+import type { LocalAiProviderAdapter } from "../src/ai/types.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
 
 test("validates the canonical AI review contract with Zod", () => {
@@ -748,6 +752,190 @@ test("builds and renders local AI verdict output without provider execution", ()
   );
   assert.match(output.text(), /BLOCK AI logic_errors at src\/changed\.ts:2/);
   assert.match(output.text(), /Continuing because ai\.mode is advisory/);
+});
+
+test("local AI provider runtime owns selection diagnostics and selected config", async () => {
+  let selectedProviderConfig: unknown = null;
+  const fakeProvider: LocalAiProviderAdapter = {
+    id: "fake",
+    structuredOutputCapability: "text_fallback",
+    async runReview(options) {
+      selectedProviderConfig = options.providerConfig;
+
+      return {
+        kind: "review",
+        provider: "fake",
+        findings: [],
+        normalizationNotes: [],
+        rawOutput: "{\"schema_version\":1,\"findings\":[]}",
+        summary: {
+          blockingCount: 0,
+          warningCount: 0,
+          verdict: "PASS",
+        },
+      };
+    },
+  };
+  const runtime = resolveLocalAiProviderRuntime(
+    {
+      mode: "blocking",
+      max_changed_lines: 500,
+      max_prompt_tokens: 12_000,
+      timeout_seconds: 120,
+      provider: "fake",
+      providers: {
+        fake: {
+          model: "runtime-model",
+        },
+      },
+    },
+    [fakeProvider],
+  );
+
+  assert.equal(runtime.kind, "ready");
+
+  if (runtime.kind !== "ready") {
+    assert.fail("Expected provider runtime.");
+  }
+
+  assert.equal(runtime.providerId, "fake");
+  assert.equal(
+    (
+      await runtime.runReview({
+        env: {},
+        payload: minimalReviewPayload(),
+        repoRoot: process.cwd(),
+        timeoutSeconds: 120,
+      })
+    ).kind,
+    "review",
+  );
+  assert.deepEqual(selectedProviderConfig, {
+    model: "runtime-model",
+  });
+
+  const unsupported = resolveLocalAiProviderRuntime(
+    {
+      mode: "blocking",
+      max_changed_lines: 500,
+      max_prompt_tokens: 12_000,
+      timeout_seconds: 120,
+      provider: "missing",
+      providers: {
+        missing: {},
+      },
+    },
+    [fakeProvider],
+  );
+
+  assert.equal(unsupported.kind, "provider-error");
+
+  if (unsupported.kind !== "provider-error") {
+    assert.fail("Expected provider-error.");
+  }
+
+  assert.equal(unsupported.result.code, "unsupported_provider");
+  assert.equal(unsupported.result.provider, "missing");
+  assert.match(unsupported.result.message, /configured AI provider "missing"/);
+});
+
+test("command provider adapter maps shared command lifecycle outcomes", async () => {
+  const successAdapter = createCommandProviderAdapter({
+    id: "fake",
+    structuredOutputCapability: "text_fallback",
+    command: "fake",
+    buildInvocation() {
+      return {
+        args: ["review"],
+        model: "fake-model",
+      };
+    },
+    emptyOutputMessage: "Fake CLI returned an empty review response.",
+    formatCommandFailedMessage(code) {
+      return `Fake CLI exited with code ${String(code)}.`;
+    },
+    formatTimeoutMessage(timeoutSeconds) {
+      return `Fake CLI timed out after ${String(timeoutSeconds)}s.`;
+    },
+    invalidOutputMessage: "Fake CLI returned malformed review output.",
+    missingBinaryMessage: "Fake CLI was not found on PATH.",
+    extractReview(commandResult) {
+      return {
+        content: commandResult.stdout,
+        kind: "text",
+      };
+    },
+  }, {
+    async runCommand() {
+      return {
+        code: 0,
+        kind: "completed",
+        output: "{\"schema_version\":1,\"findings\":[]}",
+        stdout: "{\"schema_version\":1,\"findings\":[]}",
+      };
+    },
+  });
+  const success = await successAdapter.runReview({
+    env: {},
+    payload: minimalReviewPayload(),
+    providerConfig: {},
+    repoRoot: process.cwd(),
+    timeoutSeconds: 120,
+  });
+
+  assert.equal(success.kind, "review");
+
+  if (success.kind !== "review") {
+    assert.fail("Expected review.");
+  }
+
+  assert.equal(success.provider, "fake");
+  assert.equal(success.findings.length, 0);
+  assert.equal(success.summary.verdict, "PASS");
+
+  const missingBinary = await runFakeCommandProvider({
+    kind: "spawn-error",
+  });
+
+  assert.equal(missingBinary.kind, "provider-error");
+
+  if (missingBinary.kind !== "provider-error") {
+    assert.fail("Expected provider-error.");
+  }
+
+  assert.equal(missingBinary.code, "missing_binary");
+  assert.match(missingBinary.message, /not found on PATH/);
+
+  const timedOut = await runFakeCommandProvider({
+    kind: "timeout",
+    output: "partial output",
+  });
+
+  assert.equal(timedOut.kind, "provider-error");
+
+  if (timedOut.kind !== "provider-error") {
+    assert.fail("Expected provider-error.");
+  }
+
+  assert.equal(timedOut.code, "timed_out");
+  assert.equal(timedOut.output, "partial output");
+
+  const failed = await runFakeCommandProvider({
+    code: 42,
+    kind: "completed",
+    output: "provider exploded",
+    stdout: "",
+  });
+
+  assert.equal(failed.kind, "provider-error");
+
+  if (failed.kind !== "provider-error") {
+    assert.fail("Expected provider-error.");
+  }
+
+  assert.equal(failed.code, "command_failed");
+  assert.match(failed.message, /exited with code 42/);
+  assert.equal(failed.output, "provider exploded");
 });
 
 test("runs the Claude adapter through the provider interface with model selection", async () => {
@@ -2101,4 +2289,46 @@ function minimalReviewPayload(
     fullFiles: [],
     prompt,
   };
+}
+
+async function runFakeCommandProvider(
+  commandResult: ProviderCommandResult,
+): Promise<Awaited<ReturnType<LocalAiProviderAdapter["runReview"]>>> {
+  const adapter = createCommandProviderAdapter({
+    id: "fake",
+    structuredOutputCapability: "text_fallback",
+    command: "fake",
+    buildInvocation() {
+      return {
+        args: ["review"],
+      };
+    },
+    emptyOutputMessage: "Fake CLI returned an empty review response.",
+    formatCommandFailedMessage(code) {
+      return `Fake CLI exited with code ${String(code)}.`;
+    },
+    formatTimeoutMessage(timeoutSeconds) {
+      return `Fake CLI timed out after ${String(timeoutSeconds)}s.`;
+    },
+    invalidOutputMessage: "Fake CLI returned malformed review output.",
+    missingBinaryMessage: "Fake CLI was not found on PATH.",
+    extractReview(result) {
+      return {
+        content: result.stdout,
+        kind: "text",
+      };
+    },
+  }, {
+    async runCommand() {
+      return commandResult;
+    },
+  });
+
+  return adapter.runReview({
+    env: {},
+    payload: minimalReviewPayload(),
+    providerConfig: {},
+    repoRoot: process.cwd(),
+    timeoutSeconds: 3,
+  });
 }

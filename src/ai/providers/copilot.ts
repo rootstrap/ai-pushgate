@@ -1,89 +1,60 @@
-import type { LocalAiProviderAdapter } from "../types.js";
+import { createCommandProviderAdapter } from "./command-provider-adapter.js";
 import { selectProviderModel } from "./config.js";
-import { normalizeProviderReviewOutput } from "./normalize-review.js";
-import { runProviderCommand } from "./run-provider-command.js";
 
-export const copilotProvider: LocalAiProviderAdapter = {
+export const copilotProvider = createCommandProviderAdapter({
   id: "copilot",
   structuredOutputCapability: "jsonl_transport",
-  async runReview(options) {
+  command: "copilot",
+  buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
-    const args = buildCopilotArgs(model);
-    const commandResult = await runProviderCommand({
-      args,
-      command: "copilot",
-      cwd: options.repoRoot,
-      env: options.env,
-      prompt: options.payload.prompt,
-      timeoutSeconds: options.timeoutSeconds,
-    });
 
-    if (commandResult.kind === "spawn-error") {
-      return {
-        kind: "provider-error",
-        code: "missing_binary",
-        provider: "copilot",
-        message:
-          "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review.",
-      };
+    return {
+      args: buildCopilotArgs(model),
+      model,
+    };
+  },
+  missingBinaryMessage:
+    "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review.",
+  formatTimeoutMessage(timeoutSeconds) {
+    return `GitHub Copilot CLI timed out after ${String(timeoutSeconds)}s.`;
+  },
+  formatCommandFailedMessage(code) {
+    return `GitHub Copilot CLI exited with code ${String(code)}.`;
+  },
+  emptyOutputMessage: "GitHub Copilot CLI returned empty JSONL output.",
+  invalidOutputMessage:
+    "GitHub Copilot CLI returned malformed review output.",
+  mapCommandFailure(commandResult) {
+    const output = commandResult.output ?? "";
+
+    if (!isCopilotAuthFailure(output)) {
+      return null;
     }
 
-    if (commandResult.kind === "timeout") {
-      return {
-        kind: "provider-error",
-        code: "timed_out",
-        provider: "copilot",
-        message: `GitHub Copilot CLI timed out after ${String(options.timeoutSeconds)}s.`,
-        output: commandResult.output,
-      };
-    }
-
-    if (commandResult.code !== 0) {
-      const output = commandResult.output ?? "";
-
-      if (isCopilotAuthFailure(output)) {
-        return {
-          kind: "provider-error",
-          code: "not_authenticated",
-          provider: "copilot",
-          message:
-            "GitHub Copilot CLI is not authenticated or cannot access Copilot. Run `copilot login`, configure `COPILOT_GITHUB_TOKEN`, or verify your Copilot CLI organization policy.",
-          output: commandResult.output,
-        };
-      }
-
-      return {
-        kind: "provider-error",
-        code: "command_failed",
-        provider: "copilot",
-        message: `GitHub Copilot CLI exited with code ${String(commandResult.code)}.`,
-        output: commandResult.output,
-      };
-    }
-
+    return {
+      kind: "provider-error",
+      code: "not_authenticated",
+      provider: "copilot",
+      message:
+        "GitHub Copilot CLI is not authenticated or cannot access Copilot. Run `copilot login`, configure `COPILOT_GITHUB_TOKEN`, or verify your Copilot CLI organization policy.",
+    };
+  },
+  extractReview(commandResult) {
     const extractedResponse = extractCopilotFinalAssistantResponse(
       commandResult.stdout,
     );
 
     if (extractedResponse.kind === "empty") {
-      return {
-        kind: "provider-error",
-        code: "empty_output",
-        provider: "copilot",
-        message: "GitHub Copilot CLI returned empty JSONL output.",
-        output: commandResult.output,
-      };
+      return { kind: "empty" };
     }
 
     if (extractedResponse.kind === "malformed-jsonl") {
       return {
         kind: "provider-error",
         code: "malformed_transport",
-        provider: "copilot",
+        detail: extractedResponse.detail,
         message:
           "GitHub Copilot CLI returned malformed JSONL transport output.",
-        detail: extractedResponse.detail,
-        output: commandResult.output,
       };
     }
 
@@ -91,25 +62,18 @@ export const copilotProvider: LocalAiProviderAdapter = {
       return {
         kind: "provider-error",
         code: "missing_response",
-        provider: "copilot",
+        detail: extractedResponse.detail,
         message:
           "GitHub Copilot CLI JSONL output did not include a final assistant response.",
-        detail: extractedResponse.detail,
-        output: commandResult.output,
       };
     }
 
-    return normalizeProviderReviewOutput({
-      emptyOutputMessage: "GitHub Copilot CLI returned an empty review response.",
-      invalidOutputMessage:
-        "GitHub Copilot CLI returned malformed review output.",
-      model,
-      output: commandResult.output,
-      provider: "copilot",
-      stdout: extractedResponse.content,
-    });
+    return {
+      content: extractedResponse.content,
+      kind: "text",
+    };
   },
-};
+});
 
 function buildCopilotArgs(model?: string): string[] {
   const args = [
