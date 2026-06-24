@@ -19,11 +19,16 @@ export {
   AiReviewFindingSchema,
   AiReviewOutputSchema,
   generateAiReviewOutputJsonSchema,
+  getAiReviewFindingCategorySeverity,
   validateAiReviewOutputContract,
+  validateAiReviewFindingSemantics,
 } from "./review-contract.js";
 export type {
+  AiReviewFindingFieldPromptDoc,
+  AiReviewFindingKey,
   AiReviewContractValidationIssue,
   AiReviewContractValidationResult,
+  AiReviewTopLevelKey,
 } from "./review-contract.js";
 export type {
   AiFinding,
@@ -43,7 +48,10 @@ export {
   AI_FINDING_CATEGORIES,
   AI_FINDING_CONFIDENCE_LEVELS,
   AI_FINDING_SEVERITIES,
+  AI_REVIEW_CATEGORY_GROUPS,
+  AI_REVIEW_FINDING_FIELD_PROMPT_DOCS,
   AI_REVIEW_FINDING_KEYS,
+  AI_REVIEW_OUTPUT_EXAMPLE,
   AI_REVIEW_OUTPUT_SCHEMA_ID,
   AI_REVIEW_OUTPUT_SCHEMA_TITLE,
   AI_REVIEW_OUTPUT_SCHEMA_VERSION,

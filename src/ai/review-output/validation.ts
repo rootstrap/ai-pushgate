@@ -271,6 +271,11 @@ function formatSchemaError(error: AiReviewContractValidationIssue): string {
       const property = String(error.params.additionalProperty);
       return `${path} includes unsupported property ${JSON.stringify(property)}.`;
     }
+    case "categorySeverity":
+      return (
+        error.message ??
+        `${path} uses a severity that does not match its category.`
+      );
     case "const":
       return `${path} must equal 1 for schema_version.`;
     case "enum":

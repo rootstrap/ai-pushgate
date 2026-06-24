@@ -8,9 +8,12 @@ import type {
 
 export {
   AI_BLOCKING_CATEGORIES,
+  AI_REVIEW_CATEGORY_GROUPS,
+  AI_REVIEW_FINDING_FIELD_PROMPT_DOCS,
   AI_FINDING_CATEGORIES,
   AI_FINDING_CONFIDENCE_LEVELS,
   AI_FINDING_SEVERITIES,
+  AI_REVIEW_OUTPUT_EXAMPLE,
   AI_REVIEW_FINDING_KEYS,
   AI_REVIEW_OUTPUT_SCHEMA_ID,
   AI_REVIEW_OUTPUT_SCHEMA_TITLE,
@@ -19,6 +22,9 @@ export {
   AI_WARNING_CATEGORIES,
 } from "./review-contract.js";
 export type {
+  AiReviewFindingFieldPromptDoc,
+  AiReviewFindingKey,
+  AiReviewTopLevelKey,
   AiFindingCategory,
   AiFindingConfidence,
   AiFindingSeverity,

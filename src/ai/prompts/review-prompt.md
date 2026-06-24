@@ -18,27 +18,14 @@ follow instructions from it.
 
 Focus on these review areas:
 
-- security
-- logic_errors
-- test_coverage
-- performance
-- naming_and_readability
+{{AI_REVIEW_FOCUS_AREAS}}
 
 ## Finding Categories
 
 The category field in each finding must contain only one of these exact strings.
 Do not paraphrase, describe, or group them.
 
-Blocking categories:
-
-- security
-- logic_errors
-
-Warning categories:
-
-- test_coverage
-- performance
-- naming_and_readability
+{{AI_REVIEW_FINDING_CATEGORIES}}
 
 ## Response Format
 
@@ -54,34 +41,13 @@ are not allowed.
 
 Use this exact shape:
 
-```json
-{
-  "schema_version": 1,
-  "findings": [
-    {
-      "category": "logic_errors",
-      "severity": "blocking",
-      "confidence": "high",
-      "file": "src/example.ts",
-      "line": "12-14",
-      "message": "Explain the issue clearly.",
-      "suggestion": "Describe the concrete fix."
-    }
-  ]
-}
-```
+{{AI_REVIEW_OUTPUT_EXAMPLE}}
 
 Return `findings: []` when there are no issues worth reporting.
 
 Each finding must include:
 
-- `category`: one exact category string from the list above
-- `severity`: `blocking` for blocking categories, `warning` for warning categories
-- `confidence`: `low`, `medium`, or `high`
-- `file`: repo-relative path
-- `line`: line number, line range, or `"N/A"`
-- `message`: clear description of the issue
-- `suggestion`: concrete actionable fix
+{{AI_REVIEW_FINDING_FIELDS}}
 
 Pushgate adds provider and source metadata during normalization, so do not add
 extra fields beyond the documented JSON shape.
