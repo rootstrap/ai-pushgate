@@ -24734,15 +24734,6 @@ function typedKeys(value) {
   return Object.freeze(Object.keys(value));
 }
 
-// src/ai/providers/config.ts
-function selectProviderModel(providerConfig) {
-  const model = providerConfig.model;
-  return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
-}
-function selectProviderBoolean(providerConfig, key) {
-  return providerConfig[key] === true;
-}
-
 // src/ai/review-output/candidates.ts
 function buildCandidates(output) {
   const seen = /* @__PURE__ */ new Set();
@@ -25487,118 +25478,233 @@ async function runProviderCommand(options) {
   };
 }
 
+// src/ai/providers/command-provider-adapter.ts
+function createCommandProviderAdapter(spec, dependencies = {}) {
+  const runCommand2 = dependencies.runCommand ?? runProviderCommand;
+  return {
+    id: spec.id,
+    structuredOutputCapability: spec.structuredOutputCapability,
+    async runReview(options) {
+      const invocation = spec.buildInvocation(options);
+      const commandResult = await runCommand2({
+        args: invocation.args,
+        command: spec.command,
+        cwd: options.repoRoot,
+        env: options.env,
+        prompt: options.payload.prompt,
+        timeoutSeconds: options.timeoutSeconds
+      });
+      if (commandResult.kind === "spawn-error") {
+        return providerFailure({
+          code: "missing_binary",
+          message: spec.missingBinaryMessage,
+          provider: spec.id
+        });
+      }
+      if (commandResult.kind === "timeout") {
+        return providerFailure({
+          code: "timed_out",
+          message: spec.formatTimeoutMessage(options.timeoutSeconds),
+          output: commandResult.output,
+          provider: spec.id
+        });
+      }
+      if (commandResult.code !== 0) {
+        const mappedFailure = await spec.mapCommandFailure?.(
+          commandResult,
+          invocation,
+          options
+        );
+        if (mappedFailure) {
+          return withCommandOutput(mappedFailure, commandResult.output);
+        }
+        return providerFailure({
+          code: "command_failed",
+          message: spec.formatCommandFailedMessage(commandResult.code),
+          output: commandResult.output,
+          provider: spec.id
+        });
+      }
+      const successfulOutputFailure = await spec.mapSuccessfulCommandOutput?.(
+        commandResult,
+        invocation,
+        options
+      );
+      if (successfulOutputFailure) {
+        return withCommandOutput(successfulOutputFailure, commandResult.output);
+      }
+      const extractedReview = spec.extractReview(
+        commandResult,
+        invocation,
+        options
+      );
+      return normalizeExtractedReview({
+        commandResult,
+        extraction: extractedReview,
+        invalidOutputMessage: spec.invalidOutputMessage,
+        emptyOutputMessage: spec.emptyOutputMessage,
+        model: invocation.model,
+        provider: spec.id
+      });
+    }
+  };
+}
+function normalizeExtractedReview(options) {
+  switch (options.extraction.kind) {
+    case "empty":
+      return providerFailure({
+        code: "empty_output",
+        message: options.emptyOutputMessage,
+        output: options.commandResult.output,
+        provider: options.provider
+      });
+    case "provider-error":
+      return providerFailure({
+        code: options.extraction.code,
+        detail: options.extraction.detail,
+        message: options.extraction.message,
+        output: options.commandResult.output,
+        provider: options.provider
+      });
+    case "object":
+      return normalizeProviderReviewObject({
+        invalidOutputMessage: options.invalidOutputMessage,
+        model: options.model,
+        output: options.commandResult.output,
+        provider: options.provider,
+        rawOutput: options.extraction.rawOutput,
+        value: options.extraction.value
+      });
+    case "text":
+      return normalizeProviderReviewOutput({
+        emptyOutputMessage: options.emptyOutputMessage,
+        invalidOutputMessage: options.invalidOutputMessage,
+        model: options.model,
+        output: options.commandResult.output,
+        provider: options.provider,
+        stdout: options.extraction.content
+      });
+  }
+}
+function providerFailure(options) {
+  return {
+    kind: "provider-error",
+    code: options.code,
+    provider: options.provider,
+    message: options.message,
+    ...options.detail ? { detail: options.detail } : {},
+    ...options.output ? { output: options.output } : {}
+  };
+}
+function withCommandOutput(failure, output) {
+  if (failure.output !== void 0 || output === void 0) {
+    return failure;
+  }
+  return {
+    ...failure,
+    output
+  };
+}
+
+// src/ai/providers/config.ts
+function selectProviderModel(providerConfig) {
+  const model = providerConfig.model;
+  return typeof model === "string" && model.trim().length > 0 ? model.trim() : void 0;
+}
+function selectProviderBoolean(providerConfig, key) {
+  return providerConfig[key] === true;
+}
+
 // src/ai/providers/claude.ts
-var claudeProvider = {
+var claudeProvider = createCommandProviderAdapter({
   id: "claude",
   structuredOutputCapability: "native_json_schema",
-  async runReview(options) {
+  command: "claude",
+  buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
     const bare = selectProviderBoolean(options.providerConfig, "bare");
-    const args = buildClaudeArgs(options.repoRoot, model, bare);
-    const commandResult = await runProviderCommand({
-      args,
-      command: "claude",
-      cwd: options.repoRoot,
-      env: options.env,
-      prompt: options.payload.prompt,
-      timeoutSeconds: options.timeoutSeconds
-    });
-    if (commandResult.kind === "spawn-error") {
+    return {
+      args: buildClaudeArgs(options.repoRoot, model, bare),
+      context: {
+        bare
+      },
+      model
+    };
+  },
+  missingBinaryMessage: "Claude Code CLI was not found on PATH. Install it before running Pushgate local AI review.",
+  formatTimeoutMessage(timeoutSeconds) {
+    return `Claude Code CLI timed out after ${String(timeoutSeconds)}s.`;
+  },
+  formatCommandFailedMessage(code) {
+    return `Claude Code CLI exited with code ${String(code)}.`;
+  },
+  emptyOutputMessage: "Claude Code CLI returned an empty structured review response.",
+  invalidOutputMessage: "Claude Code CLI returned malformed review output.",
+  async mapCommandFailure(commandResult, invocation, options) {
+    const output = commandResult.output ?? "";
+    if (isClaudeStructuredOutputUnsupported(output)) {
       return {
         kind: "provider-error",
-        code: "missing_binary",
+        code: "unsupported_structured_output",
         provider: "claude",
-        message: "Claude Code CLI was not found on PATH. Install it before running Pushgate local AI review."
+        message: "Claude Code CLI does not appear to support native structured output. Upgrade Claude Code to a version that supports `claude -p --json-schema`."
       };
     }
-    if (commandResult.kind === "timeout") {
-      return {
-        kind: "provider-error",
-        code: "timed_out",
-        provider: "claude",
-        message: `Claude Code CLI timed out after ${String(options.timeoutSeconds)}s.`,
-        output: commandResult.output
-      };
-    }
-    if (commandResult.code !== 0) {
-      const output = commandResult.output ?? "";
-      if (isClaudeStructuredOutputUnsupported(output)) {
-        return {
-          kind: "provider-error",
-          code: "unsupported_structured_output",
-          provider: "claude",
-          message: "Claude Code CLI does not appear to support native structured output. Upgrade Claude Code to a version that supports `claude -p --json-schema`.",
-          output: commandResult.output
-        };
-      }
-      if (isClaudeAuthFailure(output) || await isClaudeUnauthenticated(options.repoRoot, options.env)) {
-        return {
-          kind: "provider-error",
-          code: "not_authenticated",
-          provider: "claude",
-          message: formatClaudeAuthFailureMessage(bare),
-          output: commandResult.output
-        };
-      }
-      return {
-        kind: "provider-error",
-        code: "command_failed",
-        provider: "claude",
-        message: `Claude Code CLI exited with code ${String(commandResult.code)}.`,
-        output: commandResult.output
-      };
-    }
-    if (isClaudeAuthFailure(commandResult.output ?? commandResult.stdout)) {
+    if (isClaudeAuthFailure(output) || await isClaudeUnauthenticated(options.repoRoot, options.env)) {
       return {
         kind: "provider-error",
         code: "not_authenticated",
         provider: "claude",
-        message: formatClaudeAuthFailureMessage(bare),
-        output: commandResult.output
+        message: formatClaudeAuthFailureMessage(
+          invocation.context?.bare ?? false
+        )
       };
     }
-    const extractedOutput = extractClaudeStructuredReviewObject(
+    return null;
+  },
+  mapSuccessfulCommandOutput(commandResult, invocation) {
+    if (!isClaudeAuthFailure(commandResult.output ?? commandResult.stdout)) {
+      return null;
+    }
+    return {
+      kind: "provider-error",
+      code: "not_authenticated",
+      provider: "claude",
+      message: formatClaudeAuthFailureMessage(
+        invocation.context?.bare ?? false
+      )
+    };
+  },
+  extractReview(commandResult) {
+    const extractedReview = extractClaudeStructuredReviewObject(
       commandResult.stdout
     );
-    if (extractedOutput.kind === "empty") {
-      return {
-        kind: "provider-error",
-        code: "empty_output",
-        provider: "claude",
-        message: "Claude Code CLI returned an empty structured review response.",
-        output: commandResult.output
-      };
+    if (extractedReview.kind === "empty") {
+      return { kind: "empty" };
     }
-    if (extractedOutput.kind === "malformed-json") {
+    if (extractedReview.kind === "malformed-json") {
       return {
         kind: "provider-error",
         code: "malformed_transport",
-        provider: "claude",
-        message: "Claude Code CLI returned malformed structured review output.",
-        detail: extractedOutput.detail,
-        output: commandResult.output
+        detail: extractedReview.detail,
+        message: "Claude Code CLI returned malformed structured review output."
       };
     }
-    if (extractedOutput.kind === "structured-output-error") {
+    if (extractedReview.kind === "structured-output-error") {
       return {
         kind: "provider-error",
         code: "invalid_output",
-        provider: "claude",
-        message: "Claude Code CLI could not produce structured review output matching the Pushgate schema.",
-        detail: extractedOutput.detail,
-        output: commandResult.output
+        detail: extractedReview.detail,
+        message: "Claude Code CLI could not produce structured review output matching the Pushgate schema."
       };
     }
-    return normalizeProviderReviewObject({
-      invalidOutputMessage: "Claude Code CLI returned malformed review output.",
-      model,
-      output: commandResult.output,
-      provider: "claude",
+    return {
+      kind: "object",
       rawOutput: commandResult.stdout,
-      value: extractedOutput.value
-    });
+      value: extractedReview.value
+    };
   }
-};
+});
 function buildClaudeArgs(repoRoot, model, bare) {
   const reviewSchema = JSON.stringify(generateAiReviewOutputJsonSchema());
   const args = [
@@ -25752,98 +25858,67 @@ function formatUnknownError2(error51) {
 }
 
 // src/ai/providers/copilot.ts
-var copilotProvider = {
+var copilotProvider = createCommandProviderAdapter({
   id: "copilot",
   structuredOutputCapability: "jsonl_transport",
-  async runReview(options) {
+  command: "copilot",
+  buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
-    const args = buildCopilotArgs(model);
-    const commandResult = await runProviderCommand({
-      args,
-      command: "copilot",
-      cwd: options.repoRoot,
-      env: options.env,
-      prompt: options.payload.prompt,
-      timeoutSeconds: options.timeoutSeconds
-    });
-    if (commandResult.kind === "spawn-error") {
-      return {
-        kind: "provider-error",
-        code: "missing_binary",
-        provider: "copilot",
-        message: "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review."
-      };
+    return {
+      args: buildCopilotArgs(model),
+      model
+    };
+  },
+  missingBinaryMessage: "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review.",
+  formatTimeoutMessage(timeoutSeconds) {
+    return `GitHub Copilot CLI timed out after ${String(timeoutSeconds)}s.`;
+  },
+  formatCommandFailedMessage(code) {
+    return `GitHub Copilot CLI exited with code ${String(code)}.`;
+  },
+  emptyOutputMessage: "GitHub Copilot CLI returned empty JSONL output.",
+  invalidOutputMessage: "GitHub Copilot CLI returned malformed review output.",
+  mapCommandFailure(commandResult) {
+    const output = commandResult.output ?? "";
+    if (!isCopilotAuthFailure(output)) {
+      return null;
     }
-    if (commandResult.kind === "timeout") {
-      return {
-        kind: "provider-error",
-        code: "timed_out",
-        provider: "copilot",
-        message: `GitHub Copilot CLI timed out after ${String(options.timeoutSeconds)}s.`,
-        output: commandResult.output
-      };
-    }
-    if (commandResult.code !== 0) {
-      const output = commandResult.output ?? "";
-      if (isCopilotAuthFailure(output)) {
-        return {
-          kind: "provider-error",
-          code: "not_authenticated",
-          provider: "copilot",
-          message: "GitHub Copilot CLI is not authenticated or cannot access Copilot. Run `copilot login`, configure `COPILOT_GITHUB_TOKEN`, or verify your Copilot CLI organization policy.",
-          output: commandResult.output
-        };
-      }
-      return {
-        kind: "provider-error",
-        code: "command_failed",
-        provider: "copilot",
-        message: `GitHub Copilot CLI exited with code ${String(commandResult.code)}.`,
-        output: commandResult.output
-      };
-    }
+    return {
+      kind: "provider-error",
+      code: "not_authenticated",
+      provider: "copilot",
+      message: "GitHub Copilot CLI is not authenticated or cannot access Copilot. Run `copilot login`, configure `COPILOT_GITHUB_TOKEN`, or verify your Copilot CLI organization policy."
+    };
+  },
+  extractReview(commandResult) {
     const extractedResponse = extractCopilotFinalAssistantResponse(
       commandResult.stdout
     );
     if (extractedResponse.kind === "empty") {
-      return {
-        kind: "provider-error",
-        code: "empty_output",
-        provider: "copilot",
-        message: "GitHub Copilot CLI returned empty JSONL output.",
-        output: commandResult.output
-      };
+      return { kind: "empty" };
     }
     if (extractedResponse.kind === "malformed-jsonl") {
       return {
         kind: "provider-error",
         code: "malformed_transport",
-        provider: "copilot",
-        message: "GitHub Copilot CLI returned malformed JSONL transport output.",
         detail: extractedResponse.detail,
-        output: commandResult.output
+        message: "GitHub Copilot CLI returned malformed JSONL transport output."
       };
     }
     if (extractedResponse.kind === "missing-assistant-response") {
       return {
         kind: "provider-error",
         code: "missing_response",
-        provider: "copilot",
-        message: "GitHub Copilot CLI JSONL output did not include a final assistant response.",
         detail: extractedResponse.detail,
-        output: commandResult.output
+        message: "GitHub Copilot CLI JSONL output did not include a final assistant response."
       };
     }
-    return normalizeProviderReviewOutput({
-      emptyOutputMessage: "GitHub Copilot CLI returned an empty review response.",
-      invalidOutputMessage: "GitHub Copilot CLI returned malformed review output.",
-      model,
-      output: commandResult.output,
-      provider: "copilot",
-      stdout: extractedResponse.content
-    });
+    return {
+      content: extractedResponse.content,
+      kind: "text"
+    };
   }
-};
+});
 function buildCopilotArgs(model) {
   const args = [
     "-s",
@@ -25956,16 +26031,39 @@ function formatUnknownError3(error51) {
   return error51 instanceof Error ? error51.message : String(error51);
 }
 
-// src/ai/provider-registry.ts
-function resolveProvider(providerId) {
-  switch (providerId) {
-    case "claude":
-      return claudeProvider;
-    case "copilot":
-      return copilotProvider;
-    default:
-      return null;
+// src/ai/provider-runtime.ts
+var LOCAL_AI_PROVIDERS = [
+  claudeProvider,
+  copilotProvider
+];
+function resolveLocalAiProviderRuntime(aiConfig, providers = LOCAL_AI_PROVIDERS) {
+  const provider = providers.find(
+    (candidate) => candidate.id === aiConfig.provider
+  );
+  if (!provider) {
+    return {
+      kind: "provider-error",
+      result: {
+        kind: "provider-error",
+        code: "unsupported_provider",
+        provider: aiConfig.provider ?? "unknown",
+        message: `Pushgate does not implement the configured AI provider ${JSON.stringify(
+          aiConfig.provider
+        )} yet.`
+      }
+    };
   }
+  const providerConfig = aiConfig.providers[provider.id] ?? aiConfig.providers[aiConfig.provider ?? provider.id] ?? {};
+  return {
+    kind: "ready",
+    providerId: provider.id,
+    runReview(options) {
+      return provider.runReview({
+        ...options,
+        providerConfig
+      });
+    }
+  };
 }
 
 // src/ai/review-context.ts
@@ -26303,18 +26401,9 @@ function buildLocalAiVerdict(aiMode, result) {
 // src/ai/local-ai-gate.ts
 async function runLocalAiReview(options) {
   const stdout = options.stdout ?? process.stdout;
-  const provider = resolveProvider(options.aiConfig.provider);
-  if (provider === null) {
-    return renderVerdict(
-      options.aiConfig.mode,
-      {
-        kind: "provider-error",
-        code: "unsupported_provider",
-        provider: options.aiConfig.provider ?? "unknown",
-        message: `Pushgate does not implement the configured AI provider ${JSON.stringify(options.aiConfig.provider)} yet.`
-      },
-      stdout
-    );
+  const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
+  if (providerRuntime.kind === "provider-error") {
+    return renderVerdict(options.aiConfig.mode, providerRuntime.result, stdout);
   }
   const changedFileGuardrail = evaluateChangedFileGuardrails({
     changedFiles: options.changedFileResolution.files,
@@ -26354,7 +26443,7 @@ async function runLocalAiReview(options) {
     [
       {
         kind: "review-start",
-        providerId: provider.id,
+        providerId: providerRuntime.providerId,
         changedFileCount: payload.changedFiles.length
       }
     ],
@@ -26374,10 +26463,9 @@ async function runLocalAiReview(options) {
   }
   return renderVerdict(
     options.aiConfig.mode,
-    await provider.runReview({
+    await providerRuntime.runReview({
       env: options.env ?? process.env,
       payload,
-      providerConfig: options.aiConfig.providers[provider.id] ?? options.aiConfig.providers[options.aiConfig.provider ?? provider.id] ?? {},
       repoRoot: options.repoRoot,
       timeoutSeconds: options.aiConfig.timeout_seconds
     }),

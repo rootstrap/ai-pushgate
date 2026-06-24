@@ -1,47 +1,41 @@
 import { runCommand } from "../../process/run-command.js";
 import { generateAiReviewOutputJsonSchema } from "../review-contract.js";
-import type { LocalAiProviderAdapter } from "../types.js";
+import { createCommandProviderAdapter } from "./command-provider-adapter.js";
 import { selectProviderBoolean, selectProviderModel } from "./config.js";
-import { normalizeProviderReviewObject } from "./normalize-review.js";
-import { runProviderCommand } from "./run-provider-command.js";
 
-export const claudeProvider: LocalAiProviderAdapter = {
-  id: "claude",
-  structuredOutputCapability: "native_json_schema",
-  async runReview(options) {
-    const model = selectProviderModel(options.providerConfig);
-    const bare = selectProviderBoolean(options.providerConfig, "bare");
-    const args = buildClaudeArgs(options.repoRoot, model, bare);
-    const commandResult = await runProviderCommand({
-      args,
-      command: "claude",
-      cwd: options.repoRoot,
-      env: options.env,
-      prompt: options.payload.prompt,
-      timeoutSeconds: options.timeoutSeconds,
-    });
+interface ClaudeInvocationContext {
+  bare: boolean;
+}
 
-    if (commandResult.kind === "spawn-error") {
+export const claudeProvider =
+  createCommandProviderAdapter<ClaudeInvocationContext>({
+    id: "claude",
+    structuredOutputCapability: "native_json_schema",
+    command: "claude",
+    buildInvocation(options) {
+      const model = selectProviderModel(options.providerConfig);
+      const bare = selectProviderBoolean(options.providerConfig, "bare");
+
       return {
-        kind: "provider-error",
-        code: "missing_binary",
-        provider: "claude",
-        message:
-          "Claude Code CLI was not found on PATH. Install it before running Pushgate local AI review.",
+        args: buildClaudeArgs(options.repoRoot, model, bare),
+        context: {
+          bare,
+        },
+        model,
       };
-    }
-
-    if (commandResult.kind === "timeout") {
-      return {
-        kind: "provider-error",
-        code: "timed_out",
-        provider: "claude",
-        message: `Claude Code CLI timed out after ${String(options.timeoutSeconds)}s.`,
-        output: commandResult.output,
-      };
-    }
-
-    if (commandResult.code !== 0) {
+    },
+    missingBinaryMessage:
+      "Claude Code CLI was not found on PATH. Install it before running Pushgate local AI review.",
+    formatTimeoutMessage(timeoutSeconds) {
+      return `Claude Code CLI timed out after ${String(timeoutSeconds)}s.`;
+    },
+    formatCommandFailedMessage(code) {
+      return `Claude Code CLI exited with code ${String(code)}.`;
+    },
+    emptyOutputMessage:
+      "Claude Code CLI returned an empty structured review response.",
+    invalidOutputMessage: "Claude Code CLI returned malformed review output.",
+    async mapCommandFailure(commandResult, invocation, options) {
       const output = commandResult.output ?? "";
 
       if (isClaudeStructuredOutputUnsupported(output)) {
@@ -51,7 +45,6 @@ export const claudeProvider: LocalAiProviderAdapter = {
           provider: "claude",
           message:
             "Claude Code CLI does not appear to support native structured output. Upgrade Claude Code to a version that supports `claude -p --json-schema`.",
-          output: commandResult.output,
         };
       }
 
@@ -63,78 +56,64 @@ export const claudeProvider: LocalAiProviderAdapter = {
           kind: "provider-error",
           code: "not_authenticated",
           provider: "claude",
-          message: formatClaudeAuthFailureMessage(bare),
-          output: commandResult.output,
+          message: formatClaudeAuthFailureMessage(
+            invocation.context?.bare ?? false,
+          ),
         };
+      }
+
+      return null;
+    },
+    mapSuccessfulCommandOutput(commandResult, invocation) {
+      if (!isClaudeAuthFailure(commandResult.output ?? commandResult.stdout)) {
+        return null;
       }
 
       return {
         kind: "provider-error",
-        code: "command_failed",
-        provider: "claude",
-        message: `Claude Code CLI exited with code ${String(commandResult.code)}.`,
-        output: commandResult.output,
-      };
-    }
-
-    if (isClaudeAuthFailure(commandResult.output ?? commandResult.stdout)) {
-      return {
-        kind: "provider-error",
         code: "not_authenticated",
         provider: "claude",
-        message: formatClaudeAuthFailureMessage(bare),
-        output: commandResult.output,
+        message: formatClaudeAuthFailureMessage(
+          invocation.context?.bare ?? false,
+        ),
       };
-    }
+    },
+    extractReview(commandResult) {
+      const extractedReview = extractClaudeStructuredReviewObject(
+        commandResult.stdout,
+      );
 
-    const extractedOutput = extractClaudeStructuredReviewObject(
-      commandResult.stdout,
-    );
+      if (extractedReview.kind === "empty") {
+        return { kind: "empty" };
+      }
 
-    if (extractedOutput.kind === "empty") {
+      if (extractedReview.kind === "malformed-json") {
+        return {
+          kind: "provider-error",
+          code: "malformed_transport",
+          detail: extractedReview.detail,
+          message:
+            "Claude Code CLI returned malformed structured review output.",
+        };
+      }
+
+      if (extractedReview.kind === "structured-output-error") {
+        return {
+          kind: "provider-error",
+          code: "invalid_output",
+          detail: extractedReview.detail,
+          message:
+            "Claude Code CLI could not produce structured review output matching the Pushgate schema.",
+        };
+      }
+
       return {
-        kind: "provider-error",
-        code: "empty_output",
-        provider: "claude",
-        message: "Claude Code CLI returned an empty structured review response.",
-        output: commandResult.output,
+        kind: "object",
+        rawOutput: commandResult.stdout,
+        value: extractedReview.value,
       };
-    }
-
-    if (extractedOutput.kind === "malformed-json") {
-      return {
-        kind: "provider-error",
-        code: "malformed_transport",
-        provider: "claude",
-        message:
-          "Claude Code CLI returned malformed structured review output.",
-        detail: extractedOutput.detail,
-        output: commandResult.output,
-      };
-    }
-
-    if (extractedOutput.kind === "structured-output-error") {
-      return {
-        kind: "provider-error",
-        code: "invalid_output",
-        provider: "claude",
-        message:
-          "Claude Code CLI could not produce structured review output matching the Pushgate schema.",
-        detail: extractedOutput.detail,
-        output: commandResult.output,
-      };
-    }
-
-    return normalizeProviderReviewObject({
-      invalidOutputMessage: "Claude Code CLI returned malformed review output.",
-      model,
-      output: commandResult.output,
-      provider: "claude",
-      rawOutput: commandResult.stdout,
-      value: extractedOutput.value,
-    });
-  },
-};
+    },
+  });
 
 function buildClaudeArgs(
   repoRoot: string,
