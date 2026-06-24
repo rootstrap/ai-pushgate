@@ -21,7 +21,7 @@ ai:
   # Supported modes: blocking, advisory, off.
   mode: blocking
 
-  # Guardrails skip local AI when review would be too large or slow.
+  # Changed-line overages block the push; prompt-token overages skip local AI.
   max_changed_lines: 500
   max_prompt_tokens: 12000
   timeout_seconds: 120
@@ -56,7 +56,7 @@ review:
 #
 # Tool defaults:
 #   timeout_seconds: 60
-#   mode: blocking       # blocking | warning
+#   mode: blocking       # blocking | warning; warnings require confirmation
 #   run: changed_files   # changed_files | always
 #   fail_fast: true
 #
@@ -95,14 +95,14 @@ tools: []
 # Built-ins are opt-in local checks that do not require external tools.
 #
 # Policy defaults:
-#   mode: blocking       # blocking | warning
+#   mode: blocking       # blocking | warning; warnings require confirmation
 #
 # Examples (uncomment and adapt as needed):
 #
 # policies:
 #   diff_size:
 #     max_changed_lines: 500
-#     mode: warning
+#     mode: warning      # asks before continuing
 #
 #   forbidden_paths:
 #     patterns:

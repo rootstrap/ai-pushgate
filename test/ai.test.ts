@@ -697,7 +697,7 @@ test("evaluates local AI guardrails without provider stubs", () => {
       maxChangedLines: 10,
     }),
     {
-      kind: "skip-changed-lines",
+      kind: "block-changed-lines",
       changedLineCount: 11,
       maxChangedLines: 10,
     },
@@ -1897,7 +1897,7 @@ test("passes configured timeout seconds to the Copilot adapter", async () => {
   });
 });
 
-test("skips local AI before provider invocation when changed-line guardrail is exceeded", async () => {
+test("blocks local AI before provider invocation when changed-line guardrail is exceeded", async () => {
   await withAiRepo(async (repoRoot) => {
     const changedFileResolution = await resolveChangedFiles({
       repoRoot,
@@ -1926,8 +1926,9 @@ test("skips local AI before provider invocation when changed-line guardrail is e
       stdout: output.stream,
     });
 
-    assert.equal(result.exitCode, 0, output.text());
-    assert.match(output.text(), /Skipping local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/);
+    assert.equal(result.exitCode, 1, output.text());
+    assert.match(output.text(), /BLOCK local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/);
+    assert.match(output.text(), /Local AI review blocked the push/);
     assert.doesNotMatch(output.text(), /provider claude failed/);
   });
 });

@@ -17,10 +17,10 @@ function renderLocalAiTranscriptEvent(
     case "skip-no-files":
       writeLine(stdout, "[pushgate] No changed files to review with local AI.");
       return;
-    case "skip-changed-lines":
+    case "block-changed-lines":
       writeLine(
         stdout,
-        `[pushgate] Skipping local AI because ${String(event.changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(event.maxChangedLines)}.`,
+        `[pushgate] BLOCK local AI because ${String(event.changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(event.maxChangedLines)}.`,
       );
       return;
     case "skip-prompt-tokens":

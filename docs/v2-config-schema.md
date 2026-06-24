@@ -134,8 +134,8 @@ selection.
 `ai.max_changed_lines` counts added plus deleted text lines in the normalized
 changed-file list after `ignore_paths` filtering. Binary diffs do not
 contribute to this count. If the count exceeds the configured value, Pushgate
-prints a visible local-AI skip message and continues because deterministic
-checks have already run.
+blocks the push before invoking the configured provider. This keeps oversized
+diffs from bypassing local AI review silently.
 
 `ai.max_prompt_tokens` is an approximate provider-neutral budget over the
 rendered prompt. Provider tokenizers differ, so Pushgate intentionally uses a
@@ -145,6 +145,11 @@ visible local-AI skip message and continues.
 
 `ai.timeout_seconds` is passed to the selected provider adapter. A timeout is a
 provider failure: it blocks in `blocking` mode and warns in `advisory` mode.
+
+If local AI completes with warning findings, or with advisory-mode provider
+failures, Pushgate asks whether to continue before allowing the push. Declining
+the prompt blocks the push. If Pushgate cannot open an interactive terminal for
+the prompt, it fails closed and blocks the push.
 
 ## Tool Commands
 
@@ -174,14 +179,17 @@ tools:
 `run: changed_files` skips the tool when no non-deleted changed files match its
 optional `extensions` filter. `run: always` runs the command regardless of the
 scoped file list; if the command includes `{changed_files}`, that token expands
-to zero or more argv entries. Warning-mode failures are reported but do not
-block the push. Blocking failures stop later tools when `fail_fast` is true.
+to zero or more argv entries. Warning-mode failures are reported, then Pushgate
+asks whether to continue before allowing the push. Blocking failures stop later
+tools when `fail_fast` is true.
 
 ## Built-In Policies
 
 Built-in policies are optional deterministic checks that do not require external
 commands. They run before configured tool commands and share the same local
 `blocking` or `warning` behavior in terminal output and exit-code summaries.
+Warning-mode policy failures require the same continue-with-warnings
+confirmation as warning-mode tool failures.
 
 ```yaml
 policies:
