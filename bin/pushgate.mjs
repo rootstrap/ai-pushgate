@@ -25415,7 +25415,7 @@ async function runTimedCommand(options) {
     env: options.env,
     ignoreStdinErrors: true,
     killGraceMs: options.killGraceMs ?? DEFAULT_KILL_GRACE_MS,
-    outputCaptureLimit: options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
+    outputCaptureLimit: options.outputCaptureLimit === null ? void 0 : options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
     outputEncoding: "utf8",
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     shell: false,
@@ -25446,7 +25446,6 @@ async function runTimedCommand(options) {
 }
 
 // src/ai/providers/run-provider-command.ts
-var DEFAULT_OUTPUT_CAPTURE_LIMIT2 = 128 * 1024;
 var DEFAULT_OUTPUT_TAIL_LIMIT2 = 8 * 1024;
 async function runProviderCommand(options) {
   const commandResult = await runTimedCommand({
@@ -25454,7 +25453,7 @@ async function runProviderCommand(options) {
     command: options.command,
     cwd: options.cwd,
     env: options.env,
-    outputCaptureLimit: options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT2,
+    outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT2,
     // Provider CLIs may exit before stdin fully drains; runTimedCommand still
     // lets the close path report the real provider result.
@@ -27048,64 +27047,51 @@ function getLocalAiSkipReason(config2, skipControls) {
   return null;
 }
 
-// src/workflows/warning-confirmation.ts
-import {
-  createReadStream,
-  createWriteStream,
-  openSync
-} from "node:fs";
-import { createInterface } from "node:readline/promises";
-var WarningConfirmationError = class extends Error {
+// src/workflows/terminal.ts
+import { closeSync, openSync, readSync, writeSync } from "node:fs";
+var pendingInputByFd = /* @__PURE__ */ new Map();
+var InteractiveTerminalError = class extends Error {
   constructor(message) {
     super(message);
     this.name = new.target.name;
   }
 };
-function createTerminalWarningConfirmer() {
-  return async (request) => {
-    let input;
-    let output;
-    try {
-      const inputFd = openSync("/dev/tty", "r");
-      const outputFd = openSync("/dev/tty", "w");
-      input = createReadStream("/dev/tty", {
-        autoClose: true,
-        encoding: "utf8",
-        fd: inputFd
-      });
-      output = createWriteStream("/dev/tty", {
-        autoClose: true,
-        fd: outputFd
-      });
-      const readline = createInterface({ input, output });
-      try {
-        for (; ; ) {
-          const answer = normalizeAnswer(
-            await readline.question(formatWarningPrompt(request))
-          );
-          if (answer === "yes") {
-            return true;
-          }
-          if (answer === "no") {
-            return false;
-          }
-          output.write("[pushgate] Please answer yes(y) or no(n).\n");
-        }
-      } finally {
-        readline.close();
-      }
-    } catch (error51) {
-      throw new WarningConfirmationError(
-        `Warning confirmation required for ${request.phase}, but no interactive terminal is available.`
-      );
-    } finally {
-      input?.destroy();
-      output?.end();
+function createInteractiveTerminal() {
+  return {
+    confirm(question) {
+      return confirmWithInteractiveTerminal(question);
     }
   };
 }
-function formatWarningPrompt(request) {
-  return `[pushgate] ${request.phase} produced ${String(request.warningCount)} warning(s). Continue with warnings? yes(y) / no(n) `;
+function confirmWithInteractiveTerminal(question) {
+  let terminal;
+  try {
+    terminal = openInteractiveTerminal();
+    for (; ; ) {
+      writeSync(terminal.outputFd, formatYesNoPrompt(question));
+      const answer = normalizeAnswer(readLineSync(terminal.inputFd));
+      if (answer === "yes") {
+        return true;
+      }
+      if (answer === "no") {
+        return false;
+      }
+      writeSync(
+        terminal.outputFd,
+        "[pushgate] Please answer yes(y) or no(n).\n"
+      );
+    }
+  } catch (error51) {
+    if (error51 instanceof InteractiveTerminalError) {
+      throw error51;
+    }
+    throw new InteractiveTerminalError("No interactive terminal is available.");
+  } finally {
+    terminal?.close();
+  }
+}
+function formatYesNoPrompt(question) {
+  return `${question} yes(y) / no(n) `;
 }
 function normalizeAnswer(answer) {
   const normalized = answer.trim().toLowerCase();
@@ -27116,6 +27102,132 @@ function normalizeAnswer(answer) {
     return "no";
   }
   return "invalid";
+}
+function readLineSync(fd) {
+  let line = "";
+  for (; ; ) {
+    const char = readCharSync(fd);
+    if (char === null) {
+      throw new InteractiveTerminalError("No terminal input was available.");
+    }
+    if (char === "\n") {
+      return line;
+    }
+    if (char === "\r") {
+      consumeOptionalLfAfterCarriageReturn(fd);
+      return line;
+    }
+    line += char;
+  }
+}
+function consumeOptionalLfAfterCarriageReturn(fd) {
+  const char = readCharSync(fd);
+  if (char === "\n" || char === null) {
+    return;
+  }
+  pendingInputByFd.set(fd, char);
+}
+function readCharSync(fd) {
+  const pendingChar = pendingInputByFd.get(fd);
+  if (pendingChar !== void 0) {
+    pendingInputByFd.delete(fd);
+    return pendingChar;
+  }
+  const buffer = Buffer.alloc(1);
+  const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
+  if (bytesRead === 0) {
+    return null;
+  }
+  return buffer.toString("utf8", 0, bytesRead);
+}
+function openInteractiveTerminal() {
+  const attachedTerminal = openAttachedTerminal();
+  if (attachedTerminal) {
+    return attachedTerminal;
+  }
+  return openControllingTerminal();
+}
+function openAttachedTerminal() {
+  const input = process.stdin;
+  const output = process.stdout;
+  if (input.isTTY === true && output.isTTY === true && typeof input.fd === "number" && typeof output.fd === "number") {
+    return {
+      close() {
+      },
+      inputFd: input.fd,
+      outputFd: output.fd
+    };
+  }
+  return null;
+}
+function openControllingTerminal() {
+  const errors = [];
+  for (const candidate of getTerminalDeviceCandidates()) {
+    let inputFd;
+    let outputFd;
+    try {
+      inputFd = openSync(candidate.input, "r");
+      outputFd = openSync(candidate.output, "w");
+      return {
+        close() {
+          closeFd(inputFd);
+          closeFd(outputFd);
+        },
+        inputFd,
+        outputFd
+      };
+    } catch (error51) {
+      closeFd(inputFd);
+      closeFd(outputFd);
+      errors.push(error51);
+    }
+  }
+  throw errors[0] ?? new Error("No terminal device candidates were available.");
+}
+function getTerminalDeviceCandidates() {
+  if (process.platform === "win32") {
+    return [
+      { input: "CONIN$", output: "CONOUT$" },
+      { input: "/dev/tty", output: "/dev/tty" }
+    ];
+  }
+  return [{ input: "/dev/tty", output: "/dev/tty" }];
+}
+function closeFd(fd) {
+  if (fd === void 0) {
+    return;
+  }
+  pendingInputByFd.delete(fd);
+  try {
+    closeSync(fd);
+  } catch {
+  }
+}
+
+// src/workflows/warning-confirmation.ts
+var WarningConfirmationError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = new.target.name;
+  }
+};
+function createTerminalWarningConfirmer(options = {}) {
+  const terminal = options.terminal ?? createInteractiveTerminal();
+  return async (request) => {
+    try {
+      return terminal.confirm(formatWarningQuestion(request));
+    } catch (error51) {
+      if (error51 instanceof InteractiveTerminalError) {
+        throw new WarningConfirmationError(
+          `Warning confirmation required for ${request.phase}, but no interactive terminal is available.`
+        );
+      }
+      throw error51;
+    }
+  };
+}
+function formatWarningQuestion(request) {
+  return `[pushgate] ${request.phase} produced ${String(request.warningCount)} warning(s). Continue with warnings?`;
 }
 
 // src/workflows/pre-push.ts
