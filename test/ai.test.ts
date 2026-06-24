@@ -1542,6 +1542,55 @@ test("runs the Copilot adapter with non-interactive stdin prompt and model selec
   });
 });
 
+test("parses Copilot JSONL output larger than the provider transcript tail", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env node",
+        "process.stdin.resume();",
+        "process.stdin.on('data', () => {});",
+        "process.stdin.on('end', () => {",
+        "  console.log(JSON.stringify({",
+        "    type: 'assistant.reasoning',",
+        "    data: { reasoningId: 'x'.repeat(140 * 1024), content: '' },",
+        "  }));",
+        "  console.log(JSON.stringify({",
+        "    type: 'assistant.message',",
+        "    data: {",
+        "      messageId: 'msg-1',",
+        "      phase: 'final_answer',",
+        "      content: JSON.stringify({ schema_version: 1, findings: [] }),",
+        "    },",
+        "  }));",
+        "});",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const result = await copilotProvider.runReview({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    if (result.kind !== "review") {
+      assert.fail(`Expected Copilot review result, got ${result.kind}.`);
+    }
+
+    assert.equal(result.findings.length, 0);
+    assert.equal(result.summary.verdict, "PASS");
+  });
+});
+
 test("runs the Copilot adapter when the provider wraps JSON in a list marker", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");

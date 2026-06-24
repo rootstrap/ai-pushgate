@@ -1,6 +1,5 @@
 import { runTimedCommand } from "../../process/timed-command.js";
 
-const DEFAULT_OUTPUT_CAPTURE_LIMIT = 128 * 1024;
 const DEFAULT_OUTPUT_TAIL_LIMIT = 8 * 1024;
 
 export type ProviderCommandResult =
@@ -33,8 +32,7 @@ export async function runProviderCommand(options: {
     command: options.command,
     cwd: options.cwd,
     env: options.env,
-    outputCaptureLimit:
-      options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
+    outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     // Provider CLIs may exit before stdin fully drains; runTimedCommand still
     // lets the close path report the real provider result.

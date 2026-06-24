@@ -25415,7 +25415,7 @@ async function runTimedCommand(options) {
     env: options.env,
     ignoreStdinErrors: true,
     killGraceMs: options.killGraceMs ?? DEFAULT_KILL_GRACE_MS,
-    outputCaptureLimit: options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
+    outputCaptureLimit: options.outputCaptureLimit === null ? void 0 : options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
     outputEncoding: "utf8",
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     shell: false,
@@ -25446,7 +25446,6 @@ async function runTimedCommand(options) {
 }
 
 // src/ai/providers/run-provider-command.ts
-var DEFAULT_OUTPUT_CAPTURE_LIMIT2 = 128 * 1024;
 var DEFAULT_OUTPUT_TAIL_LIMIT2 = 8 * 1024;
 async function runProviderCommand(options) {
   const commandResult = await runTimedCommand({
@@ -25454,7 +25453,7 @@ async function runProviderCommand(options) {
     command: options.command,
     cwd: options.cwd,
     env: options.env,
-    outputCaptureLimit: options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT2,
+    outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT2,
     // Provider CLIs may exit before stdin fully drains; runTimedCommand still
     // lets the close path report the real provider result.

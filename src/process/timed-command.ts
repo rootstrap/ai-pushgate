@@ -29,7 +29,7 @@ export interface RunTimedCommandOptions {
   cwd: string;
   env: NodeJS.ProcessEnv;
   killGraceMs?: number;
-  outputCaptureLimit?: number;
+  outputCaptureLimit?: number | null;
   outputTailLimit?: number;
   stdin?: string;
   timeoutSeconds: number;
@@ -46,7 +46,9 @@ export async function runTimedCommand(
     ignoreStdinErrors: true,
     killGraceMs: options.killGraceMs ?? DEFAULT_KILL_GRACE_MS,
     outputCaptureLimit:
-      options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT,
+      options.outputCaptureLimit === null
+        ? undefined
+        : (options.outputCaptureLimit ?? DEFAULT_OUTPUT_CAPTURE_LIMIT),
     outputEncoding: "utf8",
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     shell: false,
