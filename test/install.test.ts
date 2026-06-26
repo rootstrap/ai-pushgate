@@ -15,6 +15,8 @@ import { delimiter, dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { sanitizeGitLocalEnv } from "../src/git/environment.js";
+
 const installerPath = fileURLToPath(new URL("../install.sh", import.meta.url));
 const hookSourcePath = fileURLToPath(
   new URL("../hook/pre-push", import.meta.url),
@@ -158,7 +160,7 @@ async function createInstallerHarness(): Promise<InstallerHarness> {
   await installExecutable(binDir, "curl", curlStub);
 
   const env = {
-    ...process.env,
+    ...sanitizeGitLocalEnv(process.env),
     GIT_CONFIG_NOSYSTEM: "1",
     GIT_TERMINAL_PROMPT: "0",
     HOME: homeDir,
@@ -235,7 +237,7 @@ function runCommand(
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      env: options.env,
+      env: command === "git" ? sanitizeGitLocalEnv(options.env) : options.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";

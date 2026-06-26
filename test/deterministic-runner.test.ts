@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Writable } from "node:stream";
@@ -10,6 +10,11 @@ import type {
   PushgateConfig,
   ToolConfig,
 } from "../src/config/index.js";
+import { runGit } from "../src/git/command.js";
+import {
+  isGitLocalEnvVar,
+  sanitizeGitLocalEnv,
+} from "../src/git/environment.js";
 import type {
   ChangedFile,
   ChangedFileResolution,
@@ -95,7 +100,10 @@ test("expands changed files as argv entries without shell interpolation", async 
         }),
       ]),
       {
-        env: { ...process.env, PUSHGATE_ARGS_OUT: argsPath },
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          PUSHGATE_ARGS_OUT: argsPath,
+        },
         repoRoot,
         stdout: output.stream,
       },
@@ -122,7 +130,10 @@ test("skips changed-file tools when no live scoped files match", async () => {
         }),
       ]),
       {
-        env: { ...process.env, PUSHGATE_ARGS_OUT: argsPath },
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          PUSHGATE_ARGS_OUT: argsPath,
+        },
         repoRoot,
         stdout: output.stream,
       },
@@ -149,7 +160,10 @@ test("runs always-mode tools even when scoped changed files are empty", async ()
         }),
       ]),
       {
-        env: { ...process.env, PUSHGATE_ARGS_OUT: argsPath },
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          PUSHGATE_ARGS_OUT: argsPath,
+        },
         repoRoot,
         stdout: output.stream,
       },
@@ -157,6 +171,46 @@ test("runs always-mode tools even when scoped changed files are empty", async ()
 
     assert.equal(summary.exitCode, 0, output.text());
     assert.deepEqual(JSON.parse(await readFile(argsPath, "utf8")), []);
+  });
+});
+
+test("sanitizes hook-local Git env before configured tools run nested Git", async () => {
+  await withTempDir(async (repoRoot) => {
+    const victimRoot = join(repoRoot, "victim-repo");
+    const recorder = await writeNestedGitRecorder(repoRoot);
+    const resultPath = join(repoRoot, "nested-git.json");
+    const output = captureOutput();
+
+    await initGitRepo(repoRoot);
+    await initGitRepo(victimRoot);
+
+    const summary = await runChecks(
+      configWithTools([
+        tool({
+          command: [process.execPath, recorder],
+          run: "always",
+        }),
+      ]),
+      {
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          ...poisonedGitEnv(victimRoot),
+          PUSHGATE_NESTED_GIT_OUT: resultPath,
+        },
+        repoRoot,
+        stdout: output.stream,
+      },
+    );
+
+    assert.equal(summary.exitCode, 0, output.text());
+
+    const recorded = JSON.parse(await readFile(resultPath, "utf8")) as {
+      gitEnv: Record<string, string>;
+      topLevel: string;
+    };
+
+    assert.equal(await realpath(recorded.topLevel), await realpath(repoRoot));
+    assert.deepEqual(leakedGitLocalVars(recorded.gitEnv), []);
   });
 });
 
@@ -234,7 +288,10 @@ test("fail_fast controls whether later tools run after blocking failures", async
         tool({ command: [process.execPath, recorder] }),
       ]),
       {
-        env: { ...process.env, PUSHGATE_ARGS_OUT: failFastArgsPath },
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          PUSHGATE_ARGS_OUT: failFastArgsPath,
+        },
         repoRoot,
         stdout: captureOutput().stream,
       },
@@ -253,7 +310,10 @@ test("fail_fast controls whether later tools run after blocking failures", async
         tool({ command: [process.execPath, recorder] }),
       ]),
       {
-        env: { ...process.env, PUSHGATE_ARGS_OUT: aggregateArgsPath },
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          PUSHGATE_ARGS_OUT: aggregateArgsPath,
+        },
         repoRoot,
         stdout: captureOutput().stream,
       },
@@ -298,7 +358,7 @@ test("runs Gitleaks plugin over the resolved branch commit range", async () => {
       },
       {
         env: {
-          ...process.env,
+          ...sanitizeGitLocalEnv(process.env),
           PUSHGATE_GITLEAKS_ARGS_OUT: argsPath,
           PUSHGATE_GITLEAKS_EXIT_CODE: "1",
           PUSHGATE_GITLEAKS_REPORT: JSON.stringify([
@@ -328,6 +388,44 @@ test("runs Gitleaks plugin over the resolved branch commit range", async () => {
   });
 });
 
+test("sanitizes hook-local Git env before Gitleaks plugin commands", async () => {
+  await withTempDir(async (repoRoot) => {
+    const victimRoot = join(repoRoot, "victim-repo");
+    const gitleaks = await writeGitleaksStub(repoRoot);
+    const envPath = join(repoRoot, "gitleaks-env.json");
+    const output = captureOutput();
+
+    await initGitRepo(victimRoot);
+
+    const summary = await runChecks(
+      {
+        ...configWithTools([]),
+        plugins: {
+          gitleaks: gitleaksPlugin({ command: gitleaks }),
+        },
+      },
+      {
+        env: {
+          ...sanitizeGitLocalEnv(process.env),
+          ...poisonedGitEnv(victimRoot),
+          PUSHGATE_GITLEAKS_ENV_OUT: envPath,
+        },
+        repoRoot,
+        stdout: output.stream,
+      },
+    );
+
+    assert.equal(summary.exitCode, 0, output.text());
+
+    const recorded = JSON.parse(await readFile(envPath, "utf8")) as Record<
+      string,
+      string
+    >;
+
+    assert.deepEqual(leakedGitLocalVars(recorded), []);
+  });
+});
+
 test("warning-mode Gitleaks findings do not stop later tools", async () => {
   await withTempDir(async (repoRoot) => {
     const gitleaks = await writeGitleaksStub(repoRoot);
@@ -350,7 +448,7 @@ test("warning-mode Gitleaks findings do not stop later tools", async () => {
       },
       {
         env: {
-          ...process.env,
+          ...sanitizeGitLocalEnv(process.env),
           PUSHGATE_ARGS_OUT: argsPath,
           PUSHGATE_GITLEAKS_EXIT_CODE: "1",
           PUSHGATE_GITLEAKS_REPORT: JSON.stringify([
@@ -607,6 +705,10 @@ async function writeGitleaksStub(repoRoot: string): Promise<string> {
       "if (process.env.PUSHGATE_GITLEAKS_ARGS_OUT) {",
       "  writeFileSync(process.env.PUSHGATE_GITLEAKS_ARGS_OUT, JSON.stringify(args));",
       "}",
+      "if (process.env.PUSHGATE_GITLEAKS_ENV_OUT) {",
+      "  const gitEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith('GIT_')));",
+      "  writeFileSync(process.env.PUSHGATE_GITLEAKS_ENV_OUT, JSON.stringify(gitEnv));",
+      "}",
       "const reportPath = args[args.indexOf('--report-path') + 1];",
       "if (reportPath && process.env.PUSHGATE_GITLEAKS_REPORT) {",
       "  writeFileSync(reportPath, process.env.PUSHGATE_GITLEAKS_REPORT);",
@@ -616,6 +718,62 @@ async function writeGitleaksStub(repoRoot: string): Promise<string> {
   );
   await chmod(scriptPath, 0o755);
   return scriptPath;
+}
+
+async function writeNestedGitRecorder(repoRoot: string): Promise<string> {
+  const scriptPath = join(repoRoot, "bin", "record-nested-git.mjs");
+
+  await mkdir(dirname(scriptPath), { recursive: true });
+  await writeFile(
+    scriptPath,
+    [
+      "import { execFileSync } from 'node:child_process';",
+      "import { writeFileSync } from 'node:fs';",
+      "const topLevel = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();",
+      "const gitEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith('GIT_')));",
+      "writeFileSync(process.env.PUSHGATE_NESTED_GIT_OUT, JSON.stringify({ gitEnv, topLevel }));",
+    ].join("\n"),
+  );
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
+}
+
+async function initGitRepo(repoRoot: string): Promise<void> {
+  await mkdir(repoRoot, { recursive: true });
+  await checkedGit(repoRoot, ["init", "--quiet", "--initial-branch=main"]);
+}
+
+async function checkedGit(repoRoot: string, args: string[]): Promise<void> {
+  const result = await runGit(repoRoot, args, {
+    env: sanitizeGitLocalEnv(process.env),
+  });
+
+  if (result.code !== 0) {
+    throw new Error(
+      [
+        `git ${args.join(" ")} exited with ${String(result.code)}.`,
+        `stdout:\n${result.stdout}`,
+        `stderr:\n${result.stderr}`,
+      ].join("\n"),
+    );
+  }
+}
+
+function poisonedGitEnv(victimRoot: string): NodeJS.ProcessEnv {
+  return {
+    GIT_COMMON_DIR: join(victimRoot, ".git"),
+    GIT_CONFIG: join(victimRoot, ".git", "config"),
+    GIT_CONFIG_COUNT: "1",
+    GIT_CONFIG_KEY_0: "core.bare",
+    GIT_CONFIG_VALUE_0: "true",
+    GIT_DIR: join(victimRoot, ".git"),
+    GIT_INDEX_FILE: join(victimRoot, ".git", "index"),
+    GIT_WORK_TREE: victimRoot,
+  };
+}
+
+function leakedGitLocalVars(env: Record<string, string>): string[] {
+  return Object.keys(env).filter(isGitLocalEnvVar).sort();
 }
 
 function captureOutput(): {

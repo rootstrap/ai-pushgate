@@ -12,6 +12,8 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { sanitizeGitLocalEnv } from "../../src/git/environment.js";
+
 /** Captured process result returned to harness tests instead of throwing. */
 export interface CommandResult {
   /** Exit code from the child process, or `null` when a signal ended it. */
@@ -308,7 +310,7 @@ function createSandboxEnv(
   binDir: string,
 ): NodeJS.ProcessEnv {
   return {
-    ...process.env,
+    ...sanitizeGitLocalEnv(process.env),
     GIT_CONFIG_NOSYSTEM: "1",
     GIT_TERMINAL_PROMPT: "0",
     HOME: homeDir,
@@ -360,7 +362,7 @@ function runCommand(
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      env: options.env,
+      env: command === "git" ? sanitizeGitLocalEnv(options.env) : options.env,
       stdio: [stdinMode, "pipe", "pipe"],
     });
     let stderr = "";

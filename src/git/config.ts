@@ -11,12 +11,16 @@ export async function readGitBooleanConfig(
   repoRoot: string,
   key: string,
   env: NodeJS.ProcessEnv = process.env,
+  options: {
+    preserveGitConfigOverlay?: boolean;
+  } = {},
 ): Promise<boolean> {
   let result: Awaited<ReturnType<typeof runGit>>;
 
   try {
     result = await runGit(repoRoot, ["config", "--bool", "--get", key], {
       env,
+      preserveGitConfigOverlay: options.preserveGitConfigOverlay,
     });
   } catch (error) {
     throw new GitConfigError(
