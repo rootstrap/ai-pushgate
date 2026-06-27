@@ -9534,7 +9534,6 @@ function runCapturedCommand(options) {
     const stdoutBuffers = [];
     let stdout = "";
     let stderr = "";
-    let exited = false;
     let timedOut = false;
     let settled = false;
     let killTimer;
@@ -9549,6 +9548,14 @@ function runCapturedCommand(options) {
     });
     const capturedStdout = () => outputEncoding === "buffer" ? Buffer.concat(stdoutBuffers) : stdout;
     const capturedOutputTail = () => outputEncoding === "utf8" && options.outputTailLimit !== void 0 ? formatOutputTail(stdout, stderr, options.outputTailLimit) : void 0;
+    const finishTimeout = () => {
+      finish({
+        kind: "timeout",
+        outputTail: capturedOutputTail(),
+        stderr,
+        stdout: capturedStdout()
+      });
+    };
     const finish = (result) => {
       if (settled) {
         return;
@@ -9567,9 +9574,8 @@ function runCapturedCommand(options) {
         timedOut = true;
         signalChild("SIGTERM");
         killTimer = setTimeout(() => {
-          if (useProcessGroup || !exited) {
-            signalChild("SIGKILL");
-          }
+          signalChild("SIGKILL");
+          killTimer = void 0;
         }, options.killGraceMs ?? 0);
       }, options.timeoutMs);
     }
@@ -9607,7 +9613,6 @@ function runCapturedCommand(options) {
       });
     });
     child.on("exit", () => {
-      exited = true;
       if (!useProcessGroup && killTimer) {
         clearTimeout(killTimer);
         killTimer = void 0;
@@ -9615,13 +9620,16 @@ function runCapturedCommand(options) {
     });
     child.on("close", (code, signal) => {
       if (timedOut) {
-        finish({
-          kind: "timeout",
-          outputTail: capturedOutputTail(),
-          stderr,
-          stdout: capturedStdout()
-        });
+        if (useProcessGroup && killTimer) {
+          clearTimeout(killTimer);
+          killTimer = void 0;
+          signalChild("SIGKILL");
+        }
+        finishTimeout();
         return;
+      }
+      if (useProcessGroup) {
+        signalChild("SIGKILL");
       }
       finish({
         code,
@@ -10104,6 +10112,27 @@ var ANSI = {
   red: ["\x1B[31m", "\x1B[39m"],
   yellow: ["\x1B[33m", "\x1B[39m"]
 };
+var ASCII_STATUS_SYMBOLS = {
+  blocked: "[block]",
+  info: "[info]",
+  passed: "[ok]",
+  skipped: "[skip]",
+  warning: "[warn]"
+};
+var UNICODE_STATUS_SYMBOLS = {
+  blocked: "x",
+  info: "i",
+  passed: "\u2713",
+  skipped: "-",
+  warning: "!"
+};
+var STATUS_COLORS = {
+  blocked: "red",
+  info: "blue",
+  passed: "green",
+  skipped: "dim",
+  warning: "yellow"
+};
 var LABEL_WIDTH = 18;
 function writeHeader(stream, lines) {
   for (const line of lines) {
@@ -10156,37 +10185,10 @@ function capitalize(value) {
   return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
 }
 function statusSymbol(status, options) {
-  const unicode = supportsUnicode(options);
-  if (!unicode) {
-    return {
-      blocked: "[block]",
-      info: "[info]",
-      passed: "[ok]",
-      skipped: "[skip]",
-      warning: "[warn]"
-    }[status];
-  }
-  return {
-    blocked: "x",
-    info: "i",
-    passed: "\u2713",
-    skipped: "-",
-    warning: "!"
-  }[status];
+  return (supportsUnicode(options) ? UNICODE_STATUS_SYMBOLS : ASCII_STATUS_SYMBOLS)[status];
 }
 function styleStatus(value, status, options) {
-  switch (status) {
-    case "blocked":
-      return style(value, "red", options);
-    case "info":
-      return style(value, "blue", options);
-    case "passed":
-      return style(value, "green", options);
-    case "skipped":
-      return style(value, "dim", options);
-    case "warning":
-      return style(value, "yellow", options);
-  }
+  return style(value, STATUS_COLORS[status], options);
 }
 function style(value, color, options) {
   if (!supportsColor(options)) {
@@ -10260,10 +10262,19 @@ function writeGitPushSuccessSummary(stream, summary, options = {}) {
 }
 function parseGitPushArgs(args) {
   const positionals = [];
+  let remoteFromOption;
+  let hasRemoteFromOption = false;
   let parseOptions = true;
   let setsUpstream = false;
+  let readNextAsRemote = false;
   let skipNext = false;
   for (const arg of args) {
+    if (readNextAsRemote) {
+      remoteFromOption = arg || void 0;
+      hasRemoteFromOption = true;
+      readNextAsRemote = false;
+      continue;
+    }
     if (skipNext) {
       skipNext = false;
       continue;
@@ -10277,19 +10288,37 @@ function parseGitPushArgs(args) {
       continue;
     }
     if (parseOptions && arg.startsWith("-")) {
+      const inlineRemote = inlineOptionValue(arg, "--repo");
+      if (inlineRemote !== void 0) {
+        remoteFromOption = inlineRemote || void 0;
+        hasRemoteFromOption = true;
+        continue;
+      }
+      if (arg === "--repo") {
+        readNextAsRemote = true;
+        continue;
+      }
       skipNext = optionTakesSeparateValue(arg);
       continue;
     }
     positionals.push(arg);
   }
+  const branchPosition = hasRemoteFromOption ? 0 : 1;
   return {
-    branch: positionals[1] ? branchFromRefspec(positionals[1]) : void 0,
-    remote: positionals[0],
+    branch: positionals[branchPosition] ? branchFromRefspec(positionals[branchPosition]) : void 0,
+    remote: hasRemoteFromOption ? remoteFromOption : positionals[0],
     setsUpstream
   };
 }
+function inlineOptionValue(arg, option) {
+  const prefix = `${option}=`;
+  return arg.startsWith(prefix) ? arg.slice(prefix.length) : void 0;
+}
 function optionTakesSeparateValue(arg) {
-  return arg === "--exec" || arg === "--receive-pack" || arg === "--repo" || arg === "--push-option" || arg === "-o";
+  if (arg.includes("=")) {
+    return false;
+  }
+  return arg === "--exec" || arg === "--recurse-submodules" || arg === "--receive-pack" || arg === "--push-option" || arg === "-o";
 }
 function branchFromRefspec(refspec) {
   let branch = refspec.trim();

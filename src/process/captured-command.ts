@@ -63,7 +63,6 @@ export function runCapturedCommand(
     const stdoutBuffers: Buffer[] = [];
     let stdout = "";
     let stderr = "";
-    let exited = false;
     let timedOut = false;
     let settled = false;
     let killTimer: NodeJS.Timeout | undefined;
@@ -84,6 +83,14 @@ export function runCapturedCommand(
       outputEncoding === "utf8" && options.outputTailLimit !== undefined
         ? formatOutputTail(stdout, stderr, options.outputTailLimit)
         : undefined;
+    const finishTimeout = () => {
+      finish({
+        kind: "timeout",
+        outputTail: capturedOutputTail(),
+        stderr,
+        stdout: capturedStdout(),
+      });
+    };
     const finish = (result: CapturedCommandResult<Buffer | string>) => {
       if (settled) {
         return;
@@ -106,9 +113,8 @@ export function runCapturedCommand(
         timedOut = true;
         signalChild("SIGTERM");
         killTimer = setTimeout(() => {
-          if (useProcessGroup || !exited) {
-            signalChild("SIGKILL");
-          }
+          signalChild("SIGKILL");
+          killTimer = undefined;
         }, options.killGraceMs ?? 0);
       }, options.timeoutMs);
     }
@@ -149,8 +155,6 @@ export function runCapturedCommand(
       });
     });
     child.on("exit", () => {
-      exited = true;
-
       if (!useProcessGroup && killTimer) {
         clearTimeout(killTimer);
         killTimer = undefined;
@@ -158,13 +162,18 @@ export function runCapturedCommand(
     });
     child.on("close", (code, signal) => {
       if (timedOut) {
-        finish({
-          kind: "timeout",
-          outputTail: capturedOutputTail(),
-          stderr,
-          stdout: capturedStdout(),
-        });
+        if (useProcessGroup && killTimer) {
+          clearTimeout(killTimer);
+          killTimer = undefined;
+          signalChild("SIGKILL");
+        }
+
+        finishTimeout();
         return;
+      }
+
+      if (useProcessGroup) {
+        signalChild("SIGKILL");
       }
 
       finish({

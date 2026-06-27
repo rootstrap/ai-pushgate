@@ -92,11 +92,21 @@ export function writeGitPushSuccessSummary(
 
 function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
   const positionals: string[] = [];
+  let remoteFromOption: string | undefined;
+  let hasRemoteFromOption = false;
   let parseOptions = true;
   let setsUpstream = false;
+  let readNextAsRemote = false;
   let skipNext = false;
 
   for (const arg of args) {
+    if (readNextAsRemote) {
+      remoteFromOption = arg || undefined;
+      hasRemoteFromOption = true;
+      readNextAsRemote = false;
+      continue;
+    }
+
     if (skipNext) {
       skipNext = false;
       continue;
@@ -113,6 +123,19 @@ function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
     }
 
     if (parseOptions && arg.startsWith("-")) {
+      const inlineRemote = inlineOptionValue(arg, "--repo");
+
+      if (inlineRemote !== undefined) {
+        remoteFromOption = inlineRemote || undefined;
+        hasRemoteFromOption = true;
+        continue;
+      }
+
+      if (arg === "--repo") {
+        readNextAsRemote = true;
+        continue;
+      }
+
       skipNext = optionTakesSeparateValue(arg);
       continue;
     }
@@ -120,18 +143,32 @@ function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
     positionals.push(arg);
   }
 
+  const branchPosition = hasRemoteFromOption ? 0 : 1;
+
   return {
-    branch: positionals[1] ? branchFromRefspec(positionals[1]) : undefined,
-    remote: positionals[0],
+    branch: positionals[branchPosition]
+      ? branchFromRefspec(positionals[branchPosition])
+      : undefined,
+    remote: hasRemoteFromOption ? remoteFromOption : positionals[0],
     setsUpstream,
   };
 }
 
+function inlineOptionValue(arg: string, option: string): string | undefined {
+  const prefix = `${option}=`;
+
+  return arg.startsWith(prefix) ? arg.slice(prefix.length) : undefined;
+}
+
 function optionTakesSeparateValue(arg: string): boolean {
+  if (arg.includes("=")) {
+    return false;
+  }
+
   return (
     arg === "--exec" ||
+    arg === "--recurse-submodules" ||
     arg === "--receive-pack" ||
-    arg === "--repo" ||
     arg === "--push-option" ||
     arg === "-o"
   );

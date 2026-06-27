@@ -14,6 +14,30 @@ const ANSI = {
   yellow: ["\u001B[33m", "\u001B[39m"],
 } as const;
 
+const ASCII_STATUS_SYMBOLS = {
+  blocked: "[block]",
+  info: "[info]",
+  passed: "[ok]",
+  skipped: "[skip]",
+  warning: "[warn]",
+} as const satisfies Record<TerminalStatus, string>;
+
+const UNICODE_STATUS_SYMBOLS = {
+  blocked: "x",
+  info: "i",
+  passed: "\u2713",
+  skipped: "-",
+  warning: "!",
+} as const satisfies Record<TerminalStatus, string>;
+
+const STATUS_COLORS = {
+  blocked: "red",
+  info: "blue",
+  passed: "green",
+  skipped: "dim",
+  warning: "yellow",
+} as const satisfies Record<TerminalStatus, keyof typeof ANSI>;
+
 const LABEL_WIDTH = 18;
 
 export function writeHeader(
@@ -115,25 +139,9 @@ function statusSymbol(
   status: TerminalStatus,
   options: TerminalStyleOptions,
 ): string {
-  const unicode = supportsUnicode(options);
-
-  if (!unicode) {
-    return {
-      blocked: "[block]",
-      info: "[info]",
-      passed: "[ok]",
-      skipped: "[skip]",
-      warning: "[warn]",
-    }[status];
-  }
-
-  return {
-    blocked: "x",
-    info: "i",
-    passed: "\u2713",
-    skipped: "-",
-    warning: "!",
-  }[status];
+  return (supportsUnicode(options) ? UNICODE_STATUS_SYMBOLS : ASCII_STATUS_SYMBOLS)[
+    status
+  ];
 }
 
 function styleStatus(
@@ -141,18 +149,7 @@ function styleStatus(
   status: TerminalStatus,
   options: TerminalStyleOptions,
 ): string {
-  switch (status) {
-    case "blocked":
-      return style(value, "red", options);
-    case "info":
-      return style(value, "blue", options);
-    case "passed":
-      return style(value, "green", options);
-    case "skipped":
-      return style(value, "dim", options);
-    case "warning":
-      return style(value, "yellow", options);
-  }
+  return style(value, STATUS_COLORS[status], options);
 }
 
 function style(

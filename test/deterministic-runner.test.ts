@@ -573,6 +573,11 @@ test("renders deterministic transcript without running commands", () => {
     status: "passed",
     detail: "5 changed line(s) within max_changed_lines 10",
   });
+  transcript.writePolicyResult({
+    name: "policy:diff_size",
+    status: "passed",
+    detail: "",
+  });
   transcript.writeToolResult(tool(), {
     name: "check",
     status: "blocked",
@@ -592,6 +597,7 @@ test("renders deterministic transcript without running commands", () => {
       "Checks",
       "  Running 3 checks.",
       "  [ok] Diff size          5 / 10 changed lines",
+      "  [ok] Diff size",
       "  [block] Check              exited with code 2",
       "  Command output:",
       "    first line",

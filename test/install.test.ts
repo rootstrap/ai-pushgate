@@ -84,7 +84,7 @@ test("installs the managed runner, thin hook backup, and v2 config", async () =>
     assert.match(await readFile(runnerPath, "utf8"), /HOOK_PROTOCOL = "1"/);
     assert.match(
       await readFile(join(harness.hooksDir, "pre-push"), "utf8"),
-      /exec "\$PUSHGATE_RUNNER" pre-push "\$@"/,
+      /exec node "\$PUSHGATE_RUNNER" pre-push "\$@"/,
     );
 
     const backups = (await readdir(harness.hooksDir)).filter((name) =>
