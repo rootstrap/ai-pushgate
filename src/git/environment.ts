@@ -53,7 +53,7 @@ export function sanitizeGitLocalEnv(
   return sanitized;
 }
 
-/** Returns true for repository-local Git environment variables. */
+/** Returns `true` for repository-local Git environment variables. */
 export function isGitLocalEnvVar(key: string): boolean {
   return GIT_LOCAL_ENV_VARS.has(key) || GIT_CONFIG_PAIR_ENV_VAR.test(key);
 }
