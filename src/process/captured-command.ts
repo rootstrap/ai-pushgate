@@ -63,13 +63,16 @@ export function runCapturedCommand(
     const stdoutBuffers: Buffer[] = [];
     let stdout = "";
     let stderr = "";
+    let exited = false;
     let timedOut = false;
     let settled = false;
     let killTimer: NodeJS.Timeout | undefined;
     let timeoutTimer: NodeJS.Timeout | undefined;
+    const useProcessGroup = shouldUseProcessGroup(options);
 
     const child = spawn(options.command, [...(options.args ?? [])], {
       cwd: options.cwd,
+      detached: useProcessGroup,
       env: options.env,
       shell: options.shell,
       stdio: [options.stdin === undefined ? "ignore" : "pipe", "pipe", "pipe"],
@@ -101,9 +104,11 @@ export function runCapturedCommand(
     if (options.timeoutMs !== undefined) {
       timeoutTimer = setTimeout(() => {
         timedOut = true;
-        child.kill("SIGTERM");
+        signalChild("SIGTERM");
         killTimer = setTimeout(() => {
-          child.kill("SIGKILL");
+          if (useProcessGroup || !exited) {
+            signalChild("SIGKILL");
+          }
         }, options.killGraceMs ?? 0);
       }, options.timeoutMs);
     }
@@ -142,6 +147,14 @@ export function runCapturedCommand(
         stderr,
         stdout: capturedStdout(),
       });
+    });
+    child.on("exit", () => {
+      exited = true;
+
+      if (!useProcessGroup && killTimer) {
+        clearTimeout(killTimer);
+        killTimer = undefined;
+      }
     });
     child.on("close", (code, signal) => {
       if (timedOut) {
@@ -184,7 +197,39 @@ export function runCapturedCommand(
 
       child.stdin.end(options.stdin);
     }
+
+    function signalChild(signal: NodeJS.Signals): void {
+      if (child.pid === undefined) {
+        return;
+      }
+
+      try {
+        if (useProcessGroup) {
+          process.kill(-child.pid, signal);
+          return;
+        }
+
+        child.kill(signal);
+      } catch (error) {
+        if (!isMissingProcessError(error)) {
+          throw error;
+        }
+      }
+    }
   });
+}
+
+function shouldUseProcessGroup(options: CapturedCommandOptions): boolean {
+  return options.timeoutMs !== undefined && process.platform !== "win32";
+}
+
+function isMissingProcessError(error: unknown): boolean {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "ESRCH"
+  );
 }
 
 function appendCaptured(

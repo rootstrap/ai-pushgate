@@ -9534,12 +9534,15 @@ function runCapturedCommand(options) {
     const stdoutBuffers = [];
     let stdout = "";
     let stderr = "";
+    let exited = false;
     let timedOut = false;
     let settled = false;
     let killTimer;
     let timeoutTimer;
+    const useProcessGroup = shouldUseProcessGroup(options);
     const child = spawn(options.command, [...options.args ?? []], {
       cwd: options.cwd,
+      detached: useProcessGroup,
       env: options.env,
       shell: options.shell,
       stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
@@ -9562,9 +9565,11 @@ function runCapturedCommand(options) {
     if (options.timeoutMs !== void 0) {
       timeoutTimer = setTimeout(() => {
         timedOut = true;
-        child.kill("SIGTERM");
+        signalChild("SIGTERM");
         killTimer = setTimeout(() => {
-          child.kill("SIGKILL");
+          if (useProcessGroup || !exited) {
+            signalChild("SIGKILL");
+          }
         }, options.killGraceMs ?? 0);
       }, options.timeoutMs);
     }
@@ -9600,6 +9605,13 @@ function runCapturedCommand(options) {
         stderr,
         stdout: capturedStdout()
       });
+    });
+    child.on("exit", () => {
+      exited = true;
+      if (!useProcessGroup && killTimer) {
+        clearTimeout(killTimer);
+        killTimer = void 0;
+      }
     });
     child.on("close", (code, signal) => {
       if (timedOut) {
@@ -9637,7 +9649,29 @@ function runCapturedCommand(options) {
       }
       child.stdin.end(options.stdin);
     }
+    function signalChild(signal) {
+      if (child.pid === void 0) {
+        return;
+      }
+      try {
+        if (useProcessGroup) {
+          process.kill(-child.pid, signal);
+          return;
+        }
+        child.kill(signal);
+      } catch (error51) {
+        if (!isMissingProcessError(error51)) {
+          throw error51;
+        }
+      }
+    }
   });
+}
+function shouldUseProcessGroup(options) {
+  return options.timeoutMs !== void 0 && process.platform !== "win32";
+}
+function isMissingProcessError(error51) {
+  return error51 !== null && typeof error51 === "object" && "code" in error51 && error51.code === "ESRCH";
 }
 function appendCaptured(current, next, outputCaptureLimit) {
   return outputCaptureLimit === void 0 ? current + next : appendCapped(current, next, outputCaptureLimit);
@@ -26746,7 +26780,12 @@ async function collectReviewDiff(options) {
     if (error51 instanceof GitCommandError) {
       const stderr = error51.result.stderr.trim();
       throw new Error(
-        `git diff failed while building the local AI review payload.${stderr ? ` ${stderr}` : ""}`
+        [
+          "git diff failed while building the local AI review payload.",
+          `code=${String(error51.result.code)}`,
+          `signal=${String(error51.result.signal)}`,
+          stderr ? `stderr=${stderr}` : ""
+        ].filter(Boolean).join(" ")
       );
     }
     throw error51;

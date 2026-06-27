@@ -101,6 +101,36 @@ test("runTimedCommand reports timeout with captured output tail", async () => {
   }
 });
 
+test("runTimedCommand terminates timed-out process groups", async () => {
+  if (process.platform === "win32") {
+    return;
+  }
+
+  const started = Date.now();
+  const result = await runTimedCommand({
+    args: [
+      "-e",
+      [
+        "const { spawn } = require('node:child_process');",
+        "spawn(process.execPath, ['-e', 'setTimeout(() => {}, 5000);'], { stdio: ['ignore', 'inherit', 'inherit'] });",
+        "setInterval(() => {}, 1000);",
+      ].join(" "),
+    ],
+    command: process.execPath,
+    cwd: process.cwd(),
+    env: process.env,
+    killGraceMs: 50,
+    timeoutSeconds: 1,
+  });
+  const elapsedMs = Date.now() - started;
+
+  assert.equal(result.kind, "timeout");
+  assert.ok(
+    elapsedMs < 3_000,
+    `expected process group cleanup before grandchild sleep finished, took ${elapsedMs}ms`,
+  );
+});
+
 test("runTimedCommand stdin broken pipes do not override close results", async () => {
   const result = await runTimedCommand({
     args: ["-e", "process.exit(0);"],
