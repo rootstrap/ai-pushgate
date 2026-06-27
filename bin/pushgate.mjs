@@ -10061,6 +10061,136 @@ function runInheritedCommand(options) {
   });
 }
 
+// src/terminal/format.ts
+var ANSI = {
+  blue: ["\x1B[34m", "\x1B[39m"],
+  bold: ["\x1B[1m", "\x1B[22m"],
+  dim: ["\x1B[2m", "\x1B[22m"],
+  green: ["\x1B[32m", "\x1B[39m"],
+  red: ["\x1B[31m", "\x1B[39m"],
+  yellow: ["\x1B[33m", "\x1B[39m"]
+};
+var LABEL_WIDTH = 18;
+function writeHeader(stream, lines) {
+  for (const line of lines) {
+    writeLine(stream, line);
+  }
+  if (lines.length > 0) {
+    writeLine(stream, "");
+  }
+}
+function writeSection(stream, title, options = {}) {
+  writeLine(stream, style(title, "bold", withStream(stream, options)));
+}
+function writeResultRow(stream, status, label, detail, options = {}) {
+  const styleOptions = withStream(stream, options);
+  const symbol2 = statusSymbol(status, styleOptions);
+  const styledSymbol = styleStatus(symbol2, status, styleOptions);
+  const paddedLabel = label.padEnd(LABEL_WIDTH, " ");
+  const suffix = detail ? ` ${detail}` : "";
+  writeLine(stream, `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd());
+}
+function writeDetail(stream, detail) {
+  writeLine(stream, `  ${detail}`);
+}
+function writeIndentedBlock(stream, lines) {
+  for (const line of lines) {
+    writeLine(stream, `    ${line}`);
+  }
+}
+function writeLine(stream, line = "") {
+  stream.write(`${line}
+`);
+}
+function formatCount(count, singular, plural = `${singular}s`) {
+  return `${String(count)} ${count === 1 ? singular : plural}`;
+}
+function humanizeIdentifier(value) {
+  const stripped = value.replace(/^(policy|plugin):/, "");
+  const words = stripped.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return value;
+  }
+  return words.map(
+    (word, index) => index === 0 ? capitalize(word) : word.toLowerCase()
+  ).join(" ");
+}
+function capitalize(value) {
+  if (value.length === 0) {
+    return value;
+  }
+  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
+}
+function statusSymbol(status, options) {
+  const unicode = supportsUnicode(options);
+  if (!unicode) {
+    return {
+      blocked: "[block]",
+      info: "[info]",
+      passed: "[ok]",
+      skipped: "[skip]",
+      warning: "[warn]"
+    }[status];
+  }
+  return {
+    blocked: "x",
+    info: "i",
+    passed: "\u2713",
+    skipped: "-",
+    warning: "!"
+  }[status];
+}
+function styleStatus(value, status, options) {
+  switch (status) {
+    case "blocked":
+      return style(value, "red", options);
+    case "info":
+      return style(value, "blue", options);
+    case "passed":
+      return style(value, "green", options);
+    case "skipped":
+      return style(value, "dim", options);
+    case "warning":
+      return style(value, "yellow", options);
+  }
+}
+function style(value, color, options) {
+  if (!supportsColor(options)) {
+    return value;
+  }
+  const [open, close] = ANSI[color];
+  return `${open}${value}${close}`;
+}
+function supportsColor(options) {
+  const env = options.env ?? process.env;
+  if (env.NO_COLOR !== void 0 || env.NODE_DISABLE_COLORS !== void 0) {
+    return false;
+  }
+  if (env.FORCE_COLOR !== void 0 && env.FORCE_COLOR !== "0") {
+    return true;
+  }
+  return options.stream?.isTTY === true;
+}
+function supportsUnicode(options) {
+  const env = options.env ?? process.env;
+  if (env.PUSHGATE_ASCII === "1") {
+    return false;
+  }
+  if (options.stream?.isTTY !== true) {
+    return false;
+  }
+  if (process.platform !== "win32") {
+    return env.TERM !== "linux";
+  }
+  return Boolean(env.WT_SESSION || env.TERMINUS_SUBLIME || env.CI);
+}
+function withStream(stream, options) {
+  return {
+    ...options,
+    stream: options.stream ?? stream
+  };
+}
+
 // src/git/push.ts
 function runGitPush(args, options) {
   return runInheritedCommand({
@@ -10081,22 +10211,18 @@ async function resolveGitPushSuccessSummary(args, options) {
     upstream
   };
 }
-function formatGitPushSuccessSummary(summary) {
-  const rows = ["  [ok] Branch pushed"];
+function writeGitPushSuccessSummary(stream, summary, options = {}) {
+  writeLine(stream);
+  writeSection(stream, "Pushing branch", options);
+  writeResultRow(stream, "passed", "Branch pushed", void 0, options);
   if (summary.upstream) {
-    rows.push(`  [ok] Upstream set: ${summary.upstream}`);
+    writeResultRow(stream, "passed", "Upstream set", summary.upstream, options);
   }
-  let output = `
-Pushing branch
-${rows.join("\n")}
-`;
   if (summary.pullRequestUrl) {
-    output += `
-Create a pull request:
-  ${summary.pullRequestUrl}
-`;
+    writeLine(stream);
+    writeSection(stream, "Create a pull request:", options);
+    writeDetail(stream, summary.pullRequestUrl);
   }
-  return output;
 }
 function parseGitPushArgs(args) {
   const positionals = [];
@@ -10141,6 +10267,9 @@ function branchFromRefspec(refspec) {
   }
   const remoteBranchSeparator = branch.lastIndexOf(":");
   if (remoteBranchSeparator >= 0) {
+    if (remoteBranchSeparator === 0) {
+      return void 0;
+    }
     branch = branch.slice(remoteBranchSeparator + 1);
   }
   if (!branch || branch === "HEAD") {
@@ -26683,136 +26812,6 @@ function countTextLines(text) {
   return text.endsWith("\n") ? newlineCount : newlineCount + 1;
 }
 
-// src/terminal/format.ts
-var ANSI = {
-  blue: ["\x1B[34m", "\x1B[39m"],
-  bold: ["\x1B[1m", "\x1B[22m"],
-  dim: ["\x1B[2m", "\x1B[22m"],
-  green: ["\x1B[32m", "\x1B[39m"],
-  red: ["\x1B[31m", "\x1B[39m"],
-  yellow: ["\x1B[33m", "\x1B[39m"]
-};
-var LABEL_WIDTH = 18;
-function writeHeader(stream, lines) {
-  for (const line of lines) {
-    writeLine(stream, line);
-  }
-  if (lines.length > 0) {
-    writeLine(stream, "");
-  }
-}
-function writeSection(stream, title, options = {}) {
-  writeLine(stream, style(title, "bold", withStream(stream, options)));
-}
-function writeResultRow(stream, status, label, detail, options = {}) {
-  const styleOptions = withStream(stream, options);
-  const symbol2 = statusSymbol(status, styleOptions);
-  const styledSymbol = styleStatus(symbol2, status, styleOptions);
-  const paddedLabel = label.padEnd(LABEL_WIDTH, " ");
-  const suffix = detail ? ` ${detail}` : "";
-  writeLine(stream, `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd());
-}
-function writeDetail(stream, detail) {
-  writeLine(stream, `  ${detail}`);
-}
-function writeIndentedBlock(stream, lines) {
-  for (const line of lines) {
-    writeLine(stream, `    ${line}`);
-  }
-}
-function writeLine(stream, line = "") {
-  stream.write(`${line}
-`);
-}
-function formatCount(count, singular, plural = `${singular}s`) {
-  return `${String(count)} ${count === 1 ? singular : plural}`;
-}
-function humanizeIdentifier(value) {
-  const stripped = value.replace(/^(policy|plugin):/, "");
-  const words = stripped.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) {
-    return value;
-  }
-  return words.map(
-    (word, index) => index === 0 ? capitalize(word) : word.toLowerCase()
-  ).join(" ");
-}
-function capitalize(value) {
-  if (value.length === 0) {
-    return value;
-  }
-  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
-}
-function statusSymbol(status, options) {
-  const unicode = supportsUnicode(options);
-  if (!unicode) {
-    return {
-      blocked: "[block]",
-      info: "[info]",
-      passed: "[ok]",
-      skipped: "[skip]",
-      warning: "[warn]"
-    }[status];
-  }
-  return {
-    blocked: "x",
-    info: "i",
-    passed: "\u2713",
-    skipped: "-",
-    warning: "!"
-  }[status];
-}
-function styleStatus(value, status, options) {
-  switch (status) {
-    case "blocked":
-      return style(value, "red", options);
-    case "info":
-      return style(value, "blue", options);
-    case "passed":
-      return style(value, "green", options);
-    case "skipped":
-      return style(value, "dim", options);
-    case "warning":
-      return style(value, "yellow", options);
-  }
-}
-function style(value, color, options) {
-  if (!supportsColor(options)) {
-    return value;
-  }
-  const [open, close] = ANSI[color];
-  return `${open}${value}${close}`;
-}
-function supportsColor(options) {
-  const env = options.env ?? process.env;
-  if (env.NO_COLOR !== void 0 || env.NODE_DISABLE_COLORS !== void 0) {
-    return false;
-  }
-  if (env.FORCE_COLOR !== void 0 && env.FORCE_COLOR !== "0") {
-    return true;
-  }
-  return options.stream?.isTTY === true;
-}
-function supportsUnicode(options) {
-  const env = options.env ?? process.env;
-  if (env.PUSHGATE_ASCII === "1") {
-    return false;
-  }
-  if (options.stream?.isTTY !== true) {
-    return false;
-  }
-  if (process.platform !== "win32") {
-    return env.TERM !== "linux";
-  }
-  return Boolean(env.WT_SESSION || env.TERMINUS_SUBLIME || env.CI);
-}
-function withStream(stream, options) {
-  return {
-    ...options,
-    stream: options.stream ?? stream
-  };
-}
-
 // src/ai/transcript.ts
 function renderLocalAiTranscript(events, stdout) {
   for (const event of events) {
@@ -28141,7 +28140,7 @@ async function runPushCommand(args, io) {
     });
     if (result.code !== null) {
       if (result.code === 0) {
-        await writeGitPushSuccessSummary(parsed.gitPushArgs, io);
+        await writeResolvedGitPushSuccessSummary(parsed.gitPushArgs, io);
       }
       return result.code;
     }
@@ -28153,14 +28152,14 @@ async function runPushCommand(args, io) {
     return 1;
   }
 }
-async function writeGitPushSuccessSummary(gitPushArgs, io) {
+async function writeResolvedGitPushSuccessSummary(gitPushArgs, io) {
   try {
-    io.stdout.write(
-      formatGitPushSuccessSummary(
-        await resolveGitPushSuccessSummary(gitPushArgs, {
-          env: io.env
-        })
-      )
+    writeGitPushSuccessSummary(
+      io.stdout,
+      await resolveGitPushSuccessSummary(gitPushArgs, {
+        env: io.env
+      }),
+      { env: io.env }
     );
   } catch {
   }

@@ -1,5 +1,11 @@
 import { runInheritedCommand } from "../process/inherited-command.js";
 import { runCommand } from "../process/run-command.js";
+import {
+  writeDetail,
+  writeLine,
+  writeResultRow,
+  writeSection,
+} from "../terminal/format.js";
 
 export interface GitPushResult {
   code: number | null;
@@ -62,22 +68,26 @@ export async function resolveGitPushSuccessSummary(
   };
 }
 
-export function formatGitPushSuccessSummary(
+export function writeGitPushSuccessSummary(
+  stream: NodeJS.WritableStream,
   summary: GitPushSuccessSummary,
-): string {
-  const rows = ["  [ok] Branch pushed"];
+  options: {
+    env?: NodeJS.ProcessEnv;
+  } = {},
+): void {
+  writeLine(stream);
+  writeSection(stream, "Pushing branch", options);
+  writeResultRow(stream, "passed", "Branch pushed", undefined, options);
 
   if (summary.upstream) {
-    rows.push(`  [ok] Upstream set: ${summary.upstream}`);
+    writeResultRow(stream, "passed", "Upstream set", summary.upstream, options);
   }
-
-  let output = `\nPushing branch\n${rows.join("\n")}\n`;
 
   if (summary.pullRequestUrl) {
-    output += `\nCreate a pull request:\n  ${summary.pullRequestUrl}\n`;
+    writeLine(stream);
+    writeSection(stream, "Create a pull request:", options);
+    writeDetail(stream, summary.pullRequestUrl);
   }
-
-  return output;
 }
 
 function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
@@ -127,7 +137,7 @@ function optionTakesSeparateValue(arg: string): boolean {
   );
 }
 
-function branchFromRefspec(refspec: string): string | undefined {
+export function branchFromRefspec(refspec: string): string | undefined {
   let branch = refspec.trim();
 
   if (!branch || branch.includes("*")) {
@@ -140,6 +150,10 @@ function branchFromRefspec(refspec: string): string | undefined {
 
   const remoteBranchSeparator = branch.lastIndexOf(":");
   if (remoteBranchSeparator >= 0) {
+    if (remoteBranchSeparator === 0) {
+      return undefined;
+    }
+
     branch = branch.slice(remoteBranchSeparator + 1);
   }
 

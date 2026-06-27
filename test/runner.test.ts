@@ -542,7 +542,7 @@ test("push wrapper prints upstream and GitHub SSH PR URL after successful --set-
       assert.match(result.stdout, /  \[ok\] Branch pushed/);
       assert.match(
         result.stdout,
-        /  \[ok\] Upstream set: origin\/codex\/cli-ux/,
+        /  \[ok\] Upstream set\s+origin\/codex\/cli-ux/,
       );
       assert.match(
         result.stdout,
@@ -576,7 +576,7 @@ test("push wrapper prints upstream and GitHub HTTPS PR URL after successful -u p
       assert.match(result.stdout, /  \[ok\] Branch pushed/);
       assert.match(
         result.stdout,
-        /  \[ok\] Upstream set: origin\/feature\/http/,
+        /  \[ok\] Upstream set\s+origin\/feature\/http/,
       );
       assert.match(
         result.stdout,
@@ -604,7 +604,7 @@ test("push wrapper omits PR URL for non-GitHub remotes", async () => {
       assert.equal(result.code, 0, formatResult(result));
       assert.match(result.stdout, /Pushing branch/);
       assert.match(result.stdout, /  \[ok\] Branch pushed/);
-      assert.match(result.stdout, /  \[ok\] Upstream set: origin\/feature/);
+      assert.match(result.stdout, /  \[ok\] Upstream set\s+origin\/feature/);
       assert.doesNotMatch(result.stdout, /Create a pull request:/);
       assert.doesNotMatch(result.stdout, /pull\/new/);
       assert.equal(result.stderr, "");

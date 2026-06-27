@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { writePushgateError } from "./cli/errors.js";
 import { parsePushCommandArgs } from "./cli/push-args.js";
 import {
-  formatGitPushSuccessSummary,
   resolveGitPushSuccessSummary,
   runGitPush,
+  writeGitPushSuccessSummary,
 } from "./git/push.js";
 import {
   buildGitPushArgs,
@@ -95,7 +95,7 @@ async function runPushCommand(
 
     if (result.code !== null) {
       if (result.code === 0) {
-        await writeGitPushSuccessSummary(parsed.gitPushArgs, io);
+        await writeResolvedGitPushSuccessSummary(parsed.gitPushArgs, io);
       }
 
       return result.code;
@@ -110,17 +110,17 @@ async function runPushCommand(
   }
 }
 
-async function writeGitPushSuccessSummary(
+async function writeResolvedGitPushSuccessSummary(
   gitPushArgs: readonly string[],
   io: CliIO,
 ): Promise<void> {
   try {
-    io.stdout.write(
-      formatGitPushSuccessSummary(
-        await resolveGitPushSuccessSummary(gitPushArgs, {
-          env: io.env,
-        }),
-      ),
+    writeGitPushSuccessSummary(
+      io.stdout,
+      await resolveGitPushSuccessSummary(gitPushArgs, {
+        env: io.env,
+      }),
+      { env: io.env },
     );
   } catch {
     // Post-push copy is best-effort; Git's completed push stays authoritative.
