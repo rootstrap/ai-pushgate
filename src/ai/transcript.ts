@@ -1,3 +1,11 @@
+import {
+  capitalize,
+  formatCount,
+  writeDetail,
+  writeIndentedBlock,
+  writeLine,
+  writeResultRow,
+} from "../terminal/format.js";
 import type { LocalAiTranscriptEvent } from "./types.js";
 
 export function renderLocalAiTranscript(
@@ -15,101 +23,107 @@ function renderLocalAiTranscriptEvent(
 ): void {
   switch (event.kind) {
     case "skip-no-files":
-      writeLine(stdout, "[pushgate] No changed files to review with local AI.");
+      writeResultRow(stdout, "skipped", "No changed files to review");
       return;
     case "block-changed-lines":
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] BLOCK local AI because ${String(event.changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(event.maxChangedLines)}.`,
+        "blocked",
+        "Changed lines",
+        `${String(event.changedLineCount)} changed lines exceed ai.max_changed_lines ${String(event.maxChangedLines)}`,
       );
       return;
     case "skip-prompt-tokens":
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] Skipping local AI because the rendered prompt is approximately ${String(event.estimatedPromptTokens)} token(s), exceeding ai.max_prompt_tokens ${String(event.maxPromptTokens)}.`,
+        "skipped",
+        "Prompt budget",
+        `approximately ${String(event.estimatedPromptTokens)} tokens exceeds ai.max_prompt_tokens ${String(event.maxPromptTokens)}`,
       );
       return;
     case "review-start":
-      writeLine(
-        stdout,
-        `[pushgate] Running local AI review with ${event.providerId} on ${String(event.changedFileCount)} changed file(s).`,
-      );
+      writeDetail(stdout, `Provider: ${capitalize(event.providerId)}`);
+      writeDetail(stdout, `Files reviewed: ${String(event.changedFileCount)}`);
       return;
     case "full-file-context":
-      writeLine(
+      writeDetail(
         stdout,
-        `[pushgate] Local AI prompt includes ${String(event.diffLineCount)} diff line(s) plus ${String(event.fullFileCount)} full file(s) for extra context.`,
+        `Context: ${formatCount(event.diffLineCount, "diff line")} plus ${formatCount(event.fullFileCount, "full file")} for extra context`,
       );
       return;
     case "provider-failure": {
-      const label = event.aiMode === "advisory" ? "WARN" : "BLOCK";
+      const status = event.aiMode === "advisory" ? "warning" : "blocked";
 
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] ${label} local AI provider ${event.result.provider} failed: ${event.result.message}`,
+        status,
+        `${capitalize(event.result.provider)} provider`,
+        event.result.message,
       );
 
       if (event.result.detail) {
-        for (const line of event.result.detail.split("\n")) {
-          writeLine(stdout, `[pushgate] Detail: ${line}`);
-        }
+        writeDetail(stdout, "Detail:");
+        writeIndentedBlock(stdout, event.result.detail.split("\n"));
       }
 
       if (event.result.output) {
-        writeLine(stdout, "[pushgate] Provider output:");
-
-        for (const line of event.result.output.split("\n")) {
-          writeLine(stdout, `[pushgate]   ${line}`);
-        }
+        writeDetail(stdout, "Provider output:");
+        writeIndentedBlock(stdout, event.result.output.split("\n"));
       }
 
       return;
     }
     case "normalization-note":
-      writeLine(stdout, `[pushgate] Note: ${event.note}`);
+      writeDetail(stdout, `Note: ${event.note}`);
       return;
     case "review-passed":
-      writeLine(stdout, "[pushgate] Local AI review passed with no findings.");
+      writeResultRow(stdout, "passed", "No findings");
       return;
     case "finding": {
-      const label = event.finding.severity === "blocking" ? "BLOCK" : "WARN";
+      const status =
+        event.finding.severity === "blocking" ? "blocked" : "warning";
       const location =
         event.finding.line === "N/A"
           ? event.finding.file
           : `${event.finding.file}:${event.finding.line}`;
 
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] ${label} AI ${event.finding.category} at ${location}.`,
+        status,
+        `AI ${humanizeCategory(event.finding.category)}`,
+        location,
       );
-      writeLine(stdout, `[pushgate]   Message: ${event.finding.message}`);
-      writeLine(stdout, `[pushgate]   Suggestion: ${event.finding.suggestion}`);
+      writeDetail(stdout, `Message: ${event.finding.message}`);
+      writeDetail(stdout, `Suggestion: ${event.finding.suggestion}`);
       return;
     }
     case "review-summary":
-      writeLine(
-        stdout,
-        `[pushgate] Local AI review finished: ${String(event.summary.blockingCount)} blocking finding(s), ${String(event.summary.warningCount)} warning(s).`,
-      );
+      if (
+        event.summary.blockingCount > 0 ||
+        event.summary.warningCount > 0
+      ) {
+        writeDetail(
+          stdout,
+          `Finished with ${formatCount(event.summary.blockingCount, "blocking finding")} and ${formatCount(event.summary.warningCount, "warning")}.`,
+        );
+      }
       return;
     case "advisory-continue":
-      writeLine(stdout, "[pushgate] Continuing because ai.mode is advisory.");
+      writeDetail(stdout, "Continuing because ai.mode is advisory.");
       return;
     case "provider-blocked":
-      writeLine(
-        stdout,
-        "[pushgate] Local AI is blocking in this repository. Fix the provider issue or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push.",
-      );
+      writeLine(stdout);
+      writeLine(stdout, "Local AI is blocking in this repository.");
+      writeLine(stdout, "Fix the provider issue, or use `git -c pushgate.skip-ai-check=true push` to bypass only the AI phase for one push.");
       return;
     case "review-blocked":
-      writeLine(
-        stdout,
-        "[pushgate] Local AI review blocked the push. Fix the findings above or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push.",
-      );
+      writeLine(stdout);
+      writeLine(stdout, "Local AI review blocked the push.");
+      writeLine(stdout, "Fix the findings above, or use `git -c pushgate.skip-ai-check=true push` to bypass only the AI phase for one push.");
       return;
   }
 }
 
-function writeLine(stream: NodeJS.WritableStream, line: string): void {
-  stream.write(`${line}\n`);
+function humanizeCategory(category: string): string {
+  return category.replace(/_/g, " ");
 }

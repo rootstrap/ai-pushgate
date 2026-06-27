@@ -220,7 +220,7 @@ git -c pushgate.skip-ai-check=true push
 git -c pushgate.skip-all-checks=true push
 ```
 
-The planned optional wrapper maps friendly flags to the same one-push config:
+The optional wrapper maps friendly flags to the same one-push config:
 
 ```bash
 pushgate push --skip-ai-check
@@ -239,7 +239,8 @@ This makes it possible to test an unpublished runner build in one repository
 without replacing the stable managed install for every repository on the
 machine.
 
-Each hook run prints the resolved runner source and path, for example:
+Routine hook runs keep runner wiring quiet. When diagnosing an override, set
+`PUSHGATE_VERBOSE=1` to print the resolved runner source and path, for example:
 
 ```text
 [pushgate] Using runner from git config pushgate.runner: /absolute/path/to/bin/pushgate.mjs
@@ -259,7 +260,7 @@ git config --unset --local pushgate.runner
 For one shell session or one command, use `PUSHGATE_RUNNER` instead:
 
 ```bash
-PUSHGATE_RUNNER=/absolute/path/to/bin/pushgate.mjs git push
+PUSHGATE_RUNNER=/absolute/path/to/bin/pushgate.mjs PUSHGATE_VERBOSE=1 git push
 ```
 
 ## Updating

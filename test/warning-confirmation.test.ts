@@ -8,7 +8,7 @@ import {
   WarningConfirmationError,
 } from "../src/workflows/warning-confirmation.js";
 
-test("terminal warning confirmer asks one domain question through the terminal", async () => {
+test("terminal warning confirmer asks the default-no push question through the terminal", async () => {
   const questions: string[] = [];
   const terminal: InteractiveTerminal = {
     confirm(question) {
@@ -24,9 +24,7 @@ test("terminal warning confirmer asks one domain question through the terminal",
   });
 
   assert.equal(confirmed, true);
-  assert.deepEqual(questions, [
-    "[pushgate] deterministic checks produced 1 warning(s). Continue with warnings?",
-  ]);
+  assert.deepEqual(questions, ["Continue with push?"]);
 });
 
 test("terminal warning confirmer maps terminal unavailability to a warning confirmation error", async () => {

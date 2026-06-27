@@ -1,3 +1,5 @@
+import { basename } from "node:path";
+
 import { runLocalAiReview } from "../ai/index.js";
 import { loadConfig, type PushgateConfig } from "../config/index.js";
 import { resolveGitRepositoryRoot } from "../git/repository.js";
@@ -7,6 +9,14 @@ import {
 } from "../path-policy/index.js";
 import { runDeterministicChecks } from "../runner/deterministic.js";
 import { resolveSkipControlState } from "../skip-controls.js";
+import {
+  writeDetail,
+  writeHeader,
+  writeLine,
+  writeResultRow,
+  writeSection,
+} from "../terminal/format.js";
+import { PUSHGATE_VERSION } from "../version.js";
 import {
   buildPrePushConfigDecision,
   buildPrePushRunDecision,
@@ -24,6 +34,7 @@ import {
 
 export interface PrePushWorkflowIO {
   env: NodeJS.ProcessEnv;
+  hookArgs?: readonly string[];
   stderr: NodeJS.WritableStream;
   stdin: NodeJS.ReadableStream;
   stdout: NodeJS.WritableStream;
@@ -33,9 +44,14 @@ export interface PrePushWorkflowIO {
 export async function runPrePushWorkflow(
   io: PrePushWorkflowIO,
 ): Promise<number> {
-  await drainStdin(io.stdin);
+  const hookContext = buildPrePushContext({
+    args: io.hookArgs ?? [],
+    stdin: await readStdin(io.stdin),
+  });
 
   const repoRoot = await resolveGitRepositoryRoot(io.env);
+  writePrePushHeader(io.stdout, repoRoot, hookContext);
+
   const skipControls = await resolveSkipControlState(repoRoot, io.env);
   const configDecision = buildPrePushConfigDecision(skipControls);
 
@@ -107,6 +123,8 @@ export async function runPrePushWorkflow(
     return 1;
   }
 
+  writeLine(io.stdout);
+  writeLine(io.stdout, "Pushgate passed. Git is pushing...");
   return 0;
 }
 
@@ -121,9 +139,17 @@ async function runLocalAiPhase(
   },
 ): Promise<{ exitCode: number; warningCount: number }> {
   if (decision.kind === "skip") {
-    writeVisibleSkipReason(options.stdout, decision.reason);
+    const message = formatRunSkipReason(decision.reason);
+
+    if (message !== null) {
+      writeSection(options.stdout, "AI review");
+      writeResultRow(options.stdout, "skipped", message);
+    }
+
     return { exitCode: 0, warningCount: 0 };
   }
+
+  writeSection(options.stdout, "AI review");
 
   return await runLocalAiReview({
     aiConfig: config.ai,
@@ -158,20 +184,20 @@ async function confirmWarningsBeforeContinuing(options: {
 
     if (confirmed) {
       options.stdout.write(
-        `[pushgate] Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.\n`,
+        `Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.\n`,
       );
       return true;
     }
 
     options.stdout.write(
-      `[pushgate] Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.\n`,
+      `Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.\n`,
     );
     return false;
   } catch (error) {
     if (error instanceof WarningConfirmationError) {
-      options.stdout.write(`[pushgate] ${error.message}\n`);
+      options.stdout.write(`${error.message}\n`);
       options.stdout.write(
-        "[pushgate] Push blocked because warning confirmation could not be collected.\n",
+        "Push blocked because warning confirmation could not be collected.\n",
       );
       return false;
     }
@@ -205,7 +231,7 @@ function writeVisibleSkipReason(
   const message = formatRunSkipReason(reason);
 
   if (message !== null) {
-    stdout.write(`[pushgate] ${message}\n`);
+    writeResultRow(stdout, "skipped", message);
   }
 }
 
@@ -222,15 +248,77 @@ function requireChangedFileResolution(
   );
 }
 
-function drainStdin(stdin: NodeJS.ReadableStream): Promise<void> {
+interface PrePushContext {
+  branch?: string;
+  remote?: string;
+}
+
+function writePrePushHeader(
+  stdout: NodeJS.WritableStream,
+  repoRoot: string,
+  context: PrePushContext,
+): void {
+  const lines = [
+    `Pushgate v${PUSHGATE_VERSION} - pre-push`,
+    `Repo: ${basename(repoRoot)}`,
+  ];
+
+  if (context.branch) {
+    lines.push(`Branch: ${context.branch}`);
+  }
+
+  if (context.remote) {
+    lines.push(`Remote: ${context.remote}`);
+  }
+
+  writeHeader(stdout, lines);
+}
+
+function buildPrePushContext(options: {
+  args: readonly string[];
+  stdin: string;
+}): PrePushContext {
+  return {
+    branch: parseBranchFromPrePushInput(options.stdin),
+    remote: options.args[0],
+  };
+}
+
+function parseBranchFromPrePushInput(input: string): string | undefined {
+  for (const line of input.split(/\r?\n/)) {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    const [localRef] = trimmed.split(/\s+/, 1);
+
+    if (localRef?.startsWith("refs/heads/")) {
+      return localRef.slice("refs/heads/".length);
+    }
+  }
+
+  return undefined;
+}
+
+function readStdin(stdin: NodeJS.ReadableStream): Promise<string> {
   return new Promise((resolve, reject) => {
     if ((stdin as { isTTY?: boolean }).isTTY) {
-      resolve();
+      resolve("");
       return;
     }
 
+    let input = "";
+
+    stdin.setEncoding("utf8");
     stdin.on("error", reject);
-    stdin.on("end", resolve);
+    stdin.on("data", (chunk: string) => {
+      input += chunk;
+    });
+    stdin.on("end", () => {
+      resolve(input);
+    });
     stdin.resume();
   });
 }

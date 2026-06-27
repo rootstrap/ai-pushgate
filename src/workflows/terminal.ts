@@ -53,7 +53,7 @@ function confirmWithInteractiveTerminal(question: string): boolean {
 
       writeSync(
         terminal.outputFd,
-        "[pushgate] Please answer yes(y) or no(n).\n",
+        "Please answer `y` or `n`.\n",
       );
     }
   } catch (error) {
@@ -68,7 +68,7 @@ function confirmWithInteractiveTerminal(question: string): boolean {
 }
 
 function formatYesNoPrompt(question: string): string {
-  return `${question} yes(y) / no(n) `;
+  return `${question} [y/N] `;
 }
 
 function normalizeAnswer(answer: string): "yes" | "no" | "invalid" {
@@ -78,7 +78,7 @@ function normalizeAnswer(answer: string): "yes" | "no" | "invalid" {
     return "yes";
   }
 
-  if (normalized === "n" || normalized === "no") {
+  if (normalized === "" || normalized === "n" || normalized === "no") {
     return "no";
   }
 

@@ -817,7 +817,7 @@ test("builds and renders local AI verdict output without provider execution", ()
     output.text(),
     /Note: Extracted the review JSON from a fenced code block/,
   );
-  assert.match(output.text(), /BLOCK AI logic_errors at src\/changed\.ts:2/);
+  assert.match(output.text(), /\[block\] AI logic errors\s+src\/changed\.ts:2/);
   assert.match(output.text(), /Continuing because ai\.mode is advisory/);
 });
 
@@ -1065,8 +1065,8 @@ test("runs the Claude adapter through the provider interface with model selectio
     });
 
     assert.equal(result.exitCode, 0, output.text());
-    assert.match(output.text(), /Running local AI review with claude/);
-    assert.match(output.text(), /Local AI review passed with no findings/);
+    assert.match(output.text(), /Provider: Claude/);
+    assert.match(output.text(), /\[ok\] No findings/);
     assert.match(await readFile(promptPath, "utf8"), /=== DIFF ===/);
     assert.match(await readFile(promptPath, "utf8"), /"schema_version": 1/);
     const args = await readArgLines(argsPath);
@@ -1872,7 +1872,7 @@ test("maps Copilot auth-like failures through advisory mode", async () => {
     });
 
     assert.equal(result.exitCode, 0, output.text());
-    assert.match(output.text(), /WARN local AI provider copilot failed/);
+    assert.match(output.text(), /\[warn\] Copilot provider/);
     assert.match(output.text(), /not authenticated or cannot access Copilot/);
     assert.match(output.text(), /Continuing because ai\.mode is advisory/);
   });
@@ -2096,7 +2096,7 @@ test("blocks local AI before provider invocation when changed-line guardrail is 
     });
 
     assert.equal(result.exitCode, 1, output.text());
-    assert.match(output.text(), /BLOCK local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/);
+    assert.match(output.text(), /\[block\] Changed lines\s+\d+ changed lines exceed ai\.max_changed_lines 1/);
     assert.match(output.text(), /Local AI review blocked the push/);
     assert.doesNotMatch(output.text(), /provider claude failed/);
   });
@@ -2141,13 +2141,13 @@ test("reports unsupported local AI providers through the public gate", async () 
   });
 
   assert.equal(result.exitCode, 1, output.text());
-  assert.match(output.text(), /BLOCK local AI provider openai failed/);
+  assert.match(output.text(), /\[block\] Openai provider/);
   assert.match(
     output.text(),
     /does not implement the configured AI provider "openai" yet/,
   );
   assert.match(output.text(), /Local AI is blocking in this repository/);
-  assert.doesNotMatch(output.text(), /Running local AI review/);
+  assert.doesNotMatch(output.text(), /Provider: Openai/);
 });
 
 test("skips local AI after prompt rendering when prompt token guardrail is exceeded", async () => {
@@ -2180,7 +2180,7 @@ test("skips local AI after prompt rendering when prompt token guardrail is excee
     });
 
     assert.equal(result.exitCode, 0, output.text());
-    assert.match(output.text(), /Skipping local AI because the rendered prompt is approximately \d+ token\(s\), exceeding ai\.max_prompt_tokens 1/);
+    assert.match(output.text(), /\[skip\] Prompt budget\s+approximately \d+ tokens exceeds ai\.max_prompt_tokens 1/);
     assert.doesNotMatch(output.text(), /provider claude failed/);
   });
 });

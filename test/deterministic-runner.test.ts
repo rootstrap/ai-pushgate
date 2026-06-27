@@ -232,7 +232,7 @@ test("blocks on blocking command failures", async () => {
 
     assert.equal(summary.exitCode, 1, output.text());
     assert.equal(summary.results[0]?.status, "blocked");
-    assert.match(output.text(), /BLOCK check: exited with code 2/);
+    assert.match(output.text(), /\[block\] Check\s+exited with code 2/);
     assert.match(output.text(), /lint failed/);
     assert.match(output.text(), /git push --no-verify/);
   });
@@ -253,7 +253,7 @@ test("warning-mode command failures do not block", async () => {
 
     assert.equal(summary.exitCode, 0, output.text());
     assert.equal(summary.results[0]?.status, "warning");
-    assert.match(output.text(), /WARN check: exited with code 7/);
+    assert.match(output.text(), /\[warn\] Check\s+exited with code 7/);
   });
 });
 
@@ -376,7 +376,7 @@ test("runs Gitleaks plugin over the resolved branch commit range", async () => {
 
     assert.equal(summary.exitCode, 1, output.text());
     assert.equal(summary.results[0]?.status, "blocked");
-    assert.match(output.text(), /BLOCK plugin:gitleaks/);
+    assert.match(output.text(), /\[block\] Secrets scan/);
     assert.match(output.text(), /src\/config\.ts:3 \(generic-api-key\)/);
 
     const args = JSON.parse(await readFile(argsPath, "utf8")) as string[];
@@ -470,8 +470,8 @@ test("warning-mode Gitleaks findings do not stop later tools", async () => {
       ["warning", "passed"],
     );
     assert.deepEqual(JSON.parse(await readFile(argsPath, "utf8")), []);
-    assert.match(output.text(), /WARN plugin:gitleaks/);
-    assert.match(output.text(), /PASS check/);
+    assert.match(output.text(), /\[warn\] Secrets scan/);
+    assert.match(output.text(), /\[ok\] Check/);
   });
 });
 
@@ -498,10 +498,10 @@ test("runs built-in policies and makes warning versus blocking behavior explicit
     assert.equal(summary.exitCode, 1, output.text());
     assert.equal(summary.results[0]?.status, "warning");
     assert.equal(summary.results[1]?.status, "blocked");
-    assert.match(output.text(), /WARN policy:diff_size/);
-    assert.match(output.text(), /BLOCK policy:forbidden_paths/);
+    assert.match(output.text(), /\[warn\] Diff size/);
+    assert.match(output.text(), /\[block\] Forbidden paths/);
     assert.match(output.text(), /src\/file with spaces\.ts \(src\/\*\*\)/);
-    assert.match(output.text(), /1 blocking failure\(s\), 1 warning\(s\)/);
+    assert.match(output.text(), /1 blocking failure and 1 warning/);
   });
 });
 
@@ -523,8 +523,8 @@ test("warning-mode built-in policy failures do not block", async () => {
 
     assert.equal(summary.exitCode, 0, output.text());
     assert.equal(summary.results[0]?.status, "warning");
-    assert.match(output.text(), /WARN policy:diff_size/);
-    assert.match(output.text(), /0 blocking failure\(s\), 1 warning\(s\)/);
+    assert.match(output.text(), /\[warn\] Diff size/);
+    assert.match(output.text(), /1 non-blocking warning/);
   });
 });
 
@@ -589,15 +589,21 @@ test("renders deterministic transcript without running commands", () => {
   assert.equal(
     output.text(),
     [
-      "[pushgate] Running 3 deterministic check(s).",
-      "[pushgate] PASS policy:diff_size: 5 changed line(s) within max_changed_lines 10.",
-      "[pushgate] BLOCK check: exited with code 2.",
-      "[pushgate] Command output:",
-      "[pushgate]   first line",
-      "[pushgate]   second line",
-      "[pushgate] Stopping deterministic checks after blocking failure because fail_fast is true.",
-      "[pushgate] Deterministic checks finished: 1 blocking failure(s), 0 warning(s).",
-      "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally.",
+      "Checks",
+      "  Running 3 checks.",
+      "  [ok] Diff size          5 / 10 changed lines",
+      "  [block] Check              exited with code 2",
+      "  Command output:",
+      "    first line",
+      "    second line",
+      "  Stopped after a blocking failure because fail_fast is true.",
+      "",
+      "Checks completed with 1 blocking failure and 0 warnings.",
+      "",
+      "Blocked",
+      "  Check failed and is configured as a blocking check.",
+      "",
+      "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass local hooks.",
       "",
     ].join("\n"),
   );

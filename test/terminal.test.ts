@@ -5,50 +5,88 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { createInteractiveTerminal } from "../src/workflows/terminal.js";
+import {
+  createInteractiveTerminal,
+  type InteractiveTerminal,
+} from "../src/workflows/terminal.js";
+
+test("interactive terminal accepts yes and no answers with empty input defaulting to no", async () => {
+  const results: boolean[] = [];
+
+  const output = await withTerminalInput("y\nyes\nn\nno\n\n", (terminal) => {
+    results.push(
+      terminal.confirm("Continue with push?"),
+      terminal.confirm("Continue with push?"),
+      terminal.confirm("Continue with push?"),
+      terminal.confirm("Continue with push?"),
+      terminal.confirm("Continue with push?"),
+    );
+  });
+
+  assert.deepEqual(results, [true, true, false, false, false]);
+  assert.equal(output, "Continue with push? [y/N] ".repeat(5));
+});
+
+test("interactive terminal re-prompts after an invalid answer", async () => {
+  const output = await withTerminalInput("siu\ny\n", (terminal) => {
+    assert.equal(terminal.confirm("Continue with push?"), true);
+  });
+
+  assert.equal(
+    output,
+    [
+      "Continue with push? [y/N] ",
+      "Please answer `y` or `n`.\n",
+      "Continue with push? [y/N] ",
+    ].join(""),
+  );
+});
 
 test("interactive terminal consumes CRLF as one line ending", async () => {
-  await withTempDir(async (tempDir) => {
+  const output = await withTerminalInput("y\r\nn\r\n", (terminal) => {
+    assert.equal(terminal.confirm("Continue with push?"), true);
+    assert.equal(terminal.confirm("Continue with push?"), false);
+  });
+
+  assert.equal(output, "Continue with push? [y/N] ".repeat(2));
+});
+
+async function withTempDir<T>(
+  callback: (tempDir: string) => Promise<T>,
+): Promise<T> {
+  const tempDir = await mkdtemp(join(tmpdir(), "pushgate-terminal-"));
+
+  try {
+    return await callback(tempDir);
+  } finally {
+    await rm(tempDir, { force: true, recursive: true });
+  }
+}
+
+async function withTerminalInput(
+  input: string,
+  callback: (terminal: InteractiveTerminal) => void,
+): Promise<string> {
+  return await withTempDir(async (tempDir) => {
     const inputPath = join(tempDir, "input.txt");
     const outputPath = join(tempDir, "output.txt");
 
-    await writeFile(inputPath, "y\r\nn\r\n");
+    await writeFile(inputPath, input);
 
     const inputFd = openSync(inputPath, "r");
     const outputFd = openSync(outputPath, "w");
 
     try {
-      await withAttachedTerminal(inputFd, outputFd, () => {
-        const terminal = createInteractiveTerminal();
-
-        assert.equal(terminal.confirm("[pushgate] First?"), true);
-        assert.equal(terminal.confirm("[pushgate] Second?"), false);
+      withAttachedTerminal(inputFd, outputFd, () => {
+        callback(createInteractiveTerminal());
       });
     } finally {
       closeSync(inputFd);
       closeSync(outputFd);
     }
 
-    assert.equal(
-      readFileSync(outputPath, "utf8"),
-      [
-        "[pushgate] First? yes(y) / no(n) ",
-        "[pushgate] Second? yes(y) / no(n) ",
-      ].join(""),
-    );
+    return readFileSync(outputPath, "utf8");
   });
-});
-
-async function withTempDir(
-  callback: (tempDir: string) => Promise<void>,
-): Promise<void> {
-  const tempDir = await mkdtemp(join(tmpdir(), "pushgate-terminal-"));
-
-  try {
-    await callback(tempDir);
-  } finally {
-    await rm(tempDir, { force: true, recursive: true });
-  }
 }
 
 function withAttachedTerminal(

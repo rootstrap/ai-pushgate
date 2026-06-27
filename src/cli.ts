@@ -3,7 +3,11 @@ import { fileURLToPath } from "node:url";
 
 import { writePushgateError } from "./cli/errors.js";
 import { parsePushCommandArgs } from "./cli/push-args.js";
-import { runGitPush } from "./git/push.js";
+import {
+  formatGitPushSuccessSummary,
+  resolveGitPushSuccessSummary,
+  runGitPush,
+} from "./git/push.js";
 import {
   buildGitPushArgs,
   SkipControlError,
@@ -45,7 +49,7 @@ export async function main(
       io.stdout.write(`${HOOK_PROTOCOL}\n`);
       return 0;
     case "pre-push":
-      return runPrePushCommand(io);
+      return runPrePushCommand(args, io);
     case "push":
       return runPushCommand(args, io);
     default:
@@ -57,9 +61,12 @@ export async function main(
   }
 }
 
-async function runPrePushCommand(io: CliIO): Promise<number> {
+async function runPrePushCommand(
+  args: readonly string[],
+  io: CliIO,
+): Promise<number> {
   try {
-    return await runPrePushWorkflow(io);
+    return await runPrePushWorkflow({ ...io, hookArgs: args });
   } catch (error) {
     writePushgateError(io.stderr, error);
     return 1;
@@ -87,6 +94,10 @@ async function runPushCommand(
     });
 
     if (result.code !== null) {
+      if (result.code === 0) {
+        await writeGitPushSuccessSummary(parsed.gitPushArgs, io);
+      }
+
       return result.code;
     }
 
@@ -96,6 +107,23 @@ async function runPushCommand(
   } catch (error) {
     writePushgateError(io.stderr, error);
     return 1;
+  }
+}
+
+async function writeGitPushSuccessSummary(
+  gitPushArgs: readonly string[],
+  io: CliIO,
+): Promise<void> {
+  try {
+    io.stdout.write(
+      formatGitPushSuccessSummary(
+        await resolveGitPushSuccessSummary(gitPushArgs, {
+          env: io.env,
+        }),
+      ),
+    );
+  } catch {
+    // Post-push copy is best-effort; Git's completed push stays authoritative.
   }
 }
 
