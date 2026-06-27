@@ -88,6 +88,10 @@ _Avoid_: error, failure
 A finding that is shown to the developer without blocking the push.
 _Avoid_: advisory, notice
 
+**Review Output Contract**:
+The schema-versioned finding shape that every local AI review provider must satisfy before Pushgate consumes review results.
+_Avoid_: provider response format, model output
+
 **Guardrail**:
 A local limit that skips or constrains a Pushgate phase before expensive or unreliable work begins.
 _Avoid_: validation rule, safety check
@@ -95,6 +99,10 @@ _Avoid_: validation rule, safety check
 **Skip Control**:
 A one-push instruction that bypasses all Pushgate work or only local AI review.
 _Avoid_: bypass flag, disable switch
+
+**Warning Confirmation**:
+The explicit developer acknowledgement required before Pushgate allows a push to continue after warning results.
+_Avoid_: prompt, approval, confirmation dialog
 
 **Transcript**:
 The developer-facing Pushgate output that explains what ran, what was skipped, and why a push passed or failed.
