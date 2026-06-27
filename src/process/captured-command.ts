@@ -155,25 +155,19 @@ export function runCapturedCommand(
       });
     });
     child.on("exit", () => {
-      if (!useProcessGroup && killTimer) {
+      if (killTimer) {
         clearTimeout(killTimer);
         killTimer = undefined;
+
+        if (useProcessGroup && timedOut) {
+          signalChild("SIGKILL");
+        }
       }
     });
     child.on("close", (code, signal) => {
       if (timedOut) {
-        if (useProcessGroup && killTimer) {
-          clearTimeout(killTimer);
-          killTimer = undefined;
-          signalChild("SIGKILL");
-        }
-
         finishTimeout();
         return;
-      }
-
-      if (useProcessGroup) {
-        signalChild("SIGKILL");
       }
 
       finish({

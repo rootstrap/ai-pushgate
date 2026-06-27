@@ -126,7 +126,7 @@ test("runTimedCommand clears stale kill timers after SIGTERM exits", async () =>
   );
 });
 
-test("runTimedCommand cleans up background descendants after completion", async () => {
+test("runTimedCommand does not kill successful process groups after close", async () => {
   if (process.platform === "win32") {
     return;
   }
@@ -163,7 +163,7 @@ test("runTimedCommand cleans up background descendants after completion", async 
     if (result.kind === "completed") {
       assert.equal(result.code, 0);
     }
-    await assertProcessIsGone(grandchildPid);
+    await assertProcessIsRunning(grandchildPid);
   } finally {
     if (grandchildPid !== undefined) {
       killProcessIfRunning(grandchildPid);
@@ -364,6 +364,23 @@ async function assertProcessIsGone(
   }
 
   assert.fail(`expected process ${String(pid)} to be terminated`);
+}
+
+async function assertProcessIsRunning(
+  pid: number,
+  timeoutMs = 1_000,
+): Promise<void> {
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    if (processIsRunning(pid)) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  assert.fail(`expected process ${String(pid)} to still be running`);
 }
 
 function processIsRunning(pid: number): boolean {

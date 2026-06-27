@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 
 import {
   branchFromRefspec,
+  parseGitPushArgs,
   resolveGitPushSuccessSummary,
   writeGitPushSuccessSummary,
 } from "../src/git/push.js";
@@ -26,6 +27,7 @@ test("writeGitPushSuccessSummary uses shared terminal result formatting", () => 
   writeGitPushSuccessSummary(
     output.stream,
     {
+      kind: "branch-update",
       pullRequestUrl: "https://github.com/rootstrap/ai-pushgate/pull/new/main",
       upstream: "origin/main",
     },
@@ -48,6 +50,14 @@ test("writeGitPushSuccessSummary uses shared terminal result formatting", () => 
     output.text(),
     /\u001B\[1mCreate a pull request:\u001B\[22m/,
   );
+});
+
+test("writeGitPushSuccessSummary stays quiet for non-branch pushes", () => {
+  const output = captureOutput();
+
+  writeGitPushSuccessSummary(output.stream, { kind: "non-branch" });
+
+  assert.equal(output.text(), "");
 });
 
 test("branchFromRefspec returns the pushed destination branch", () => {
@@ -73,6 +83,94 @@ test("branchFromRefspec ignores refspecs that cannot name a pushed branch", () =
   assert.equal(branchFromRefspec("refs/tags/v1.0.0"), undefined);
 });
 
+test("parseGitPushArgs handles repository option forms", () => {
+  assert.deepEqual(parseGitPushArgs(["--repo", "origin", "feature"]), {
+    branch: "feature",
+    intent: "branch-update",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(parseGitPushArgs(["--repo=origin", "feature"]), {
+    branch: "feature",
+    intent: "branch-update",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(
+    parseGitPushArgs(["--set-upstream", "--repo=origin", "HEAD:release"]),
+    {
+      branch: "release",
+      intent: "branch-update",
+      remote: "origin",
+      setsUpstream: true,
+    },
+  );
+});
+
+test("parseGitPushArgs respects option values and the option terminator", () => {
+  assert.deepEqual(
+    parseGitPushArgs([
+      "--receive-pack",
+      "git-receive-pack",
+      "--push-option",
+      "ci.skip",
+      "origin",
+      "feature",
+    ]),
+    {
+      branch: "feature",
+      intent: "branch-update",
+      remote: "origin",
+      setsUpstream: false,
+    },
+  );
+  assert.deepEqual(parseGitPushArgs(["--", "origin", "feature"]), {
+    branch: "feature",
+    intent: "branch-update",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(parseGitPushArgs(["--repo=origin", "--", "feature"]), {
+    branch: "feature",
+    intent: "branch-update",
+    remote: "origin",
+    setsUpstream: false,
+  });
+});
+
+test("parseGitPushArgs marks non-branch push intents", () => {
+  assert.deepEqual(parseGitPushArgs(["--delete", "origin", "feature"]), {
+    branch: "feature",
+    intent: "non-branch",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(parseGitPushArgs(["origin", ":feature"]), {
+    branch: undefined,
+    intent: "non-branch",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(parseGitPushArgs(["origin", "refs/tags/v1.0.0"]), {
+    branch: undefined,
+    intent: "non-branch",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(parseGitPushArgs(["--tags", "origin"]), {
+    branch: undefined,
+    intent: "non-branch",
+    remote: "origin",
+    setsUpstream: false,
+  });
+  assert.deepEqual(parseGitPushArgs(["--mirror", "origin"]), {
+    branch: undefined,
+    intent: "non-branch",
+    remote: "origin",
+    setsUpstream: false,
+  });
+});
+
 test("resolveGitPushSuccessSummary parses repository options from push args", async () => {
   await withGitRemote(
     "git@github.com:rootstrap/ai-pushgate.git",
@@ -83,6 +181,7 @@ test("resolveGitPushSuccessSummary parses repository options from push args", as
           { env },
         ),
         {
+          kind: "branch-update",
           pullRequestUrl:
             "https://github.com/rootstrap/ai-pushgate/pull/new/feature",
           upstream: undefined,
@@ -95,6 +194,7 @@ test("resolveGitPushSuccessSummary parses repository options from push args", as
           { env },
         ),
         {
+          kind: "branch-update",
           pullRequestUrl:
             "https://github.com/rootstrap/ai-pushgate/pull/new/release",
           upstream: undefined,
@@ -107,10 +207,43 @@ test("resolveGitPushSuccessSummary parses repository options from push args", as
           { env },
         ),
         {
+          kind: "branch-update",
           pullRequestUrl:
             "https://github.com/rootstrap/ai-pushgate/pull/new/feature",
           upstream: "origin/feature",
         },
+      );
+    },
+  );
+});
+
+test("resolveGitPushSuccessSummary skips branch copy for non-branch pushes", async () => {
+  await withGitRemote(
+    "git@github.com:rootstrap/ai-pushgate.git",
+    async (env) => {
+      assert.deepEqual(
+        await resolveGitPushSuccessSummary(["--delete", "origin", "feature"], {
+          env,
+        }),
+        { kind: "non-branch" },
+      );
+      assert.deepEqual(
+        await resolveGitPushSuccessSummary(["origin", ":feature"], { env }),
+        { kind: "non-branch" },
+      );
+      assert.deepEqual(
+        await resolveGitPushSuccessSummary(["origin", "refs/tags/v1.0.0"], {
+          env,
+        }),
+        { kind: "non-branch" },
+      );
+      assert.deepEqual(
+        await resolveGitPushSuccessSummary(["--tags", "origin"], { env }),
+        { kind: "non-branch" },
+      );
+      assert.deepEqual(
+        await resolveGitPushSuccessSummary(["--mirror", "origin"], { env }),
+        { kind: "non-branch" },
       );
     },
   );
@@ -122,7 +255,11 @@ test("resolveGitPushSuccessSummary ignores remotes that cannot become GitHub pul
     async (env) => {
       assert.deepEqual(
         await resolveGitPushSuccessSummary(["origin", "feature"], { env }),
-        { pullRequestUrl: undefined, upstream: undefined },
+        {
+          kind: "branch-update",
+          pullRequestUrl: undefined,
+          upstream: undefined,
+        },
       );
     },
   );
@@ -130,7 +267,11 @@ test("resolveGitPushSuccessSummary ignores remotes that cannot become GitHub pul
   await withGitRemote("not a url", async (env) => {
     assert.deepEqual(
       await resolveGitPushSuccessSummary(["origin", "feature"], { env }),
-      { pullRequestUrl: undefined, upstream: undefined },
+      {
+        kind: "branch-update",
+        pullRequestUrl: undefined,
+        upstream: undefined,
+      },
     );
   });
 });
@@ -146,7 +287,11 @@ test("resolveGitPushSuccessSummary treats git command failures as best effort mi
 
   assert.deepEqual(
     await resolveGitPushSuccessSummary(["origin", "feature"], { env }),
-    { pullRequestUrl: undefined, upstream: undefined },
+    {
+      kind: "branch-update",
+      pullRequestUrl: undefined,
+      upstream: undefined,
+    },
   );
 });
 

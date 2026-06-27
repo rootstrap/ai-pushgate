@@ -46,7 +46,7 @@ export async function runPrePushWorkflow(
 ): Promise<number> {
   const hookContext = buildPrePushContext({
     args: io.hookArgs ?? [],
-    stdin: await readStdin(io.stdin),
+    branch: await readPrePushBranchFromStdin(io.stdin),
   });
 
   const repoRoot = await resolveGitRepositoryRoot(io.env);
@@ -276,48 +276,90 @@ function writePrePushHeader(
 
 function buildPrePushContext(options: {
   args: readonly string[];
-  stdin: string;
+  branch: string | undefined;
 }): PrePushContext {
   return {
-    branch: parseBranchFromPrePushInput(options.stdin),
+    branch: options.branch,
     remote: options.args[0],
   };
 }
 
-function parseBranchFromPrePushInput(input: string): string | undefined {
-  for (const line of input.split(/\r?\n/)) {
-    const trimmed = line.trim();
+const MAX_PRE_PUSH_STDIN_LINE_CHARS = 8 * 1024;
 
-    if (!trimmed) {
-      continue;
-    }
+export function parseBranchFromPrePushLine(
+  line: string,
+): string | undefined {
+  const trimmed = line.trim();
 
-    const [localRef] = trimmed.split(/\s+/, 1);
+  if (!trimmed) {
+    return undefined;
+  }
 
-    if (localRef?.startsWith("refs/heads/")) {
-      return localRef.slice("refs/heads/".length);
-    }
+  const [localRef] = trimmed.split(/\s+/, 1);
+
+  if (localRef?.startsWith("refs/heads/")) {
+    return localRef.slice("refs/heads/".length);
   }
 
   return undefined;
 }
 
-function readStdin(stdin: NodeJS.ReadableStream): Promise<string> {
+export function readPrePushBranchFromStdin(
+  stdin: NodeJS.ReadableStream,
+): Promise<string | undefined> {
   return new Promise((resolve, reject) => {
     if ((stdin as { isTTY?: boolean }).isTTY) {
-      resolve("");
+      resolve(undefined);
       return;
     }
 
-    let input = "";
+    let branch: string | undefined;
+    let line = "";
+    let lineOverflowed = false;
+
+    const parseLine = () => {
+      if (branch !== undefined || lineOverflowed) {
+        return;
+      }
+
+      branch = parseBranchFromPrePushLine(line);
+    };
 
     stdin.setEncoding("utf8");
     stdin.on("error", reject);
     stdin.on("data", (chunk: string) => {
-      input += chunk;
+      if (branch !== undefined) {
+        return;
+      }
+
+      for (const character of chunk) {
+        if (character === "\n") {
+          if (line.endsWith("\r")) {
+            line = line.slice(0, -1);
+          }
+
+          parseLine();
+          line = "";
+          lineOverflowed = false;
+          continue;
+        }
+
+        if (lineOverflowed) {
+          continue;
+        }
+
+        if (line.length >= MAX_PRE_PUSH_STDIN_LINE_CHARS) {
+          line = "";
+          lineOverflowed = true;
+          continue;
+        }
+
+        line += character;
+      }
     });
     stdin.on("end", () => {
-      resolve(input);
+      parseLine();
+      resolve(branch);
     });
     stdin.resume();
   });

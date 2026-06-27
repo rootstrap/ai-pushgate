@@ -9613,23 +9613,18 @@ function runCapturedCommand(options) {
       });
     });
     child.on("exit", () => {
-      if (!useProcessGroup && killTimer) {
+      if (killTimer) {
         clearTimeout(killTimer);
         killTimer = void 0;
+        if (useProcessGroup && timedOut) {
+          signalChild("SIGKILL");
+        }
       }
     });
     child.on("close", (code, signal) => {
       if (timedOut) {
-        if (useProcessGroup && killTimer) {
-          clearTimeout(killTimer);
-          killTimer = void 0;
-          signalChild("SIGKILL");
-        }
         finishTimeout();
         return;
-      }
-      if (useProcessGroup) {
-        signalChild("SIGKILL");
       }
       finish({
         code,
@@ -10237,17 +10232,24 @@ function runGitPush(args, options) {
 }
 async function resolveGitPushSuccessSummary(args, options) {
   const parsed = parseGitPushArgs(args);
+  if (parsed.intent === "non-branch") {
+    return { kind: "non-branch" };
+  }
   const currentUpstream = parsed.setsUpstream ? await readCurrentUpstream(options.env) : void 0;
   const branch = parsed.branch ?? branchFromUpstream(currentUpstream) ?? await readCurrentBranch(options.env);
   const remote = parsed.remote ?? remoteFromUpstream(currentUpstream) ?? (branch ? await readConfiguredBranchRemote(branch, options.env) : void 0);
   const upstream = parsed.setsUpstream ? currentUpstream ?? upstreamFromParts(remote, branch) : void 0;
   const remoteUrl = remote ? await readRemoteUrl(remote, options.env) : void 0;
   return {
+    kind: "branch-update",
     pullRequestUrl: remoteUrl && branch ? githubPullRequestUrl(remoteUrl, branch) : void 0,
     upstream
   };
 }
 function writeGitPushSuccessSummary(stream, summary, options = {}) {
+  if (summary.kind === "non-branch") {
+    return;
+  }
   writeLine(stream);
   writeSection(stream, "Pushing branch", options);
   writeResultRow(stream, "passed", "Branch pushed", void 0, options);
@@ -10265,6 +10267,7 @@ function parseGitPushArgs(args) {
   let remoteFromOption;
   let hasRemoteFromOption = false;
   let parseOptions = true;
+  let nonBranchPush = false;
   let setsUpstream = false;
   let readNextAsRemote = false;
   let skipNext = false;
@@ -10288,6 +10291,10 @@ function parseGitPushArgs(args) {
       continue;
     }
     if (parseOptions && arg.startsWith("-")) {
+      if (isNonBranchPushOption(arg)) {
+        nonBranchPush = true;
+        continue;
+      }
       const inlineRemote = inlineOptionValue(arg, "--repo");
       if (inlineRemote !== void 0) {
         remoteFromOption = inlineRemote || void 0;
@@ -10304,8 +10311,11 @@ function parseGitPushArgs(args) {
     positionals.push(arg);
   }
   const branchPosition = hasRemoteFromOption ? 0 : 1;
+  const refspec = positionals[branchPosition];
+  const branch = refspec ? branchFromRefspec(refspec) : void 0;
   return {
-    branch: positionals[branchPosition] ? branchFromRefspec(positionals[branchPosition]) : void 0,
+    branch,
+    intent: nonBranchPush || refspec !== void 0 && branch === void 0 ? "non-branch" : "branch-update",
     remote: hasRemoteFromOption ? remoteFromOption : positionals[0],
     setsUpstream
   };
@@ -10319,6 +10329,9 @@ function optionTakesSeparateValue(arg) {
     return false;
   }
   return arg === "--exec" || arg === "--recurse-submodules" || arg === "--receive-pack" || arg === "--push-option" || arg === "-o";
+}
+function isNonBranchPushOption(arg) {
+  return arg === "--all" || arg === "--delete" || arg === "-d" || arg === "--mirror" || arg === "--tags";
 }
 function branchFromRefspec(refspec) {
   let branch = refspec.trim();
@@ -27953,7 +27966,7 @@ function createTerminalWarningConfirmer(options = {}) {
 async function runPrePushWorkflow(io) {
   const hookContext = buildPrePushContext({
     args: io.hookArgs ?? [],
-    stdin: await readStdin(io.stdin)
+    branch: await readPrePushBranchFromStdin(io.stdin)
   });
   const repoRoot = await resolveGitRepositoryRoot(io.env);
   writePrePushHeader(io.stdout, repoRoot, hookContext);
@@ -28113,37 +28126,67 @@ function writePrePushHeader(stdout, repoRoot, context) {
 }
 function buildPrePushContext(options) {
   return {
-    branch: parseBranchFromPrePushInput(options.stdin),
+    branch: options.branch,
     remote: options.args[0]
   };
 }
-function parseBranchFromPrePushInput(input) {
-  for (const line of input.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      continue;
-    }
-    const [localRef] = trimmed.split(/\s+/, 1);
-    if (localRef?.startsWith("refs/heads/")) {
-      return localRef.slice("refs/heads/".length);
-    }
+var MAX_PRE_PUSH_STDIN_LINE_CHARS = 8 * 1024;
+function parseBranchFromPrePushLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    return void 0;
+  }
+  const [localRef] = trimmed.split(/\s+/, 1);
+  if (localRef?.startsWith("refs/heads/")) {
+    return localRef.slice("refs/heads/".length);
   }
   return void 0;
 }
-function readStdin(stdin) {
+function readPrePushBranchFromStdin(stdin) {
   return new Promise((resolve, reject) => {
     if (stdin.isTTY) {
-      resolve("");
+      resolve(void 0);
       return;
     }
-    let input = "";
+    let branch;
+    let line = "";
+    let lineOverflowed = false;
+    const parseLine = () => {
+      if (branch !== void 0 || lineOverflowed) {
+        return;
+      }
+      branch = parseBranchFromPrePushLine(line);
+    };
     stdin.setEncoding("utf8");
     stdin.on("error", reject);
     stdin.on("data", (chunk) => {
-      input += chunk;
+      if (branch !== void 0) {
+        return;
+      }
+      for (const character of chunk) {
+        if (character === "\n") {
+          if (line.endsWith("\r")) {
+            line = line.slice(0, -1);
+          }
+          parseLine();
+          line = "";
+          lineOverflowed = false;
+          continue;
+        }
+        if (lineOverflowed) {
+          continue;
+        }
+        if (line.length >= MAX_PRE_PUSH_STDIN_LINE_CHARS) {
+          line = "";
+          lineOverflowed = true;
+          continue;
+        }
+        line += character;
+      }
     });
     stdin.on("end", () => {
-      resolve(input);
+      parseLine();
+      resolve(branch);
     });
     stdin.resume();
   });

@@ -12,13 +12,19 @@ export interface GitPushResult {
   signal: NodeJS.Signals | null;
 }
 
-export interface GitPushSuccessSummary {
-  pullRequestUrl?: string;
-  upstream?: string;
-}
+export type GitPushSuccessSummary =
+  | {
+      kind: "branch-update";
+      pullRequestUrl?: string;
+      upstream?: string;
+    }
+  | {
+      kind: "non-branch";
+    };
 
-interface ParsedGitPushArgs {
+export interface ParsedGitPushArgs {
   branch?: string;
+  intent: "branch-update" | "non-branch";
   remote?: string;
   setsUpstream: boolean;
 }
@@ -43,6 +49,11 @@ export async function resolveGitPushSuccessSummary(
   },
 ): Promise<GitPushSuccessSummary> {
   const parsed = parseGitPushArgs(args);
+
+  if (parsed.intent === "non-branch") {
+    return { kind: "non-branch" };
+  }
+
   const currentUpstream = parsed.setsUpstream
     ? await readCurrentUpstream(options.env)
     : undefined;
@@ -60,6 +71,7 @@ export async function resolveGitPushSuccessSummary(
   const remoteUrl = remote ? await readRemoteUrl(remote, options.env) : undefined;
 
   return {
+    kind: "branch-update",
     pullRequestUrl:
       remoteUrl && branch
         ? githubPullRequestUrl(remoteUrl, branch)
@@ -75,6 +87,10 @@ export function writeGitPushSuccessSummary(
     env?: NodeJS.ProcessEnv;
   } = {},
 ): void {
+  if (summary.kind === "non-branch") {
+    return;
+  }
+
   writeLine(stream);
   writeSection(stream, "Pushing branch", options);
   writeResultRow(stream, "passed", "Branch pushed", undefined, options);
@@ -90,11 +106,12 @@ export function writeGitPushSuccessSummary(
   }
 }
 
-function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
+export function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
   const positionals: string[] = [];
   let remoteFromOption: string | undefined;
   let hasRemoteFromOption = false;
   let parseOptions = true;
+  let nonBranchPush = false;
   let setsUpstream = false;
   let readNextAsRemote = false;
   let skipNext = false;
@@ -123,6 +140,11 @@ function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
     }
 
     if (parseOptions && arg.startsWith("-")) {
+      if (isNonBranchPushOption(arg)) {
+        nonBranchPush = true;
+        continue;
+      }
+
       const inlineRemote = inlineOptionValue(arg, "--repo");
 
       if (inlineRemote !== undefined) {
@@ -144,11 +166,15 @@ function parseGitPushArgs(args: readonly string[]): ParsedGitPushArgs {
   }
 
   const branchPosition = hasRemoteFromOption ? 0 : 1;
+  const refspec = positionals[branchPosition];
+  const branch = refspec ? branchFromRefspec(refspec) : undefined;
 
   return {
-    branch: positionals[branchPosition]
-      ? branchFromRefspec(positionals[branchPosition])
-      : undefined,
+    branch,
+    intent:
+      nonBranchPush || (refspec !== undefined && branch === undefined)
+        ? "non-branch"
+        : "branch-update",
     remote: hasRemoteFromOption ? remoteFromOption : positionals[0],
     setsUpstream,
   };
@@ -171,6 +197,16 @@ function optionTakesSeparateValue(arg: string): boolean {
     arg === "--receive-pack" ||
     arg === "--push-option" ||
     arg === "-o"
+  );
+}
+
+function isNonBranchPushOption(arg: string): boolean {
+  return (
+    arg === "--all" ||
+    arg === "--delete" ||
+    arg === "-d" ||
+    arg === "--mirror" ||
+    arg === "--tags"
   );
 }
 
