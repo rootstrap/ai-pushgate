@@ -9676,6 +9676,50 @@ function completedResult(result) {
   };
 }
 
+// src/git/environment.ts
+var GIT_LOCAL_ENV_VARS = /* @__PURE__ */ new Set([
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_COMMON_DIR",
+  "GIT_CONFIG",
+  "GIT_CONFIG_COUNT",
+  "GIT_CONFIG_PARAMETERS",
+  "GIT_DIR",
+  "GIT_GRAFT_FILE",
+  "GIT_IMPLICIT_WORK_TREE",
+  "GIT_INDEX_FILE",
+  "GIT_NO_REPLACE_OBJECTS",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_PREFIX",
+  "GIT_REPLACE_REF_BASE",
+  "GIT_SHALLOW_FILE",
+  "GIT_WORK_TREE"
+]);
+var GIT_CONFIG_PAIR_ENV_VAR = /^GIT_CONFIG_(?:KEY|VALUE)_\d+$/;
+function sanitizeGitLocalEnv(env, options = {}) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (shouldRemoveGitEnvVar(key, options)) {
+      continue;
+    }
+    if (value !== void 0) {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+function isGitLocalEnvVar(key) {
+  return GIT_LOCAL_ENV_VARS.has(key) || GIT_CONFIG_PAIR_ENV_VAR.test(key);
+}
+function shouldRemoveGitEnvVar(key, options) {
+  if (options.preserveGitConfigOverlay && isGitConfigOverlayEnvVar(key)) {
+    return false;
+  }
+  return isGitLocalEnvVar(key);
+}
+function isGitConfigOverlayEnvVar(key) {
+  return key === "GIT_CONFIG_COUNT" || key === "GIT_CONFIG_PARAMETERS" || GIT_CONFIG_PAIR_ENV_VAR.test(key);
+}
+
 // src/git/command.ts
 var GitCommandError = class extends Error {
   gitArgs;
@@ -9692,7 +9736,9 @@ function runGit(repoRoot, args, options = {}) {
     args,
     command: "git",
     cwd: repoRoot,
-    env: options.env
+    env: sanitizeGitLocalEnv(options.env ?? process.env, {
+      preserveGitConfigOverlay: options.preserveGitConfigOverlay
+    })
   };
   if (options.encoding === "buffer") {
     return runCommand({
@@ -9842,11 +9888,12 @@ var GitConfigError = class extends Error {
     this.name = new.target.name;
   }
 };
-async function readGitBooleanConfig(repoRoot, key, env = process.env) {
+async function readGitBooleanConfig(repoRoot, key, env = process.env, options = {}) {
   let result;
   try {
     result = await runGit(repoRoot, ["config", "--bool", "--get", key], {
-      env
+      env,
+      preserveGitConfigOverlay: options.preserveGitConfigOverlay
     });
   } catch (error51) {
     throw new GitConfigError(
@@ -9946,7 +9993,9 @@ async function resolveSkipControlState(repoRoot, env = process.env) {
 }
 async function readSkipBooleanConfig(repoRoot, env, key) {
   try {
-    return await readGitBooleanConfig(repoRoot, key, env);
+    return await readGitBooleanConfig(repoRoot, key, env, {
+      preserveGitConfigOverlay: true
+    });
   } catch (error51) {
     if (error51 instanceof GitConfigError) {
       throw new SkipControlError(error51.message);
@@ -25638,7 +25687,7 @@ async function runProviderCommand(options) {
     args: options.args,
     command: options.command,
     cwd: options.cwd,
-    env: options.env,
+    env: sanitizeGitLocalEnv(options.env),
     outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     // Provider CLIs may exit before stdin fully drains; the process runner still
@@ -26039,7 +26088,7 @@ async function isClaudeUnauthenticated(repoRoot, env) {
       args: ["auth", "status"],
       command: "claude",
       cwd: repoRoot,
-      env
+      env: sanitizeGitLocalEnv(env)
     });
     return result.code === 1;
   } catch {
@@ -26840,7 +26889,7 @@ async function runGitleaksPlugin(plugin, changedFileResolution, repoRoot, env) {
       args: buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath),
       command: plugin.command,
       cwd: repoRoot,
-      env,
+      env: sanitizeGitLocalEnv(env),
       timeoutSeconds: plugin.timeout_seconds
     });
     if (!isProcessCompletionOutcome(commandResult)) {
@@ -27082,7 +27131,7 @@ async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
     args,
     command: executable,
     cwd: repoRoot,
-    env,
+    env: sanitizeGitLocalEnv(env),
     timeoutSeconds: tool.timeout_seconds
   });
   if (commandResult.kind === "passed") {

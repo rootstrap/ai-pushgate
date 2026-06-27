@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { GitleaksPluginConfig } from "../../config/index.js";
+import { sanitizeGitLocalEnv } from "../../git/environment.js";
 import type { ChangedFileResolution } from "../../path-policy/index.js";
 import {
   formatProcessFailure,
@@ -47,7 +48,7 @@ export async function runGitleaksPlugin(
       args: buildGitleaksArgs(plugin, changedFileResolution, repoRoot, reportPath),
       command: plugin.command,
       cwd: repoRoot,
-      env,
+      env: sanitizeGitLocalEnv(env),
       timeoutSeconds: plugin.timeout_seconds,
     });
 

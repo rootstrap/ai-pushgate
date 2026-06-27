@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { sanitizeGitLocalEnv } from "../src/git/environment.js";
 import {
   GitChangedFilesError,
   MissingDiffBaseError,
@@ -239,6 +240,7 @@ function runGit(repoRoot: string, args: string[]): Promise<GitResult> {
   return new Promise((resolve, reject) => {
     const child = spawn("git", args, {
       cwd: repoRoot,
+      env: sanitizeGitLocalEnv(process.env),
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";

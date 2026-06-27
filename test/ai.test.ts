@@ -34,6 +34,10 @@ import type { ProviderCommandResult } from "../src/ai/providers/run-provider-com
 import { renderLocalAiTranscript } from "../src/ai/transcript.js";
 import { buildLocalAiVerdict } from "../src/ai/verdict.js";
 import type { LocalAiProviderAdapter } from "../src/ai/types.js";
+import {
+  isGitLocalEnvVar,
+  sanitizeGitLocalEnv,
+} from "../src/git/environment.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
 
 test("validates the canonical AI review contract with Zod", () => {
@@ -1046,7 +1050,7 @@ test("runs the Claude adapter through the provider interface with model selectio
       },
       changedFileResolution,
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
         PUSHGATE_CLAUDE_ARGS_OUT: argsPath,
         PUSHGATE_CLAUDE_PROMPT_OUT: promptPath,
@@ -1121,7 +1125,7 @@ test("lets Claude provider config opt into bare mode for API-key scripts", async
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
         PUSHGATE_CLAUDE_ARGS_OUT: argsPath,
       },
@@ -1141,6 +1145,59 @@ test("lets Claude provider config opt into bare mode for API-key scripts", async
 
     assert.ok(args.includes("--bare"));
     assert.equal(args.includes("--safe-mode"), false);
+  });
+});
+
+test("sanitizes hook-local Git env before AI provider CLI commands", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const envPath = join(repoRoot, "provider-env.json");
+    const victimRoot = join(repoRoot, "victim-repo");
+
+    await mkdir(binDir, { recursive: true });
+    await mkdir(victimRoot, { recursive: true });
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: victimRoot,
+    });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env node",
+        "import { writeFileSync } from 'node:fs';",
+        "const gitEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith('GIT_')));",
+        "writeFileSync(process.env.PUSHGATE_PROVIDER_ENV_OUT, JSON.stringify(gitEnv));",
+        "for await (const _chunk of process.stdin) {}",
+        `process.stdout.write(${JSON.stringify(
+          claudeStructuredOutputJson({
+            schema_version: 1,
+            findings: [],
+          }),
+        )});`,
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const result = await claudeProvider.runReview({
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        ...poisonedGitEnv(victimRoot),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+        PUSHGATE_PROVIDER_ENV_OUT: envPath,
+      },
+      payload: minimalReviewPayload(),
+      providerConfig: {},
+      repoRoot,
+      timeoutSeconds: 120,
+    });
+
+    assert.equal(result.kind, "review");
+
+    const recorded = JSON.parse(await readFile(envPath, "utf8")) as Record<
+      string,
+      string
+    >;
+
+    assert.deepEqual(leakedGitLocalVars(recorded), []);
   });
 });
 
@@ -1177,7 +1234,7 @@ test("runs the Claude adapter with native structured output and source metadata"
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload("Review this Pushgate payload.\n"),
@@ -1222,7 +1279,7 @@ test("reports malformed Claude structured output JSON", async () => {
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1285,7 +1342,7 @@ test("reports malformed Claude structured output envelopes", async () => {
 
       const result = await claudeProvider.runReview({
         env: {
-          ...process.env,
+          ...sanitizeGitLocalEnv(process.env),
           PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
           PUSHGATE_CLAUDE_OUTPUT_FILE: outputPath,
         },
@@ -1338,7 +1395,7 @@ test("reports invalid Claude structured review objects", async () => {
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1379,7 +1436,7 @@ test("reports unsupported Claude structured-output mode", async () => {
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1419,7 +1476,7 @@ test("reports Claude auth failures before generic command failures", async () =>
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1466,7 +1523,7 @@ test("classifies Claude prompt-mode login output as an auth failure", async () =
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1507,7 +1564,7 @@ test("reports generic Claude command failures", async () => {
 
     const result = await claudeProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1563,7 +1620,7 @@ test("runs the Copilot adapter with non-interactive stdin prompt and model selec
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
         PUSHGATE_COPILOT_ARGS_OUT: argsPath,
         PUSHGATE_COPILOT_PROMPT_OUT: promptPath,
@@ -1636,7 +1693,7 @@ test("parses Copilot JSONL output larger than the provider transcript tail", asy
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1690,7 +1747,7 @@ test("runs the Copilot adapter when the provider wraps JSON in a list marker", a
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1739,7 +1796,7 @@ test("runs the Copilot adapter when the provider emits a whitespace-corrupted fi
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1802,7 +1859,7 @@ test("maps Copilot auth-like failures through advisory mode", async () => {
       },
       changedFileResolution,
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       repoRoot,
@@ -1829,7 +1886,7 @@ test("reports missing Copilot CLI as a provider failure", async () => {
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: emptyBinDir,
       },
       payload: minimalReviewPayload(),
@@ -1865,7 +1922,7 @@ test("reports malformed Copilot JSONL transport output", async () => {
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1915,7 +1972,7 @@ test("reports missing final Copilot assistant response", async () => {
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1954,7 +2011,7 @@ test("reports invalid Copilot final review content through the normalized parser
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -1991,7 +2048,7 @@ test("passes configured timeout seconds to the Copilot adapter", async () => {
 
     const result = await copilotProvider.runReview({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       payload: minimalReviewPayload(),
@@ -2163,7 +2220,7 @@ test("passes configured timeout seconds to the Claude adapter", async () => {
       },
       changedFileResolution,
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       },
       repoRoot,
@@ -2235,6 +2292,7 @@ async function checkedRun(
   }>((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
+      env: sanitizeGitLocalEnv(process.env),
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
@@ -2263,6 +2321,23 @@ async function checkedRun(
       ].join("\n"),
     );
   }
+}
+
+function poisonedGitEnv(victimRoot: string): NodeJS.ProcessEnv {
+  return {
+    GIT_COMMON_DIR: join(victimRoot, ".git"),
+    GIT_CONFIG: join(victimRoot, ".git", "config"),
+    GIT_CONFIG_COUNT: "1",
+    GIT_CONFIG_KEY_0: "core.bare",
+    GIT_CONFIG_VALUE_0: "true",
+    GIT_DIR: join(victimRoot, ".git"),
+    GIT_INDEX_FILE: join(victimRoot, ".git", "index"),
+    GIT_WORK_TREE: victimRoot,
+  };
+}
+
+function leakedGitLocalVars(env: Record<string, string>): string[] {
+  return Object.keys(env).filter(isGitLocalEnvVar).sort();
 }
 
 async function writeRepoFile(

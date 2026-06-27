@@ -116,7 +116,9 @@ async function readSkipBooleanConfig(
   key: string,
 ): Promise<boolean> {
   try {
-    return await readGitBooleanConfig(repoRoot, key, env);
+    return await readGitBooleanConfig(repoRoot, key, env, {
+      preserveGitConfigOverlay: true,
+    });
   } catch (error) {
     if (error instanceof GitConfigError) {
       throw new SkipControlError(error.message);

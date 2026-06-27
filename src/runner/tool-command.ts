@@ -1,4 +1,5 @@
 import type { ToolConfig } from "../config/index.js";
+import { sanitizeGitLocalEnv } from "../git/environment.js";
 import {
   formatProcessFailure,
   runProcessOutcome,
@@ -32,7 +33,7 @@ export async function runToolCommand(
     args,
     command: executable,
     cwd: repoRoot,
-    env,
+    env: sanitizeGitLocalEnv(env),
     timeoutSeconds: tool.timeout_seconds,
   });
 
