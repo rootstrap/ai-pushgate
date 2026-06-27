@@ -1,3 +1,4 @@
+import { sanitizeGitLocalEnv } from "../../git/environment.js";
 import { runCommand } from "../../process/run-command.js";
 import { generateAiReviewOutputJsonSchema } from "../review-contract.js";
 import { createCommandProviderAdapter } from "./command-provider-adapter.js";
@@ -320,7 +321,7 @@ async function isClaudeUnauthenticated(
       args: ["auth", "status"],
       command: "claude",
       cwd: repoRoot,
-      env,
+      env: sanitizeGitLocalEnv(env),
     });
 
     return result.code === 1;

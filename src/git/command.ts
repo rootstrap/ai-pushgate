@@ -3,6 +3,7 @@ import {
   type CommandResult,
   type RunCommandOptions,
 } from "../process/run-command.js";
+import { sanitizeGitLocalEnv } from "./environment.js";
 
 export type GitCommandEncoding = "buffer" | "utf8";
 export type GitCommandResult<Stdout extends Buffer | string = string> =
@@ -15,6 +16,7 @@ type GitCommandFailureResult = Pick<
 export interface GitCommandOptions {
   encoding?: GitCommandEncoding;
   env?: NodeJS.ProcessEnv;
+  preserveGitConfigOverlay?: boolean;
 }
 
 export class GitCommandError extends Error {
@@ -51,7 +53,9 @@ export function runGit(
     args,
     command: "git",
     cwd: repoRoot,
-    env: options.env,
+    env: sanitizeGitLocalEnv(options.env ?? process.env, {
+      preserveGitConfigOverlay: options.preserveGitConfigOverlay,
+    }),
   };
 
   if (options.encoding === "buffer") {

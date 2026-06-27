@@ -1,3 +1,4 @@
+import { sanitizeGitLocalEnv } from "../../git/environment.js";
 import {
   isProcessCompletionOutcome,
   runProcessOutcome,
@@ -37,7 +38,7 @@ export async function runProviderCommand(options: {
     args: options.args,
     command: options.command,
     cwd: options.cwd,
-    env: options.env,
+    env: sanitizeGitLocalEnv(options.env),
     outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     // Provider CLIs may exit before stdin fully drains; the process runner still

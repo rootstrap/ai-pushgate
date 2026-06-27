@@ -7,6 +7,7 @@ import { Readable, Writable } from "node:stream";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { sanitizeGitLocalEnv } from "../src/git/environment.js";
 import { runPrePushWorkflow } from "../src/workflows/pre-push.js";
 import type { WarningConfirmationRequest } from "../src/workflows/warning-confirmation.js";
 
@@ -540,7 +541,7 @@ function runRunner(
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [runnerSourcePath, ...args], {
       cwd: options.cwd,
-      env: { ...process.env, ...options.env },
+      env: { ...sanitizeGitLocalEnv(process.env), ...options.env },
       stdio: [stdin === undefined ? "ignore" : "pipe", "pipe", "pipe"],
     });
     let stderr = "";
@@ -592,7 +593,7 @@ async function runWorkflowInRepo(
 
   try {
     const code = await runPrePushWorkflow({
-      env: { ...process.env, ...options.env },
+      env: { ...sanitizeGitLocalEnv(process.env), ...options.env },
       stderr: stderr.stream,
       stdin: Readable.from(""),
       stdout: stdout.stream,
@@ -809,7 +810,7 @@ async function withGitleaksRepo(
     await installGitleaksStub(binDir);
 
     await callback(repoRoot, {
-      ...process.env,
+      ...sanitizeGitLocalEnv(process.env),
       PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
     });
   } finally {
@@ -862,7 +863,7 @@ async function withAiRepo(
     await installClaudeStub(binDir);
 
     await callback(repoRoot, {
-      ...process.env,
+      ...sanitizeGitLocalEnv(process.env),
       PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
     });
   } finally {
@@ -980,6 +981,7 @@ async function checkedRun(
   const result = await new Promise<RunnerResult>((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
+      env: sanitizeGitLocalEnv(process.env),
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
@@ -1031,7 +1033,7 @@ async function withGitStub(
     await callback({
       argsPath,
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
         PUSHGATE_GIT_ARGS_OUT: argsPath,
         PUSHGATE_GIT_EXIT: "23",
