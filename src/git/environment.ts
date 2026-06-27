@@ -19,9 +19,21 @@ const GIT_LOCAL_ENV_VARS = new Set([
 const GIT_CONFIG_PAIR_ENV_VAR = /^GIT_CONFIG_(?:KEY|VALUE)_\d+$/;
 
 export interface SanitizeGitLocalEnvOptions {
+  /**
+   * Keep `git -c` config passed through Git's environment protocol.
+   * Use only when intentionally reading caller-supplied Git config overlays.
+   */
   preserveGitConfigOverlay?: boolean;
 }
 
+/**
+ * Removes Git hook-local repository bindings from an environment copy.
+ *
+ * Git hooks can run with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, and
+ * related variables pointing at the repository being pushed. If Pushgate passes
+ * those variables into tools, plugins, providers, or explicit-`cwd` Git helpers,
+ * nested Git commands may operate on the hook repo instead of their own cwd.
+ */
 export function sanitizeGitLocalEnv(
   env: NodeJS.ProcessEnv,
   options: SanitizeGitLocalEnvOptions = {},
@@ -41,6 +53,7 @@ export function sanitizeGitLocalEnv(
   return sanitized;
 }
 
+/** Returns true for repository-local Git environment variables. */
 export function isGitLocalEnvVar(key: string): boolean {
   return GIT_LOCAL_ENV_VARS.has(key) || GIT_CONFIG_PAIR_ENV_VAR.test(key);
 }
