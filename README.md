@@ -189,7 +189,12 @@ ignore_paths:
   - "coverage/**"
 ```
 
-V2 configs must declare `version: 2`. Core config sections are strict, provider-specific config belongs below `ai.providers.<provider>`, and tool commands are argv arrays rather than shell strings. `{changed_files}` expands to individual argv entries without shell interpolation, so filenames with spaces stay one argument. Built-in policies are opt-in deterministic checks and share the same `blocking`/`warning` behavior as command tools. Path policy resolves changed files once, then exposes a review range for local AI diff context and a scan range for commit scanners. `plugins.gitleaks` delegates secret scanning to the Gitleaks CLI using that scan range (`<merge-base>..HEAD`) plus a temporary JSON report, while preserving Gitleaks' own config, baseline, and ignore-file mechanisms. Local AI blocks the push when changed text lines exceed `ai.max_changed_lines`, and skips only the AI phase when the approximate prompt-token budget is exceeded; deterministic checks still run first. If deterministic checks or local AI produce warnings, Pushgate asks whether to continue; declining, or running without an interactive terminal for the prompt, blocks the push. Reviewer focus and default finding-category instructions live with the built-in review prompt rather than the v2 config surface. Provider adapters return one normalized JSON review result, including per-finding confidence plus provider source metadata that Pushgate uses for provider-neutral rendering. Pushgate currently supports `claude` and `copilot` provider IDs. See `docs/v2-config-schema.md` for the schema boundary, changed-file policy, and migration behavior for `.push-review.yml`.
+V2 configs must declare `version: 2`. Core config sections are strict,
+provider-specific config belongs below `ai.providers.<provider>`, and tool
+commands are argv arrays rather than shell strings. See
+[`docs/reference/configuration.md`](docs/reference/configuration.md) for the
+full schema boundary, defaults, changed-file policy, and migration behavior for
+`.push-review.yml`.
 
 AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. Providers that support native JSON Schema, strict tool calls, or JSON mode can use stronger generation-time constraints in future adapters; current Claude and Copilot CLI adapters are text fallback providers, so Pushgate prompts them for the schema, safely repairs a small set of low-risk formatting damage, and rejects output that still does not match the contract.
 
@@ -287,3 +292,8 @@ To add a new template:
 3. Open a pull request
 
 Templates should include sensible `ignore_paths` defaults and pre-configured `tools` for the common tools in that stack. The `base.yml` template is the reference for all available config options, including opt-in built-in policies.
+
+## Docs
+
+The maintained docs index is [`docs/README.md`](docs/README.md). It links to
+the domain model, architecture overview, ADRs, and reference contracts.
