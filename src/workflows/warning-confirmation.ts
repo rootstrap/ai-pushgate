@@ -35,7 +35,7 @@ export function createTerminalWarningConfirmer(
 
   return async (request) => {
     try {
-      return terminal.confirm(formatWarningQuestion(request));
+      return terminal.confirm("Continue with push?");
     } catch (error) {
       if (error instanceof InteractiveTerminalError) {
         throw new WarningConfirmationError(
@@ -46,8 +46,4 @@ export function createTerminalWarningConfirmer(
       throw error;
     }
   };
-}
-
-function formatWarningQuestion(request: WarningConfirmationRequest): string {
-  return `[pushgate] ${request.phase} produced ${String(request.warningCount)} warning(s). Continue with warnings?`;
 }

@@ -9538,14 +9538,24 @@ function runCapturedCommand(options) {
     let settled = false;
     let killTimer;
     let timeoutTimer;
+    const useProcessGroup = shouldUseProcessGroup(options);
     const child = spawn(options.command, [...options.args ?? []], {
       cwd: options.cwd,
+      detached: useProcessGroup,
       env: options.env,
       shell: options.shell,
       stdio: [options.stdin === void 0 ? "ignore" : "pipe", "pipe", "pipe"]
     });
     const capturedStdout = () => outputEncoding === "buffer" ? Buffer.concat(stdoutBuffers) : stdout;
     const capturedOutputTail = () => outputEncoding === "utf8" && options.outputTailLimit !== void 0 ? formatOutputTail(stdout, stderr, options.outputTailLimit) : void 0;
+    const finishTimeout = () => {
+      finish({
+        kind: "timeout",
+        outputTail: capturedOutputTail(),
+        stderr,
+        stdout: capturedStdout()
+      });
+    };
     const finish = (result) => {
       if (settled) {
         return;
@@ -9562,9 +9572,10 @@ function runCapturedCommand(options) {
     if (options.timeoutMs !== void 0) {
       timeoutTimer = setTimeout(() => {
         timedOut = true;
-        child.kill("SIGTERM");
+        signalChild("SIGTERM");
         killTimer = setTimeout(() => {
-          child.kill("SIGKILL");
+          signalChild("SIGKILL");
+          killTimer = void 0;
         }, options.killGraceMs ?? 0);
       }, options.timeoutMs);
     }
@@ -9601,14 +9612,18 @@ function runCapturedCommand(options) {
         stdout: capturedStdout()
       });
     });
+    child.on("exit", () => {
+      if (killTimer) {
+        clearTimeout(killTimer);
+        killTimer = void 0;
+        if (useProcessGroup && timedOut) {
+          signalChild("SIGKILL");
+        }
+      }
+    });
     child.on("close", (code, signal) => {
       if (timedOut) {
-        finish({
-          kind: "timeout",
-          outputTail: capturedOutputTail(),
-          stderr,
-          stdout: capturedStdout()
-        });
+        finishTimeout();
         return;
       }
       finish({
@@ -9637,7 +9652,29 @@ function runCapturedCommand(options) {
       }
       child.stdin.end(options.stdin);
     }
+    function signalChild(signal) {
+      if (child.pid === void 0) {
+        return;
+      }
+      try {
+        if (useProcessGroup) {
+          process.kill(-child.pid, signal);
+          return;
+        }
+        child.kill(signal);
+      } catch (error51) {
+        if (!isMissingProcessError(error51)) {
+          throw error51;
+        }
+      }
+    }
   });
+}
+function shouldUseProcessGroup(options) {
+  return options.timeoutMs !== void 0 && process.platform !== "win32";
+}
+function isMissingProcessError(error51) {
+  return error51 !== null && typeof error51 === "object" && "code" in error51 && error51.code === "ESRCH";
 }
 function appendCaptured(current, next, outputCaptureLimit) {
   return outputCaptureLimit === void 0 ? current + next : appendCapped(current, next, outputCaptureLimit);
@@ -10061,6 +10098,130 @@ function runInheritedCommand(options) {
   });
 }
 
+// src/terminal/format.ts
+var ANSI = {
+  blue: ["\x1B[34m", "\x1B[39m"],
+  bold: ["\x1B[1m", "\x1B[22m"],
+  dim: ["\x1B[2m", "\x1B[22m"],
+  green: ["\x1B[32m", "\x1B[39m"],
+  red: ["\x1B[31m", "\x1B[39m"],
+  yellow: ["\x1B[33m", "\x1B[39m"]
+};
+var ASCII_STATUS_SYMBOLS = {
+  blocked: "[block]",
+  info: "[info]",
+  passed: "[ok]",
+  skipped: "[skip]",
+  warning: "[warn]"
+};
+var UNICODE_STATUS_SYMBOLS = {
+  blocked: "x",
+  info: "i",
+  passed: "\u2713",
+  skipped: "-",
+  warning: "!"
+};
+var STATUS_COLORS = {
+  blocked: "red",
+  info: "blue",
+  passed: "green",
+  skipped: "dim",
+  warning: "yellow"
+};
+var LABEL_WIDTH = 18;
+function writeHeader(stream, lines) {
+  for (const line of lines) {
+    writeLine(stream, line);
+  }
+  if (lines.length > 0) {
+    writeLine(stream, "");
+  }
+}
+function writeSection(stream, title, options = {}) {
+  writeLine(stream, style(title, "bold", withStream(stream, options)));
+}
+function writeResultRow(stream, status, label, detail, options = {}) {
+  const styleOptions = withStream(stream, options);
+  const symbol2 = statusSymbol(status, styleOptions);
+  const styledSymbol = styleStatus(symbol2, status, styleOptions);
+  const paddedLabel = label.padEnd(LABEL_WIDTH, " ");
+  const suffix = detail ? ` ${detail}` : "";
+  writeLine(stream, `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd());
+}
+function writeDetail(stream, detail) {
+  writeLine(stream, `  ${detail}`);
+}
+function writeIndentedBlock(stream, lines) {
+  for (const line of lines) {
+    writeLine(stream, `    ${line}`);
+  }
+}
+function writeLine(stream, line = "") {
+  stream.write(`${line}
+`);
+}
+function formatCount(count, singular, plural = `${singular}s`) {
+  return `${String(count)} ${count === 1 ? singular : plural}`;
+}
+function humanizeIdentifier(value) {
+  const stripped = value.replace(/^(policy|plugin):/, "");
+  const words = stripped.replace(/[_-]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return value;
+  }
+  return words.map(
+    (word, index) => index === 0 ? capitalize(word) : word.toLowerCase()
+  ).join(" ");
+}
+function capitalize(value) {
+  if (value.length === 0) {
+    return value;
+  }
+  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
+}
+function statusSymbol(status, options) {
+  return (supportsUnicode(options) ? UNICODE_STATUS_SYMBOLS : ASCII_STATUS_SYMBOLS)[status];
+}
+function styleStatus(value, status, options) {
+  return style(value, STATUS_COLORS[status], options);
+}
+function style(value, color, options) {
+  if (!supportsColor(options)) {
+    return value;
+  }
+  const [open, close] = ANSI[color];
+  return `${open}${value}${close}`;
+}
+function supportsColor(options) {
+  const env = options.env ?? process.env;
+  if (env.NO_COLOR !== void 0 || env.NODE_DISABLE_COLORS !== void 0) {
+    return false;
+  }
+  if (env.FORCE_COLOR !== void 0 && env.FORCE_COLOR !== "0") {
+    return true;
+  }
+  return options.stream?.isTTY === true;
+}
+function supportsUnicode(options) {
+  const env = options.env ?? process.env;
+  if (env.PUSHGATE_ASCII === "1") {
+    return false;
+  }
+  if (options.stream?.isTTY !== true) {
+    return false;
+  }
+  if (process.platform !== "win32") {
+    return env.TERM !== "linux";
+  }
+  return Boolean(env.WT_SESSION || env.TERMINUS_SUBLIME || env.CI);
+}
+function withStream(stream, options) {
+  return {
+    ...options,
+    stream: options.stream ?? stream
+  };
+}
+
 // src/git/push.ts
 function runGitPush(args, options) {
   return runInheritedCommand({
@@ -10069,6 +10230,220 @@ function runGitPush(args, options) {
     env: options.env
   });
 }
+async function resolveGitPushSuccessSummary(args, options) {
+  const parsed = parseGitPushArgs(args);
+  if (parsed.intent === "non-branch") {
+    return { kind: "non-branch" };
+  }
+  const currentUpstream = parsed.setsUpstream ? await readCurrentUpstream(options.env) : void 0;
+  const branch = parsed.branch ?? branchFromUpstream(currentUpstream) ?? await readCurrentBranch(options.env);
+  const remote = parsed.remote ?? remoteFromUpstream(currentUpstream) ?? (branch ? await readConfiguredBranchRemote(branch, options.env) : void 0);
+  const upstream = parsed.setsUpstream ? currentUpstream ?? upstreamFromParts(remote, branch) : void 0;
+  const remoteUrl = remote ? await readRemoteUrl(remote, options.env) : void 0;
+  return {
+    kind: "branch-update",
+    pullRequestUrl: remoteUrl && branch ? githubPullRequestUrl(remoteUrl, branch) : void 0,
+    upstream
+  };
+}
+function writeGitPushSuccessSummary(stream, summary, options = {}) {
+  if (summary.kind === "non-branch") {
+    return;
+  }
+  writeLine(stream);
+  writeSection(stream, "Pushing branch", options);
+  writeResultRow(stream, "passed", "Branch pushed", void 0, options);
+  if (summary.upstream) {
+    writeResultRow(stream, "passed", "Upstream set", summary.upstream, options);
+  }
+  if (summary.pullRequestUrl) {
+    writeLine(stream);
+    writeSection(stream, "Create a pull request:", options);
+    writeDetail(stream, summary.pullRequestUrl);
+  }
+}
+function parseGitPushArgs(args) {
+  const positionals = [];
+  let remoteFromOption;
+  let hasRemoteFromOption = false;
+  let parseOptions = true;
+  let nonBranchPush = false;
+  let setsUpstream = false;
+  let readNextAsRemote = false;
+  let skipNext = false;
+  for (const arg of args) {
+    if (readNextAsRemote) {
+      remoteFromOption = arg || void 0;
+      hasRemoteFromOption = true;
+      readNextAsRemote = false;
+      continue;
+    }
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (parseOptions && arg === "--") {
+      parseOptions = false;
+      continue;
+    }
+    if (parseOptions && (arg === "-u" || arg === "--set-upstream")) {
+      setsUpstream = true;
+      continue;
+    }
+    if (parseOptions && arg.startsWith("-")) {
+      if (isNonBranchPushOption(arg)) {
+        nonBranchPush = true;
+        continue;
+      }
+      const inlineRemote = inlineOptionValue(arg, "--repo");
+      if (inlineRemote !== void 0) {
+        remoteFromOption = inlineRemote || void 0;
+        hasRemoteFromOption = true;
+        continue;
+      }
+      if (arg === "--repo") {
+        readNextAsRemote = true;
+        continue;
+      }
+      skipNext = optionTakesSeparateValue(arg);
+      continue;
+    }
+    positionals.push(arg);
+  }
+  const branchPosition = hasRemoteFromOption ? 0 : 1;
+  const refspec = positionals[branchPosition];
+  const branch = refspec ? branchFromRefspec(refspec) : void 0;
+  return {
+    branch,
+    intent: nonBranchPush || refspec !== void 0 && branch === void 0 ? "non-branch" : "branch-update",
+    remote: hasRemoteFromOption ? remoteFromOption : positionals[0],
+    setsUpstream
+  };
+}
+function inlineOptionValue(arg, option) {
+  const prefix = `${option}=`;
+  return arg.startsWith(prefix) ? arg.slice(prefix.length) : void 0;
+}
+function optionTakesSeparateValue(arg) {
+  if (arg.includes("=")) {
+    return false;
+  }
+  return arg === "--exec" || arg === "--recurse-submodules" || arg === "--receive-pack" || arg === "--push-option" || arg === "-o";
+}
+function isNonBranchPushOption(arg) {
+  return arg === "--all" || arg === "--delete" || arg === "-d" || arg === "--mirror" || arg === "--tags";
+}
+function branchFromRefspec(refspec) {
+  let branch = refspec.trim();
+  if (!branch || branch.includes("*")) {
+    return void 0;
+  }
+  if (branch.startsWith("+")) {
+    branch = branch.slice(1);
+  }
+  const remoteBranchSeparator = branch.lastIndexOf(":");
+  if (remoteBranchSeparator >= 0) {
+    if (remoteBranchSeparator === 0) {
+      return void 0;
+    }
+    branch = branch.slice(remoteBranchSeparator + 1);
+  }
+  if (!branch || branch === "HEAD") {
+    return void 0;
+  }
+  if (branch.startsWith("refs/heads/")) {
+    return branch.slice("refs/heads/".length);
+  }
+  if (branch.startsWith("refs/")) {
+    return void 0;
+  }
+  return branch;
+}
+async function readCurrentBranch(env) {
+  const branch = await readGitStdout(["rev-parse", "--abbrev-ref", "HEAD"], env);
+  if (!branch || branch === "HEAD") {
+    return void 0;
+  }
+  return branch;
+}
+async function readCurrentUpstream(env) {
+  return readGitStdout(
+    ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+    env
+  );
+}
+async function readConfiguredBranchRemote(branch, env) {
+  return readGitStdout(["config", "--get", `branch.${branch}.remote`], env);
+}
+async function readRemoteUrl(remote, env) {
+  return readGitStdout(["remote", "get-url", remote], env);
+}
+async function readGitStdout(args, env) {
+  try {
+    const result = await runCommand({
+      args,
+      command: "git",
+      env
+    });
+    if (result.code !== 0) {
+      return void 0;
+    }
+    const output = result.stdout.trim();
+    return output ? output : void 0;
+  } catch {
+    return void 0;
+  }
+}
+function upstreamFromParts(remote, branch) {
+  return remote && branch ? `${remote}/${branch}` : void 0;
+}
+function remoteFromUpstream(upstream) {
+  const separator = upstream?.indexOf("/") ?? -1;
+  return separator > 0 ? upstream?.slice(0, separator) : void 0;
+}
+function branchFromUpstream(upstream) {
+  const separator = upstream?.indexOf("/") ?? -1;
+  return separator > 0 ? upstream?.slice(separator + 1) : void 0;
+}
+function githubPullRequestUrl(remoteUrl, branch) {
+  const repository = githubRepository(remoteUrl);
+  if (!repository) {
+    return void 0;
+  }
+  return `https://github.com/${repository.owner}/${repository.repo}/pull/new/${encodeURIComponent(
+    branch
+  )}`;
+}
+function githubRepository(remoteUrl) {
+  const trimmed = remoteUrl.trim();
+  const sshMatch = /^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i.exec(
+    trimmed
+  );
+  if (sshMatch) {
+    return {
+      owner: sshMatch[1],
+      repo: sshMatch[2]
+    };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "github.com") {
+      return void 0;
+    }
+    const pathParts = parsed.pathname.replace(/^\/|\/$/g, "").split("/");
+    if (pathParts.length !== 2) {
+      return void 0;
+    }
+    const [owner, repoWithPossibleSuffix] = pathParts;
+    const repo = repoWithPossibleSuffix.endsWith(".git") ? repoWithPossibleSuffix.slice(0, -".git".length) : repoWithPossibleSuffix;
+    return owner && repo ? { owner, repo } : void 0;
+  } catch {
+    return void 0;
+  }
+}
+
+// src/workflows/pre-push.ts
+import { basename } from "node:path";
 
 // src/ai/guardrails.ts
 function evaluateChangedFileGuardrails(options) {
@@ -26447,7 +26822,12 @@ async function collectReviewDiff(options) {
     if (error51 instanceof GitCommandError) {
       const stderr = error51.result.stderr.trim();
       throw new Error(
-        `git diff failed while building the local AI review payload.${stderr ? ` ${stderr}` : ""}`
+        [
+          "git diff failed while building the local AI review payload.",
+          `code=${String(error51.result.code)}`,
+          `signal=${String(error51.result.signal)}`,
+          stderr ? `stderr=${stderr}` : ""
+        ].filter(Boolean).join(" ")
       );
     }
     throw error51;
@@ -26522,94 +26902,96 @@ function renderLocalAiTranscript(events, stdout) {
 function renderLocalAiTranscriptEvent(event, stdout) {
   switch (event.kind) {
     case "skip-no-files":
-      writeLine(stdout, "[pushgate] No changed files to review with local AI.");
+      writeResultRow(stdout, "skipped", "No changed files to review");
       return;
     case "block-changed-lines":
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] BLOCK local AI because ${String(event.changedLineCount)} changed line(s) exceed ai.max_changed_lines ${String(event.maxChangedLines)}.`
+        "blocked",
+        "Changed lines",
+        `${String(event.changedLineCount)} changed lines exceed ai.max_changed_lines ${String(event.maxChangedLines)}`
       );
       return;
     case "skip-prompt-tokens":
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] Skipping local AI because the rendered prompt is approximately ${String(event.estimatedPromptTokens)} token(s), exceeding ai.max_prompt_tokens ${String(event.maxPromptTokens)}.`
+        "skipped",
+        "Prompt budget",
+        `approximately ${String(event.estimatedPromptTokens)} tokens exceeds ai.max_prompt_tokens ${String(event.maxPromptTokens)}`
       );
       return;
     case "review-start":
-      writeLine(
-        stdout,
-        `[pushgate] Running local AI review with ${event.providerId} on ${String(event.changedFileCount)} changed file(s).`
-      );
+      writeDetail(stdout, `Provider: ${capitalize(event.providerId)}`);
+      writeDetail(stdout, `Files reviewed: ${String(event.changedFileCount)}`);
       return;
     case "full-file-context":
-      writeLine(
+      writeDetail(
         stdout,
-        `[pushgate] Local AI prompt includes ${String(event.diffLineCount)} diff line(s) plus ${String(event.fullFileCount)} full file(s) for extra context.`
+        `Context: ${formatCount(event.diffLineCount, "diff line")} plus ${formatCount(event.fullFileCount, "full file")} for extra context`
       );
       return;
     case "provider-failure": {
-      const label = event.aiMode === "advisory" ? "WARN" : "BLOCK";
-      writeLine(
+      const status = event.aiMode === "advisory" ? "warning" : "blocked";
+      writeResultRow(
         stdout,
-        `[pushgate] ${label} local AI provider ${event.result.provider} failed: ${event.result.message}`
+        status,
+        `${capitalize(event.result.provider)} provider`,
+        event.result.message
       );
       if (event.result.detail) {
-        for (const line of event.result.detail.split("\n")) {
-          writeLine(stdout, `[pushgate] Detail: ${line}`);
-        }
+        writeDetail(stdout, "Detail:");
+        writeIndentedBlock(stdout, event.result.detail.split("\n"));
       }
       if (event.result.output) {
-        writeLine(stdout, "[pushgate] Provider output:");
-        for (const line of event.result.output.split("\n")) {
-          writeLine(stdout, `[pushgate]   ${line}`);
-        }
+        writeDetail(stdout, "Provider output:");
+        writeIndentedBlock(stdout, event.result.output.split("\n"));
       }
       return;
     }
     case "normalization-note":
-      writeLine(stdout, `[pushgate] Note: ${event.note}`);
+      writeDetail(stdout, `Note: ${event.note}`);
       return;
     case "review-passed":
-      writeLine(stdout, "[pushgate] Local AI review passed with no findings.");
+      writeResultRow(stdout, "passed", "No findings");
       return;
     case "finding": {
-      const label = event.finding.severity === "blocking" ? "BLOCK" : "WARN";
+      const status = event.finding.severity === "blocking" ? "blocked" : "warning";
       const location = event.finding.line === "N/A" ? event.finding.file : `${event.finding.file}:${event.finding.line}`;
-      writeLine(
+      writeResultRow(
         stdout,
-        `[pushgate] ${label} AI ${event.finding.category} at ${location}.`
+        status,
+        `AI ${humanizeCategory(event.finding.category)}`,
+        location
       );
-      writeLine(stdout, `[pushgate]   Message: ${event.finding.message}`);
-      writeLine(stdout, `[pushgate]   Suggestion: ${event.finding.suggestion}`);
+      writeDetail(stdout, `Message: ${event.finding.message}`);
+      writeDetail(stdout, `Suggestion: ${event.finding.suggestion}`);
       return;
     }
     case "review-summary":
-      writeLine(
-        stdout,
-        `[pushgate] Local AI review finished: ${String(event.summary.blockingCount)} blocking finding(s), ${String(event.summary.warningCount)} warning(s).`
-      );
+      if (event.summary.blockingCount > 0 || event.summary.warningCount > 0) {
+        writeDetail(
+          stdout,
+          `Finished with ${formatCount(event.summary.blockingCount, "blocking finding")} and ${formatCount(event.summary.warningCount, "warning")}.`
+        );
+      }
       return;
     case "advisory-continue":
-      writeLine(stdout, "[pushgate] Continuing because ai.mode is advisory.");
+      writeDetail(stdout, "Continuing because ai.mode is advisory.");
       return;
     case "provider-blocked":
-      writeLine(
-        stdout,
-        "[pushgate] Local AI is blocking in this repository. Fix the provider issue or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push."
-      );
+      writeLine(stdout);
+      writeLine(stdout, "Local AI is blocking in this repository.");
+      writeLine(stdout, "Fix the provider issue, or use `git -c pushgate.skip-ai-check=true push` to bypass only the AI phase for one push.");
       return;
     case "review-blocked":
-      writeLine(
-        stdout,
-        "[pushgate] Local AI review blocked the push. Fix the findings above or use git -c pushgate.skip-ai-check=true push to bypass only the AI phase for one push."
-      );
+      writeLine(stdout);
+      writeLine(stdout, "Local AI review blocked the push.");
+      writeLine(stdout, "Fix the findings above, or use `git -c pushgate.skip-ai-check=true push` to bypass only the AI phase for one push.");
       return;
   }
 }
-function writeLine(stream, line) {
-  stream.write(`${line}
-`);
+function humanizeCategory(category) {
+  return category.replace(/_/g, " ");
 }
 
 // src/ai/verdict.ts
@@ -27042,78 +27424,117 @@ function summarizeDeterministicResults(results) {
 
 // src/runner/transcript.ts
 function createDeterministicTranscript(stdout) {
+  const warnings = [];
+  const blockers = [];
   return {
     writeFailFast() {
-      writeLine2(
-        stdout,
-        "[pushgate] Stopping deterministic checks after blocking failure because fail_fast is true."
-      );
+      writeDetail(stdout, "Stopped after a blocking failure because fail_fast is true.");
     },
     writeNoChecks() {
-      writeLine2(stdout, "[pushgate] No deterministic checks configured.");
+      writeSection(stdout, "Checks");
+      writeResultRow(stdout, "skipped", "No checks configured");
+      writeLine(stdout);
     },
     writePolicyResult(result) {
-      const labelByStatus = {
-        blocked: "BLOCK",
-        passed: "PASS",
-        warning: "WARN"
-      };
-      const detail = result.detail ? `: ${result.detail}` : "";
-      writeLine2(
-        stdout,
-        `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`
-      );
+      writeCheckResult(result.name, result);
     },
     writePluginResult(name, result) {
-      writeRunnableResult(name, result);
+      writeCheckResult(name, result);
     },
     writeStart(checkCount) {
-      writeLine2(
-        stdout,
-        `[pushgate] Running ${String(checkCount)} deterministic check(s).`
-      );
+      writeSection(stdout, "Checks");
+      writeDetail(stdout, `Running ${formatCount(checkCount, "check")}.`);
     },
     writeSummary(summary) {
-      writeLine2(
-        stdout,
-        `[pushgate] Deterministic checks finished: ${String(summary.blockedCount)} blocking failure(s), ${String(summary.warningCount)} warning(s).`
-      );
+      writeLine(stdout);
       if (summary.blockedCount > 0) {
-        writeLine2(
+        writeLine(
           stdout,
-          "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally."
+          `Checks completed with ${formatCount(summary.blockedCount, "blocking failure")} and ${formatCount(summary.warningCount, "warning")}.`
         );
+        writeLine(stdout);
+        writeSection(stdout, summary.blockedCount === 1 ? "Blocked" : "Blocked checks");
+        for (const blocker of blockers) {
+          writeDetail(stdout, `${blocker} failed and is configured as a blocking check.`);
+        }
+        writeLine(stdout);
+        writeLine(
+          stdout,
+          "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass local hooks."
+        );
+        return;
       }
+      if (summary.warningCount > 0) {
+        writeLine(
+          stdout,
+          `Checks completed with ${formatCount(summary.warningCount, "non-blocking warning")}.`
+        );
+        writeLine(stdout);
+        writeSection(stdout, summary.warningCount === 1 ? "Warning" : "Warnings");
+        for (const warning of warnings) {
+          writeDetail(stdout, `${warning} failed, but this check does not block the push.`);
+        }
+        writeLine(stdout);
+        return;
+      }
+      writeLine(stdout, "Checks passed.");
+      writeLine(stdout);
     },
     writeToolResult(tool, result) {
-      writeRunnableResult(tool.name, result);
+      writeCheckResult(tool.name, result);
     }
   };
-  function writeRunnableResult(name, result) {
-    if (result.status === "passed") {
-      writeLine2(stdout, `[pushgate] PASS ${name}.`);
-      return;
-    }
-    if (result.status === "skipped") {
-      writeLine2(stdout, `[pushgate] SKIP ${name}: ${result.detail}.`);
-      return;
-    }
-    const label = result.status === "warning" ? "WARN" : "BLOCK";
-    writeLine2(
-      stdout,
-      `[pushgate] ${label} ${name}: ${result.detail ?? "command failed"}.`
-    );
+  function writeCheckResult(name, result) {
+    const display = displayCheck(name);
+    const detail = formatDetail(name, result.detail);
+    const status = mapStatus(result.status);
+    writeResultRow(stdout, status, display.label, detail ?? display.detail);
     if (result.outputTail) {
-      writeLine2(stdout, "[pushgate] Command output:");
-      for (const line of result.outputTail.split("\n")) {
-        writeLine2(stdout, `[pushgate]   ${line}`);
-      }
+      writeDetail(stdout, "Command output:");
+      writeIndentedBlock(stdout, result.outputTail.split("\n"));
+    }
+    if (result.status === "warning") {
+      warnings.push(display.label);
+    }
+    if (result.status === "blocked") {
+      blockers.push(display.label);
     }
   }
 }
-function writeLine2(stream, line) {
-  stream.write(`${line}
-`);
+function displayCheck(name) {
+  if (name === "policy:diff_size") {
+    return { label: "Diff size" };
+  }
+  if (name === "policy:forbidden_paths") {
+    return { label: "Forbidden paths" };
+  }
+  if (name === "plugin:gitleaks") {
+    return { detail: "gitleaks", label: "Secrets scan" };
+  }
+  return { label: humanizeIdentifier(name) };
+}
+function formatDetail(name, detail) {
+  if (!detail) {
+    return void 0;
+  }
+  if (name === "policy:diff_size") {
+    const passed = detail.match(
+      /^(\d+) changed line\(s\) within max_changed_lines (\d+)$/
+    );
+    if (passed) {
+      return `${passed[1]} / ${passed[2]} changed lines`;
+    }
+  }
+  return detail;
+}
+function mapStatus(status) {
+  const statusByResult = {
+    blocked: "blocked",
+    passed: "passed",
+    skipped: "skipped",
+    warning: "warning"
+  };
+  return statusByResult[status];
 }
 
 // src/runner/tool-command.ts
@@ -27274,6 +27695,9 @@ function requireChangedFileResolution(changedFileResolution) {
   );
 }
 
+// src/version.ts
+var PUSHGATE_VERSION = "3.5.0";
+
 // src/workflows/run-decisions.ts
 function buildPrePushConfigDecision(skipControls) {
   if (skipControls.active.kind === "skip-all-checks") {
@@ -27389,7 +27813,7 @@ function confirmWithInteractiveTerminal(question) {
       }
       writeSync(
         terminal.outputFd,
-        "[pushgate] Please answer yes(y) or no(n).\n"
+        "Please answer `y` or `n`.\n"
       );
     }
   } catch (error51) {
@@ -27402,14 +27826,14 @@ function confirmWithInteractiveTerminal(question) {
   }
 }
 function formatYesNoPrompt(question) {
-  return `${question} yes(y) / no(n) `;
+  return `${question} [y/N] `;
 }
 function normalizeAnswer(answer) {
   const normalized = answer.trim().toLowerCase();
   if (normalized === "y" || normalized === "yes") {
     return "yes";
   }
-  if (normalized === "n" || normalized === "no") {
+  if (normalized === "" || normalized === "n" || normalized === "no") {
     return "no";
   }
   return "invalid";
@@ -27526,7 +27950,7 @@ function createTerminalWarningConfirmer(options = {}) {
   const terminal = options.terminal ?? createInteractiveTerminal();
   return async (request) => {
     try {
-      return terminal.confirm(formatWarningQuestion(request));
+      return terminal.confirm("Continue with push?");
     } catch (error51) {
       if (error51 instanceof InteractiveTerminalError) {
         throw new WarningConfirmationError(
@@ -27537,14 +27961,15 @@ function createTerminalWarningConfirmer(options = {}) {
     }
   };
 }
-function formatWarningQuestion(request) {
-  return `[pushgate] ${request.phase} produced ${String(request.warningCount)} warning(s). Continue with warnings?`;
-}
 
 // src/workflows/pre-push.ts
 async function runPrePushWorkflow(io) {
-  await drainStdin(io.stdin);
+  const hookContext = buildPrePushContext({
+    args: io.hookArgs ?? [],
+    branch: await readPrePushBranchFromStdin(io.stdin)
+  });
   const repoRoot = await resolveGitRepositoryRoot(io.env);
+  writePrePushHeader(io.stdout, repoRoot, hookContext);
   const skipControls = await resolveSkipControlState(repoRoot, io.env);
   const configDecision = buildPrePushConfigDecision(skipControls);
   if (configDecision.kind === "skip") {
@@ -27602,13 +28027,20 @@ async function runPrePushWorkflow(io) {
   })) {
     return 1;
   }
+  writeLine(io.stdout);
+  writeLine(io.stdout, "Pushgate passed. Git is pushing...");
   return 0;
 }
 async function runLocalAiPhase(config2, decision, changedFileResolution, options) {
   if (decision.kind === "skip") {
-    writeVisibleSkipReason(options.stdout, decision.reason);
+    const message = formatRunSkipReason(decision.reason);
+    if (message !== null) {
+      writeSection(options.stdout, "AI review");
+      writeResultRow(options.stdout, "skipped", message);
+    }
     return { exitCode: 0, warningCount: 0 };
   }
+  writeSection(options.stdout, "AI review");
   return await runLocalAiReview({
     aiConfig: config2.ai,
     changedFileResolution: requireChangedFileResolution2(
@@ -27633,22 +28065,22 @@ async function confirmWarningsBeforeContinuing(options) {
     });
     if (confirmed) {
       options.stdout.write(
-        `[pushgate] Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.
+        `Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.
 `
       );
       return true;
     }
     options.stdout.write(
-      `[pushgate] Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.
+      `Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.
 `
     );
     return false;
   } catch (error51) {
     if (error51 instanceof WarningConfirmationError) {
-      options.stdout.write(`[pushgate] ${error51.message}
+      options.stdout.write(`${error51.message}
 `);
       options.stdout.write(
-        "[pushgate] Push blocked because warning confirmation could not be collected.\n"
+        "Push blocked because warning confirmation could not be collected.\n"
       );
       return false;
     }
@@ -27668,8 +28100,7 @@ async function maybeResolveChangedFiles(config2, options) {
 function writeVisibleSkipReason(stdout, reason) {
   const message = formatRunSkipReason(reason);
   if (message !== null) {
-    stdout.write(`[pushgate] ${message}
-`);
+    writeResultRow(stdout, "skipped", message);
   }
 }
 function requireChangedFileResolution2(changedFileResolution, phaseName) {
@@ -27680,14 +28111,83 @@ function requireChangedFileResolution2(changedFileResolution, phaseName) {
     `Pushgate could not prepare changed files for the ${phaseName}.`
   );
 }
-function drainStdin(stdin) {
+function writePrePushHeader(stdout, repoRoot, context) {
+  const lines = [
+    `Pushgate v${PUSHGATE_VERSION} - pre-push`,
+    `Repo: ${basename(repoRoot)}`
+  ];
+  if (context.branch) {
+    lines.push(`Branch: ${context.branch}`);
+  }
+  if (context.remote) {
+    lines.push(`Remote: ${context.remote}`);
+  }
+  writeHeader(stdout, lines);
+}
+function buildPrePushContext(options) {
+  return {
+    branch: options.branch,
+    remote: options.args[0]
+  };
+}
+var MAX_PRE_PUSH_STDIN_LINE_CHARS = 8 * 1024;
+function parseBranchFromPrePushLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    return void 0;
+  }
+  const [localRef] = trimmed.split(/\s+/, 1);
+  if (localRef?.startsWith("refs/heads/")) {
+    return localRef.slice("refs/heads/".length);
+  }
+  return void 0;
+}
+function readPrePushBranchFromStdin(stdin) {
   return new Promise((resolve, reject) => {
     if (stdin.isTTY) {
-      resolve();
+      resolve(void 0);
       return;
     }
+    let branch;
+    let line = "";
+    let lineOverflowed = false;
+    const parseLine = () => {
+      if (branch !== void 0 || lineOverflowed) {
+        return;
+      }
+      branch = parseBranchFromPrePushLine(line);
+    };
+    stdin.setEncoding("utf8");
     stdin.on("error", reject);
-    stdin.on("end", resolve);
+    stdin.on("data", (chunk) => {
+      if (branch !== void 0) {
+        return;
+      }
+      for (const character of chunk) {
+        if (character === "\n") {
+          if (line.endsWith("\r")) {
+            line = line.slice(0, -1);
+          }
+          parseLine();
+          line = "";
+          lineOverflowed = false;
+          continue;
+        }
+        if (lineOverflowed) {
+          continue;
+        }
+        if (line.length >= MAX_PRE_PUSH_STDIN_LINE_CHARS) {
+          line = "";
+          lineOverflowed = true;
+          continue;
+        }
+        line += character;
+      }
+    });
+    stdin.on("end", () => {
+      parseLine();
+      resolve(branch);
+    });
     stdin.resume();
   });
 }
@@ -27718,7 +28218,7 @@ async function main(argv = process.argv.slice(2), io = {
 `);
       return 0;
     case "pre-push":
-      return runPrePushCommand(io);
+      return runPrePushCommand(args, io);
     case "push":
       return runPushCommand(args, io);
     default:
@@ -27729,9 +28229,9 @@ async function main(argv = process.argv.slice(2), io = {
       return 64;
   }
 }
-async function runPrePushCommand(io) {
+async function runPrePushCommand(args, io) {
   try {
-    return await runPrePushWorkflow(io);
+    return await runPrePushWorkflow({ ...io, hookArgs: args });
   } catch (error51) {
     writePushgateError(io.stderr, error51);
     return 1;
@@ -27750,6 +28250,9 @@ async function runPushCommand(args, io) {
       );
     });
     if (result.code !== null) {
+      if (result.code === 0) {
+        await writeResolvedGitPushSuccessSummary(parsed.gitPushArgs, io);
+      }
       return result.code;
     }
     throw new SkipControlError(
@@ -27758,6 +28261,18 @@ async function runPushCommand(args, io) {
   } catch (error51) {
     writePushgateError(io.stderr, error51);
     return 1;
+  }
+}
+async function writeResolvedGitPushSuccessSummary(gitPushArgs, io) {
+  try {
+    writeGitPushSuccessSummary(
+      io.stdout,
+      await resolveGitPushSuccessSummary(gitPushArgs, {
+        env: io.env
+      }),
+      { env: io.env }
+    );
+  } catch {
   }
 }
 function writeUsageError(stderr, message) {

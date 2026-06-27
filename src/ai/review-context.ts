@@ -92,7 +92,14 @@ async function collectReviewDiff(options: {
       const stderr = error.result.stderr.trim();
 
       throw new Error(
-        `git diff failed while building the local AI review payload.${stderr ? ` ${stderr}` : ""}`,
+        [
+          "git diff failed while building the local AI review payload.",
+          `code=${String(error.result.code)}`,
+          `signal=${String(error.result.signal)}`,
+          stderr ? `stderr=${stderr}` : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       );
     }
 

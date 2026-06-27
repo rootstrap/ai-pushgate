@@ -1,4 +1,14 @@
 import type { ToolConfig } from "../config/index.js";
+import {
+  formatCount,
+  humanizeIdentifier,
+  writeDetail,
+  writeIndentedBlock,
+  writeLine,
+  writeResultRow,
+  writeSection,
+  type TerminalStatus,
+} from "../terminal/format.js";
 import type { ToolResult } from "./deterministic.js";
 import type { BuiltInPolicyResult } from "./policies.js";
 import type { DeterministicResultSummary } from "./summary.js";
@@ -16,90 +26,146 @@ export interface DeterministicTranscript {
 export function createDeterministicTranscript(
   stdout: NodeJS.WritableStream,
 ): DeterministicTranscript {
+  const warnings: string[] = [];
+  const blockers: string[] = [];
+
   return {
     writeFailFast() {
-      writeLine(
-        stdout,
-        "[pushgate] Stopping deterministic checks after blocking failure because fail_fast is true.",
-      );
+      writeDetail(stdout, "Stopped after a blocking failure because fail_fast is true.");
     },
 
     writeNoChecks() {
-      writeLine(stdout, "[pushgate] No deterministic checks configured.");
+      writeSection(stdout, "Checks");
+      writeResultRow(stdout, "skipped", "No checks configured");
+      writeLine(stdout);
     },
 
     writePolicyResult(result) {
-      const labelByStatus = {
-        blocked: "BLOCK",
-        passed: "PASS",
-        warning: "WARN",
-      } as const;
-      const detail = result.detail ? `: ${result.detail}` : "";
-
-      writeLine(
-        stdout,
-        `[pushgate] ${labelByStatus[result.status]} ${result.name}${detail}.`,
-      );
+      writeCheckResult(result.name, result);
     },
 
     writePluginResult(name, result) {
-      writeRunnableResult(name, result);
+      writeCheckResult(name, result);
     },
 
     writeStart(checkCount) {
-      writeLine(
-        stdout,
-        `[pushgate] Running ${String(checkCount)} deterministic check(s).`,
-      );
+      writeSection(stdout, "Checks");
+      writeDetail(stdout, `Running ${formatCount(checkCount, "check")}.`);
     },
 
     writeSummary(summary) {
-      writeLine(
-        stdout,
-        `[pushgate] Deterministic checks finished: ${String(summary.blockedCount)} blocking failure(s), ${String(summary.warningCount)} warning(s).`,
-      );
+      writeLine(stdout);
 
       if (summary.blockedCount > 0) {
         writeLine(
           stdout,
-          "[pushgate] Fix the blocking command failures before pushing, or use git push --no-verify to bypass local hooks intentionally.",
+          `Checks completed with ${formatCount(summary.blockedCount, "blocking failure")} and ${formatCount(summary.warningCount, "warning")}.`,
         );
+        writeLine(stdout);
+        writeSection(stdout, summary.blockedCount === 1 ? "Blocked" : "Blocked checks");
+
+        for (const blocker of blockers) {
+          writeDetail(stdout, `${blocker} failed and is configured as a blocking check.`);
+        }
+
+        writeLine(stdout);
+        writeLine(
+          stdout,
+          "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass local hooks.",
+        );
+        return;
       }
+
+      if (summary.warningCount > 0) {
+        writeLine(
+          stdout,
+          `Checks completed with ${formatCount(summary.warningCount, "non-blocking warning")}.`,
+        );
+        writeLine(stdout);
+        writeSection(stdout, summary.warningCount === 1 ? "Warning" : "Warnings");
+
+        for (const warning of warnings) {
+          writeDetail(stdout, `${warning} failed, but this check does not block the push.`);
+        }
+        writeLine(stdout);
+        return;
+      }
+
+      writeLine(stdout, "Checks passed.");
+      writeLine(stdout);
     },
 
     writeToolResult(tool, result) {
-      writeRunnableResult(tool.name, result);
+      writeCheckResult(tool.name, result);
     },
   };
 
-  function writeRunnableResult(name: string, result: ToolResult): void {
-    if (result.status === "passed") {
-      writeLine(stdout, `[pushgate] PASS ${name}.`);
-      return;
-    }
+  function writeCheckResult(
+    name: string,
+    result: Pick<ToolResult, "detail" | "status" | "outputTail">,
+  ): void {
+    const display = displayCheck(name);
+    const detail = formatDetail(name, result.detail);
+    const status = mapStatus(result.status);
 
-    if (result.status === "skipped") {
-      writeLine(stdout, `[pushgate] SKIP ${name}: ${result.detail}.`);
-      return;
-    }
-
-    const label = result.status === "warning" ? "WARN" : "BLOCK";
-
-    writeLine(
-      stdout,
-      `[pushgate] ${label} ${name}: ${result.detail ?? "command failed"}.`,
-    );
+    writeResultRow(stdout, status, display.label, detail ?? display.detail);
 
     if (result.outputTail) {
-      writeLine(stdout, "[pushgate] Command output:");
+      writeDetail(stdout, "Command output:");
+      writeIndentedBlock(stdout, result.outputTail.split("\n"));
+    }
 
-      for (const line of result.outputTail.split("\n")) {
-        writeLine(stdout, `[pushgate]   ${line}`);
-      }
+    if (result.status === "warning") {
+      warnings.push(display.label);
+    }
+
+    if (result.status === "blocked") {
+      blockers.push(display.label);
     }
   }
 }
 
-function writeLine(stream: NodeJS.WritableStream, line: string): void {
-  stream.write(`${line}\n`);
+function displayCheck(name: string): { detail?: string; label: string } {
+  if (name === "policy:diff_size") {
+    return { label: "Diff size" };
+  }
+
+  if (name === "policy:forbidden_paths") {
+    return { label: "Forbidden paths" };
+  }
+
+  if (name === "plugin:gitleaks") {
+    return { detail: "gitleaks", label: "Secrets scan" };
+  }
+
+  return { label: humanizeIdentifier(name) };
+}
+
+function formatDetail(name: string, detail: string | undefined): string | undefined {
+  if (!detail) {
+    return undefined;
+  }
+
+  if (name === "policy:diff_size") {
+    const passed = detail.match(
+      /^(\d+) changed line\(s\) within max_changed_lines (\d+)$/,
+    );
+
+    if (passed) {
+      return `${passed[1]} / ${passed[2]} changed lines`;
+    }
+  }
+
+  return detail;
+}
+
+function mapStatus(status: ToolResult["status"]): TerminalStatus {
+  const statusByResult = {
+    blocked: "blocked",
+    passed: "passed",
+    skipped: "skipped",
+    warning: "warning",
+  } as const satisfies Record<ToolResult["status"], TerminalStatus>;
+
+  return statusByResult[status];
 }

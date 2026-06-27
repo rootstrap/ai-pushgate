@@ -30,6 +30,12 @@ info() {
   printf '[pushgate] %s\n' "$*"
 }
 
+verbose() {
+  if [ "${PUSHGATE_VERBOSE:-}" = "1" ]; then
+    info "$@"
+  fi
+}
+
 error() {
   printf '[pushgate] %s\n' "$*" >&2
 }
@@ -81,6 +87,29 @@ resolve_runner() {
   return 1
 }
 
+runner_uses_node() {
+  local first_line
+
+  IFS= read -r first_line < "$PUSHGATE_RUNNER" || first_line=""
+  case "$first_line" in
+    '#!'*node*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+run_runner() {
+  if runner_uses_node; then
+    node "$PUSHGATE_RUNNER" "$@"
+    return $?
+  fi
+
+  "$PUSHGATE_RUNNER" "$@"
+}
+
 REPO_ROOT="$(repo_root)"
 
 if ! resolve_runner; then
@@ -101,7 +130,7 @@ if [ ! -x "$PUSHGATE_RUNNER" ]; then
   exit 1
 fi
 
-if ! RUNNER_PROTOCOL="$("$PUSHGATE_RUNNER" hook-protocol 2>&1)"; then
+if ! RUNNER_PROTOCOL="$(run_runner hook-protocol 2>&1)"; then
   error "Pushgate runner from ${PUSHGATE_RUNNER_SOURCE} at ${PUSHGATE_RUNNER} could not report its hook protocol."
   if [ -n "$RUNNER_PROTOCOL" ]; then
     error "Runner output:"
@@ -121,7 +150,11 @@ if [ "$RUNNER_PROTOCOL" != "$HOOK_PROTOCOL" ]; then
   exit 1
 fi
 
-info "Pushgate pre-push hook v${HOOK_VERSION} with protocol ${HOOK_PROTOCOL}"
-info "Repository root: ${REPO_ROOT}"
-info "Using runner from ${PUSHGATE_RUNNER_SOURCE}: ${PUSHGATE_RUNNER}"
+verbose "Pushgate pre-push hook v${HOOK_VERSION} with protocol ${HOOK_PROTOCOL}"
+verbose "Repository root: ${REPO_ROOT}"
+verbose "Using runner from ${PUSHGATE_RUNNER_SOURCE}: ${PUSHGATE_RUNNER}"
+if runner_uses_node; then
+  exec node "$PUSHGATE_RUNNER" pre-push "$@"
+fi
+
 exec "$PUSHGATE_RUNNER" pre-push "$@"

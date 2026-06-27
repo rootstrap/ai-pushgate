@@ -32,7 +32,7 @@ test("accepts pre-push args and drains Git hook stdin", async () => {
     );
 
     assert.equal(result.code, 0, formatResult(result));
-    assert.match(result.stdout, /No deterministic checks configured/);
+    assert.match(result.stdout, /\[skip\] No checks configured/);
     assert.equal(result.stderr, "");
   });
 });
@@ -62,12 +62,12 @@ test("runs built-in policies against resolved pre-push changed files", async () 
     );
 
     assert.equal(result.code, 1, formatResult(result));
-    assert.match(result.stdout, /Running 2 deterministic check\(s\)/);
-    assert.match(result.stdout, /WARN policy:diff_size/);
+    assert.match(result.stdout, /Running 2 checks/);
+    assert.match(result.stdout, /\[warn\] Diff size/);
     assert.match(result.stdout, /3 changed line\(s\) exceed max_changed_lines 2/);
-    assert.match(result.stdout, /BLOCK policy:forbidden_paths/);
+    assert.match(result.stdout, /\[block\] Forbidden paths/);
     assert.match(result.stdout, /secrets\/token\.txt \(secrets\/\*\*\)/);
-    assert.match(result.stdout, /1 blocking failure\(s\), 1 warning\(s\)/);
+    assert.match(result.stdout, /1 blocking failure and 1 warning/);
     assert.equal(result.stderr, "");
   });
 });
@@ -81,8 +81,8 @@ test("Gitleaks plugin findings block the pre-push runner", async () => {
     );
 
     assert.equal(result.code, 1, formatResult(result));
-    assert.match(result.stdout, /Running 1 deterministic check\(s\)/);
-    assert.match(result.stdout, /BLOCK plugin:gitleaks/);
+    assert.match(result.stdout, /Running 1 check/);
+    assert.match(result.stdout, /\[block\] Secrets scan/);
     assert.match(result.stdout, /src\/secret\.txt:1 \(generic-api-key\)/);
     assert.doesNotMatch(result.stdout, /Running local AI review/);
     assert.equal(result.stderr, "");
@@ -101,7 +101,7 @@ test("deterministic warnings prompt before local AI runs", async () => {
     });
 
     assert.equal(result.code, 0, formatResult(result));
-    assert.match(result.stdout, /WARN warn-tool: exited with code 7/);
+    assert.match(result.stdout, /\[warn\] Warn tool\s+exited with code 7/);
     assert.match(
       result.stdout,
       /Continuing with 1 warning\(s\) from deterministic checks after confirmation/,
@@ -125,7 +125,7 @@ test("declining deterministic warnings blocks the pre-push runner", async () => 
     });
 
     assert.equal(result.code, 1, formatResult(result));
-    assert.match(result.stdout, /WARN warn-tool: exited with code 7/);
+    assert.match(result.stdout, /\[warn\] Warn tool\s+exited with code 7/);
     assert.match(
       result.stdout,
       /Push blocked because deterministic checks produced 1 warning\(s\) and continuation was not confirmed/,
@@ -184,7 +184,7 @@ test("skip-ai-check keeps deterministic work and prints visible AI skip output",
     );
 
     assert.equal(result.code, 0, formatResult(result));
-    assert.match(result.stdout, /No deterministic checks configured/);
+    assert.match(result.stdout, /\[skip\] No checks configured/);
     assert.match(
       result.stdout,
       /Skipping local AI because pushgate\.skip-ai-check=true/,
@@ -217,8 +217,8 @@ test("blocking local AI findings block the pre-push runner", async () => {
     );
 
     assert.equal(result.code, 1, formatResult(result));
-    assert.match(result.stdout, /Running local AI review with claude/);
-    assert.match(result.stdout, /BLOCK AI logic_errors at src\/changed\.ts:2-3/);
+    assert.match(result.stdout, /Provider: Claude/);
+    assert.match(result.stdout, /\[block\] AI logic errors\s+src\/changed\.ts:2-3/);
     assert.match(result.stdout, /Local AI review blocked the push/);
     assert.equal(result.stderr, "");
   });
@@ -252,11 +252,11 @@ test("Copilot local AI warnings continue after confirmation", async () => {
     });
 
     assert.equal(result.code, 0, formatResult(result));
-    assert.match(result.stdout, /Running local AI review with copilot/);
-    assert.match(result.stdout, /WARN AI performance at src\/changed\.ts:2/);
+    assert.match(result.stdout, /Provider: Copilot/);
+    assert.match(result.stdout, /\[warn\] AI performance\s+src\/changed\.ts:2/);
     assert.match(
       result.stdout,
-      /Local AI review finished: 0 blocking finding\(s\), 1 warning\(s\)/,
+      /Finished with 0 blocking findings and 1 warning/,
     );
     assert.match(
       result.stdout,
@@ -297,7 +297,7 @@ test("declining local AI warnings blocks the pre-push runner", async () => {
     });
 
     assert.equal(result.code, 1, formatResult(result));
-    assert.match(result.stdout, /WARN AI performance at src\/changed\.ts:2/);
+    assert.match(result.stdout, /\[warn\] AI performance\s+src\/changed\.ts:2/);
     assert.match(
       result.stdout,
       /Push blocked because local AI review produced 1 warning\(s\) and continuation was not confirmed/,
@@ -334,7 +334,7 @@ test("blocking local AI provider failures block the pre-push runner", async () =
     assert.equal(result.code, 1, formatResult(result));
     assert.match(
       result.stdout,
-      /BLOCK local AI provider claude failed: Claude Code CLI was not found on PATH/,
+      /\[block\] Claude provider\s+Claude Code CLI was not found on PATH/,
     );
     assert.match(result.stdout, /Local AI is blocking in this repository/);
     assert.equal(result.stderr, "");
@@ -365,7 +365,7 @@ test("default local AI mode is blocking in the pre-push runner", async () => {
     assert.equal(result.code, 1, formatResult(result));
     assert.match(
       result.stdout,
-      /BLOCK local AI provider claude failed: Claude Code CLI was not found on PATH/,
+      /\[block\] Claude provider\s+Claude Code CLI was not found on PATH/,
     );
     assert.equal(result.stderr, "");
   });
@@ -398,7 +398,7 @@ test("advisory local AI provider failures continue after confirmation", async ()
     assert.equal(result.code, 0, formatResult(result));
     assert.match(
       result.stdout,
-      /WARN local AI provider claude failed: Claude Code CLI was not found on PATH/,
+      /\[warn\] Claude provider\s+Claude Code CLI was not found on PATH/,
     );
     assert.match(result.stdout, /Continuing because ai.mode is advisory/);
     assert.match(
@@ -438,7 +438,7 @@ test("AI changed-line guardrail blocks provider invocation visibly", async () =>
     assert.equal(result.code, 1, formatResult(result));
     assert.match(
       result.stdout,
-      /BLOCK local AI because \d+ changed line\(s\) exceed ai\.max_changed_lines 1/,
+      /\[block\] Changed lines\s+\d+ changed lines exceed ai\.max_changed_lines 1/,
     );
     assert.match(result.stdout, /Local AI review blocked the push/);
     assert.doesNotMatch(result.stdout, /Running local AI review with claude/);
@@ -520,6 +520,120 @@ test("push wrapper forwards Git args after -- without interpreting them as Pushg
       "feature",
     ]);
   });
+});
+
+test("push wrapper prints upstream and GitHub SSH PR URL after successful --set-upstream push", async () => {
+  await withGitPushSummaryStub(
+    {
+      currentBranch: "codex/cli-ux",
+      remoteUrl: "git@github.com:rootstrap/ai-pushgate.git",
+      upstream: "origin/codex/cli-ux",
+    },
+    async ({ env, logPath, root }) => {
+      const result = await runRunner(
+        ["push", "--set-upstream", "origin", "codex/cli-ux"],
+        undefined,
+        { cwd: root, env },
+      );
+
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(result.stdout, /native git push output/);
+      assert.match(result.stdout, /Pushing branch/);
+      assert.match(result.stdout, /  \[ok\] Branch pushed/);
+      assert.match(
+        result.stdout,
+        /  \[ok\] Upstream set\s+origin\/codex\/cli-ux/,
+      );
+      assert.match(
+        result.stdout,
+        /https:\/\/github\.com\/rootstrap\/ai-pushgate\/pull\/new\/codex%2Fcli-ux/,
+      );
+      assert.match(
+        await readFile(logPath, "utf8"),
+        /call\tremote\tget-url\torigin/,
+      );
+      assert.equal(result.stderr, "");
+    },
+  );
+});
+
+test("push wrapper prints upstream and GitHub HTTPS PR URL after successful -u push", async () => {
+  await withGitPushSummaryStub(
+    {
+      currentBranch: "feature/http",
+      remoteUrl: "https://github.com/rootstrap/ai-pushgate",
+      upstream: "origin/feature/http",
+    },
+    async ({ env, root }) => {
+      const result = await runRunner(
+        ["push", "-u", "origin", "feature/http"],
+        undefined,
+        { cwd: root, env },
+      );
+
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(result.stdout, /Pushing branch/);
+      assert.match(result.stdout, /  \[ok\] Branch pushed/);
+      assert.match(
+        result.stdout,
+        /  \[ok\] Upstream set\s+origin\/feature\/http/,
+      );
+      assert.match(
+        result.stdout,
+        /https:\/\/github\.com\/rootstrap\/ai-pushgate\/pull\/new\/feature%2Fhttp/,
+      );
+      assert.equal(result.stderr, "");
+    },
+  );
+});
+
+test("push wrapper omits PR URL for non-GitHub remotes", async () => {
+  await withGitPushSummaryStub(
+    {
+      currentBranch: "feature",
+      remoteUrl: "https://gitlab.example.test/rootstrap/ai-pushgate.git",
+      upstream: "origin/feature",
+    },
+    async ({ env, root }) => {
+      const result = await runRunner(
+        ["push", "-u", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
+
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(result.stdout, /Pushing branch/);
+      assert.match(result.stdout, /  \[ok\] Branch pushed/);
+      assert.match(result.stdout, /  \[ok\] Upstream set\s+origin\/feature/);
+      assert.doesNotMatch(result.stdout, /Create a pull request:/);
+      assert.doesNotMatch(result.stdout, /pull\/new/);
+      assert.equal(result.stderr, "");
+    },
+  );
+});
+
+test("push wrapper preserves failed Git push exit code without success rows", async () => {
+  await withGitPushSummaryStub(
+    {
+      currentBranch: "feature",
+      pushExit: "23",
+      remoteUrl: "git@github.com:rootstrap/ai-pushgate.git",
+      upstream: "origin/feature",
+    },
+    async ({ env, root }) => {
+      const result = await runRunner(
+        ["push", "-u", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
+
+      assert.equal(result.code, 23, formatResult(result));
+      assert.match(result.stdout, /native git push output/);
+      assert.doesNotMatch(result.stdout, /Pushing branch/);
+      assert.doesNotMatch(result.stdout, /Create a pull request:/);
+      assert.equal(result.stderr, "");
+    },
+  );
 });
 
 interface RunnerResult {
@@ -1038,6 +1152,77 @@ async function withGitStub(
         PUSHGATE_GIT_ARGS_OUT: argsPath,
         PUSHGATE_GIT_EXIT: "23",
       },
+      root,
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+async function withGitPushSummaryStub(
+  options: {
+    currentBranch: string;
+    pushExit?: string;
+    remoteUrl: string;
+    upstream?: string;
+  },
+  callback: (context: {
+    env: NodeJS.ProcessEnv;
+    logPath: string;
+    root: string;
+  }) => Promise<void>,
+): Promise<void> {
+  const root = await mkdtemp(join(tmpdir(), "pushgate-push-summary-stub-"));
+  const binDir = join(root, "bin");
+  const logPath = join(root, "git-calls.txt");
+
+  await mkdir(binDir, { recursive: true });
+  await writeFile(
+    join(binDir, "git"),
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      "{ printf 'call'; for arg in \"$@\"; do printf '\\t%s' \"$arg\"; done; printf '\\n'; } >> \"$PUSHGATE_GIT_CALLS_OUT\"",
+      "if [ \"${1:-}\" = 'push' ] || { [ \"${1:-}\" = '-c' ] && [ \"${3:-}\" = 'push' ]; }; then",
+      "  printf 'native git push output\\n'",
+      "  exit \"${PUSHGATE_GIT_PUSH_EXIT:-0}\"",
+      "fi",
+      "if [ \"${1:-}\" = 'rev-parse' ] && [ \"${2:-}\" = '--abbrev-ref' ] && [ \"${3:-}\" = '--symbolic-full-name' ]; then",
+      "  if [ -n \"${PUSHGATE_GIT_UPSTREAM:-}\" ]; then",
+      "    printf '%s\\n' \"$PUSHGATE_GIT_UPSTREAM\"",
+      "    exit 0",
+      "  fi",
+      "  exit 1",
+      "fi",
+      "if [ \"${1:-}\" = 'rev-parse' ] && [ \"${2:-}\" = '--abbrev-ref' ] && [ \"${3:-}\" = 'HEAD' ]; then",
+      "  printf '%s\\n' \"$PUSHGATE_GIT_CURRENT_BRANCH\"",
+      "  exit 0",
+      "fi",
+      "if [ \"${1:-}\" = 'remote' ] && [ \"${2:-}\" = 'get-url' ]; then",
+      "  printf '%s\\n' \"$PUSHGATE_GIT_REMOTE_URL\"",
+      "  exit 0",
+      "fi",
+      "if [ \"${1:-}\" = 'config' ] && [ \"${2:-}\" = '--get' ]; then",
+      "  printf 'origin\\n'",
+      "  exit 0",
+      "fi",
+      "exit 19",
+    ].join("\n"),
+  );
+  await chmod(join(binDir, "git"), 0o755);
+
+  try {
+    await callback({
+      env: {
+        ...process.env,
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+        PUSHGATE_GIT_CALLS_OUT: logPath,
+        PUSHGATE_GIT_CURRENT_BRANCH: options.currentBranch,
+        PUSHGATE_GIT_PUSH_EXIT: options.pushExit ?? "0",
+        PUSHGATE_GIT_REMOTE_URL: options.remoteUrl,
+        PUSHGATE_GIT_UPSTREAM: options.upstream ?? "",
+      },
+      logPath,
       root,
     });
   } finally {

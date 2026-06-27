@@ -55,7 +55,7 @@ test("uses PUSHGATE_RUNNER when provided", async () => {
       "refs/heads/feature 0123456789 refs/heads/feature fedcba9876\n";
     const result = await harness.runHook({
       args: ["origin", "git@example.test:rootstrap/ai-pushgate.git"],
-      env: { PUSHGATE_RUNNER: runnerPath },
+      env: { PUSHGATE_RUNNER: runnerPath, PUSHGATE_VERBOSE: "1" },
       stdin,
     });
 
@@ -207,7 +207,9 @@ test("uses git config pushgate.runner during a real installed-hook push", async 
     await harness.installInstalledHook();
     await harness.addBareOrigin();
 
-    const result = await harness.git(["push", "origin", "feature"]);
+    const result = await harness.git(["push", "origin", "feature"], {
+      env: { PUSHGATE_VERBOSE: "1" },
+    });
     const output = cleanHookOutput(result);
 
     assert.equal(result.code, 0, formatResult(result));
@@ -264,7 +266,7 @@ test("blocks a real installed-hook push on deterministic command failure", async
     const output = cleanHookOutput(result);
 
     assert.equal(result.code, 1, output);
-    assert.match(output, /BLOCK failing: exited with code 3/);
+    assert.match(output, /\[block\] Failing\s+exited with code 3/);
     assert.match(output, /tool failed/);
   });
 });
@@ -332,7 +334,7 @@ test("skip-ai-check keeps deterministic checks running on a real installed-hook 
 
     assert.equal(result.code, 0, output);
     assert.equal(await requiredArtifact(harness, "tool-ran.txt"), "ran\n");
-    assert.match(output, /PASS record-tool/);
+    assert.match(output, /\[ok\] Record tool/);
     assert.match(
       output,
       /Skipping local AI because pushgate\.skip-ai-check=true/,
@@ -385,8 +387,8 @@ test("invokes the Claude adapter on a real installed-hook push", async () => {
     const output = cleanHookOutput(result);
 
     assert.equal(result.code, 0, output);
-    assert.match(output, /Running local AI review with claude/);
-    assert.match(output, /Local AI review passed with no findings/);
+    assert.match(output, /Provider: Claude/);
+    assert.match(output, /\[ok\] No findings/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /=== DIFF ===/);
     assert.match(await requiredArtifact(harness, "claude-prompt.txt"), /"schema_version": 1/);
   });
