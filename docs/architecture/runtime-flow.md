@@ -45,7 +45,7 @@ providers.
 |---|---|
 | `hook-protocol` | Compatibility handshake for the shell hook. |
 | `pre-push` | Internal hook entry point that runs the Pushgate workflow. |
-| `push` | Optional wrapper around `git push` that maps skip flags to Git config. |
+| `push` | Optional wrapper around `git push` that runs local preflight before native push and maps skip flags to Git config. |
 
 Unsupported command shapes return usage output with exit code `64`. Runtime
 workflow failures are rendered through `writePushgateError` and return `1`.
@@ -135,3 +135,8 @@ Skip controls are intentionally visible:
 - `git -c pushgate.skip-all-checks=true push` bypasses all local Pushgate work.
 - `git -c pushgate.skip-ai-check=true push` keeps deterministic checks and
   skips only local AI.
+
+Native `git push` invokes the pre-push hook after Git has begun the push
+operation with the remote. `pushgate push` avoids holding that remote session
+idle during long local checks by running the Pushgate workflow first and only
+opening the native `git push --no-verify` after the local preflight passes.

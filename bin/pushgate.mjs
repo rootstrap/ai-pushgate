@@ -7827,6 +7827,7 @@ var require_ignore = __commonJS({
 
 // src/cli.ts
 import { realpathSync } from "node:fs";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 // src/config/constants.ts
@@ -9970,14 +9971,6 @@ var SkipControlError = class extends Error {
     this.name = new.target.name;
   }
 };
-function buildGitPushArgs(pushArgs, state) {
-  const gitArgs = [];
-  if (state.active.kind !== "none") {
-    gitArgs.push("-c", `${state.active.configKey}=true`);
-  }
-  gitArgs.push("push", ...pushArgs);
-  return gitArgs;
-}
 function createSkipControlState(options) {
   if (options.skipAllChecks) {
     return {
@@ -10444,6 +10437,25 @@ function githubRepository(remoteUrl) {
 
 // src/workflows/pre-push.ts
 import { basename } from "node:path";
+
+// src/git/repository.ts
+async function resolveGitRepositoryRoot(env = process.env) {
+  const result = await runCommand({
+    args: ["rev-parse", "--show-toplevel"],
+    command: "git",
+    env
+  });
+  if (result.code === 0) {
+    return result.stdout.trim();
+  }
+  const stderr = result.stderr.trim();
+  throw new Error(
+    `Pushgate must run inside a Git repository. git rev-parse exited with ${String(result.code)}.${stderr ? ` ${stderr}` : ""}`
+  );
+}
+
+// src/version.ts
+var PUSHGATE_VERSION = "3.5.0";
 
 // src/ai/guardrails.ts
 function evaluateChangedFileGuardrails(options) {
@@ -27162,22 +27174,6 @@ function transcriptEventsForChangedFileGuardrail(decision) {
   ];
 }
 
-// src/git/repository.ts
-async function resolveGitRepositoryRoot(env = process.env) {
-  const result = await runCommand({
-    args: ["rev-parse", "--show-toplevel"],
-    command: "git",
-    env
-  });
-  if (result.code === 0) {
-    return result.stdout.trim();
-  }
-  const stderr = result.stderr.trim();
-  throw new Error(
-    `Pushgate must run inside a Git repository. git rev-parse exited with ${String(result.code)}.${stderr ? ` ${stderr}` : ""}`
-  );
-}
-
 // src/runner/policies.ts
 var import_ignore2 = __toESM(require_ignore(), 1);
 var FORBIDDEN_PATH_DETAIL_LIMIT = 5;
@@ -27695,93 +27691,6 @@ function requireChangedFileResolution(changedFileResolution) {
   );
 }
 
-// src/version.ts
-var PUSHGATE_VERSION = "3.5.0";
-
-// src/workflows/run-decisions.ts
-function buildPrePushConfigDecision(skipControls) {
-  if (skipControls.active.kind === "skip-all-checks") {
-    return {
-      kind: "skip",
-      reason: {
-        configKey: SKIP_ALL_CHECKS_CONFIG_KEY,
-        control: "skip-all-checks",
-        kind: "skip-control",
-        scope: "all-local-checks"
-      }
-    };
-  }
-  return { kind: "load-config" };
-}
-function buildPrePushRunDecision(config2, skipControls) {
-  const deterministicPlan = buildDeterministicCheckPlan(config2);
-  const deterministicChecks = deterministicPlan.runChecks ? {
-    checkCount: deterministicPlan.checkCount,
-    kind: "configured"
-  } : {
-    kind: "not-configured"
-  };
-  const localAi = getLocalAiDecision(config2, skipControls);
-  return {
-    changedFiles: getChangedFileResolutionDecision({
-      deterministicChecks,
-      localAi
-    }),
-    deterministicChecks,
-    localAi
-  };
-}
-function formatRunSkipReason(reason) {
-  if (reason.kind === "local-ai-mode-off") {
-    return null;
-  }
-  if (reason.control === "skip-all-checks") {
-    return `Skipping all local Pushgate checks because ${reason.configKey}=true.`;
-  }
-  return `Skipping local AI because ${reason.configKey}=true.`;
-}
-function getLocalAiDecision(config2, skipControls) {
-  if (config2.ai.mode === "off") {
-    return {
-      kind: "skip",
-      reason: {
-        kind: "local-ai-mode-off"
-      }
-    };
-  }
-  if (skipControls.active.kind === "skip-ai-check") {
-    return {
-      kind: "skip",
-      reason: {
-        configKey: SKIP_AI_CHECK_CONFIG_KEY,
-        control: "skip-ai-check",
-        kind: "skip-control",
-        scope: "local-ai"
-      }
-    };
-  }
-  return { kind: "run" };
-}
-function getChangedFileResolutionDecision(options) {
-  const requiredBy = [];
-  if (options.deterministicChecks.kind === "configured") {
-    requiredBy.push("deterministic-checks");
-  }
-  if (options.localAi.kind === "run") {
-    requiredBy.push("local-ai-review");
-  }
-  if (requiredBy.length === 0) {
-    return {
-      kind: "not-required",
-      requiredBy: []
-    };
-  }
-  return {
-    kind: "required",
-    requiredBy
-  };
-}
-
 // src/workflows/terminal.ts
 import { closeSync, openSync, readSync, writeSync } from "node:fs";
 var pendingInputByFd = /* @__PURE__ */ new Map();
@@ -27962,78 +27871,71 @@ function createTerminalWarningConfirmer(options = {}) {
   };
 }
 
-// src/workflows/pre-push.ts
-async function runPrePushWorkflow(io) {
-  const hookContext = buildPrePushContext({
-    args: io.hookArgs ?? [],
-    branch: await readPrePushBranchFromStdin(io.stdin)
+// src/workflows/local-push-gate-run.ts
+async function runLocalPushGate(options) {
+  const localAi = getLocalAiPhaseDecision(options.config, options.skipControls);
+  const changedFileResolution = await resolveChangedFilesIfRequired({
+    config: options.config,
+    localAi,
+    repoRoot: options.repoRoot
   });
-  const repoRoot = await resolveGitRepositoryRoot(io.env);
-  writePrePushHeader(io.stdout, repoRoot, hookContext);
-  const skipControls = await resolveSkipControlState(repoRoot, io.env);
-  const configDecision = buildPrePushConfigDecision(skipControls);
-  if (configDecision.kind === "skip") {
-    writeVisibleSkipReason(io.stdout, configDecision.reason);
-    return 0;
-  }
-  const loaded = await loadConfig(repoRoot);
-  for (const warning of loaded.warnings) {
-    io.stdout.write(`[pushgate] Warning: ${warning}
-`);
-  }
-  const runDecision = buildPrePushRunDecision(loaded.config, skipControls);
-  const changedFileResolution = await maybeResolveChangedFiles(loaded.config, {
-    repoRoot,
-    runDecision
-  });
-  const summary = await runDeterministicChecks({
+  const deterministicSummary = await runDeterministicChecks({
     changedFileResolution,
-    config: loaded.config,
-    env: io.env,
-    repoRoot,
-    stdout: io.stdout
+    config: options.config,
+    env: options.env,
+    repoRoot: options.repoRoot,
+    stdout: options.stdout
   });
-  if (summary.exitCode !== 0) {
-    return summary.exitCode;
+  if (deterministicSummary.exitCode !== 0) {
+    return deterministicSummary.exitCode;
   }
   if (!await confirmWarningsBeforeContinuing({
-    confirmer: io.warningConfirmer,
+    confirmer: options.warningConfirmer,
     phase: "deterministic checks",
-    stdout: io.stdout,
-    warningCount: summary.results.filter(
+    stdout: options.stdout,
+    warningCount: deterministicSummary.results.filter(
       (result) => result.status === "warning"
     ).length
   })) {
     return 1;
   }
-  const localAiSummary = await runLocalAiPhase(
-    loaded.config,
-    runDecision.localAi,
+  const localAiSummary = await runLocalAiPhase({
     changedFileResolution,
-    {
-      env: io.env,
-      repoRoot,
-      stdout: io.stdout
-    }
-  );
+    config: options.config,
+    decision: localAi,
+    env: options.env,
+    repoRoot: options.repoRoot,
+    stdout: options.stdout
+  });
   if (localAiSummary.exitCode !== 0) {
     return localAiSummary.exitCode;
   }
   if (!await confirmWarningsBeforeContinuing({
-    confirmer: io.warningConfirmer,
+    confirmer: options.warningConfirmer,
     phase: "local AI review",
-    stdout: io.stdout,
+    stdout: options.stdout,
     warningCount: localAiSummary.warningCount
   })) {
     return 1;
   }
-  writeLine(io.stdout);
-  writeLine(io.stdout, "Pushgate passed. Git is pushing...");
+  writeLine(options.stdout);
+  writeLine(options.stdout, "Pushgate passed. Changes allowed...");
   return 0;
 }
-async function runLocalAiPhase(config2, decision, changedFileResolution, options) {
-  if (decision.kind === "skip") {
-    const message = formatRunSkipReason(decision.reason);
+async function resolveChangedFilesIfRequired(options) {
+  const deterministicPlan = buildDeterministicCheckPlan(options.config);
+  if (!deterministicPlan.needsChangedFileResolution && options.localAi.kind !== "run") {
+    return null;
+  }
+  return await resolveChangedFiles({
+    repoRoot: options.repoRoot,
+    targetBranch: options.config.review.target_branch,
+    ignorePaths: options.config.ignore_paths
+  });
+}
+async function runLocalAiPhase(options) {
+  if (options.decision.kind === "skip") {
+    const message = formatLocalAiSkipReason(options.decision.reason);
     if (message !== null) {
       writeSection(options.stdout, "AI review");
       writeResultRow(options.stdout, "skipped", message);
@@ -28042,14 +27944,14 @@ async function runLocalAiPhase(config2, decision, changedFileResolution, options
   }
   writeSection(options.stdout, "AI review");
   return await runLocalAiReview({
-    aiConfig: config2.ai,
+    aiConfig: options.config.ai,
     changedFileResolution: requireChangedFileResolution2(
-      changedFileResolution,
+      options.changedFileResolution,
       "local AI phase"
     ),
     env: options.env,
     repoRoot: options.repoRoot,
-    reviewConfig: config2.review,
+    reviewConfig: options.config.review,
     stdout: options.stdout
   });
 }
@@ -28087,21 +27989,26 @@ async function confirmWarningsBeforeContinuing(options) {
     throw error51;
   }
 }
-async function maybeResolveChangedFiles(config2, options) {
-  if (options.runDecision.changedFiles.kind === "not-required") {
+function getLocalAiPhaseDecision(config2, skipControls) {
+  if (config2.ai.mode === "off") {
+    return {
+      kind: "skip",
+      reason: "local-ai-mode-off"
+    };
+  }
+  if (skipControls.active.kind === "skip-ai-check") {
+    return {
+      kind: "skip",
+      reason: "skip-ai-check"
+    };
+  }
+  return { kind: "run" };
+}
+function formatLocalAiSkipReason(reason) {
+  if (reason === "local-ai-mode-off") {
     return null;
   }
-  return await resolveChangedFiles({
-    repoRoot: options.repoRoot,
-    targetBranch: config2.review.target_branch,
-    ignorePaths: config2.ignore_paths
-  });
-}
-function writeVisibleSkipReason(stdout, reason) {
-  const message = formatRunSkipReason(reason);
-  if (message !== null) {
-    writeResultRow(stdout, "skipped", message);
-  }
+  return `Skipping local AI because ${SKIP_AI_CHECK_CONFIG_KEY}=true.`;
 }
 function requireChangedFileResolution2(changedFileResolution, phaseName) {
   if (changedFileResolution !== null) {
@@ -28111,19 +28018,8 @@ function requireChangedFileResolution2(changedFileResolution, phaseName) {
     `Pushgate could not prepare changed files for the ${phaseName}.`
   );
 }
-function writePrePushHeader(stdout, repoRoot, context) {
-  const lines = [
-    `Pushgate v${PUSHGATE_VERSION} - pre-push`,
-    `Repo: ${basename(repoRoot)}`
-  ];
-  if (context.branch) {
-    lines.push(`Branch: ${context.branch}`);
-  }
-  if (context.remote) {
-    lines.push(`Remote: ${context.remote}`);
-  }
-  writeHeader(stdout, lines);
-}
+
+// src/workflows/pre-push-hook-context.ts
 function buildPrePushContext(options) {
   return {
     branch: options.branch,
@@ -28192,6 +28088,54 @@ function readPrePushBranchFromStdin(stdin) {
   });
 }
 
+// src/workflows/pre-push.ts
+async function runPrePushWorkflow(io) {
+  const hookContext = buildPrePushContext({
+    args: io.hookArgs ?? [],
+    branch: await readPrePushBranchFromStdin(io.stdin)
+  });
+  const repoRoot = await resolveGitRepositoryRoot(io.env);
+  writePrePushHeader(io.stdout, repoRoot, hookContext);
+  const skipControls = await resolveSkipControlState(repoRoot, io.env);
+  if (skipControls.active.kind === "skip-all-checks") {
+    writeSkipAllChecksReason(io.stdout);
+    return 0;
+  }
+  const loaded = await loadConfig(repoRoot);
+  for (const warning of loaded.warnings) {
+    io.stdout.write(`[pushgate] Warning: ${warning}
+`);
+  }
+  return await runLocalPushGate({
+    config: loaded.config,
+    env: io.env,
+    repoRoot,
+    stdout: io.stdout,
+    skipControls,
+    ...io.warningConfirmer ? { warningConfirmer: io.warningConfirmer } : {}
+  });
+}
+function writeSkipAllChecksReason(stdout) {
+  writeResultRow(
+    stdout,
+    "skipped",
+    `Skipping all local Pushgate checks because ${SKIP_ALL_CHECKS_CONFIG_KEY}=true.`
+  );
+}
+function writePrePushHeader(stdout, repoRoot, context) {
+  const lines = [
+    `Pushgate v${PUSHGATE_VERSION} - pre-push`,
+    `Repo: ${basename(repoRoot)}`
+  ];
+  if (context.branch) {
+    lines.push(`Branch: ${context.branch}`);
+  }
+  if (context.remote) {
+    lines.push(`Remote: ${context.remote}`);
+  }
+  writeHeader(stdout, lines);
+}
+
 // src/cli.ts
 var HOOK_PROTOCOL = "1";
 var USAGE = `Usage:
@@ -28240,8 +28184,17 @@ async function runPrePushCommand(args, io) {
 async function runPushCommand(args, io) {
   try {
     const parsed = parsePushCommandArgs(args);
+    const preflightExitCode = await runPrePushWorkflow({
+      ...io,
+      env: withSkipControlConfigOverlay(io.env, parsed.skipControls),
+      hookArgs: hookArgsForPush(parsed.gitPushArgs),
+      stdin: Readable.from("")
+    });
+    if (preflightExitCode !== 0) {
+      return preflightExitCode;
+    }
     const result = await runGitPush(
-      buildGitPushArgs(parsed.gitPushArgs, parsed.skipControls),
+      buildNoVerifyGitPushArgs(parsed.gitPushArgs),
       { env: io.env }
     ).catch((error51) => {
       const spawnError = error51;
@@ -28262,6 +28215,48 @@ async function runPushCommand(args, io) {
     writePushgateError(io.stderr, error51);
     return 1;
   }
+}
+function hookArgsForPush(gitPushArgs) {
+  const parsed = parseGitPushArgs(gitPushArgs);
+  return parsed.remote ? [parsed.remote] : [];
+}
+function buildNoVerifyGitPushArgs(gitPushArgs) {
+  return ["push", "--no-verify", ...withoutHookVerificationOptions(gitPushArgs)];
+}
+function withoutHookVerificationOptions(gitPushArgs) {
+  const normalized = [];
+  let parseOptions = true;
+  for (const arg of gitPushArgs) {
+    if (parseOptions && arg === "--") {
+      parseOptions = false;
+      normalized.push(arg);
+      continue;
+    }
+    if (parseOptions && (arg === "--verify" || arg === "--no-verify")) {
+      continue;
+    }
+    normalized.push(arg);
+  }
+  return normalized;
+}
+function withSkipControlConfigOverlay(env, skipControls) {
+  if (skipControls.active.kind === "none") {
+    return env;
+  }
+  const count = parseGitConfigCount(env.GIT_CONFIG_COUNT);
+  return {
+    ...env,
+    GIT_CONFIG_COUNT: String(count + 1),
+    [`GIT_CONFIG_KEY_${String(count)}`]: skipControls.active.configKey,
+    [`GIT_CONFIG_VALUE_${String(count)}`]: "true"
+  };
+}
+function parseGitConfigCount(value) {
+  if (value === void 0) {
+    return 0;
+  }
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 ? count : 0;
 }
 async function writeResolvedGitPushSuccessSummary(gitPushArgs, io) {
   try {

@@ -446,79 +446,188 @@ test("AI changed-line guardrail blocks provider invocation visibly", async () =>
   });
 });
 
-test("push wrapper maps skip-all-checks to one-command Git config", async () => {
-  await withGitStub(async ({ argsPath, env, root }) => {
-    const result = await runRunner(
-      ["push", "--skip-all-checks", "origin", "feature"],
-      undefined,
-      { cwd: root, env },
-    );
+test("push wrapper maps skip-all-checks to local preflight before native push", async () => {
+  await withGitRepo(async (root) => {
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(
+        ["push", "--skip-all-checks", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
 
-    assert.equal(result.code, 23, formatResult(result));
-    assert.deepEqual(await readArgLines(argsPath), [
-      "-c",
-      "pushgate.skip-all-checks=true",
-      "push",
-      "origin",
-      "feature",
-    ]);
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(
+        result.stdout,
+        /Skipping all local Pushgate checks because pushgate\.skip-all-checks=true/,
+      );
+      assert.match(result.stdout, /native git push output/);
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "origin",
+        "feature",
+      ]);
+    });
   });
 });
 
-test("push wrapper maps skip-ai-check to one-command Git config", async () => {
-  await withGitStub(async ({ argsPath, env, root }) => {
-    const result = await runRunner(
-      ["push", "--skip-ai-check", "origin", "feature"],
-      undefined,
-      { cwd: root, env },
+test("push wrapper maps skip-ai-check to local preflight before native push", async () => {
+  await withGitRepo(async (root) => {
+    await writeRepoFile(
+      root,
+      ".pushgate.yml",
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools: []",
+        "",
+      ].join("\n"),
     );
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(
+        ["push", "--skip-ai-check", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
 
-    assert.equal(result.code, 23, formatResult(result));
-    assert.deepEqual(await readArgLines(argsPath), [
-      "-c",
-      "pushgate.skip-ai-check=true",
-      "push",
-      "origin",
-      "feature",
-    ]);
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(
+        result.stdout,
+        /Skipping local AI because pushgate\.skip-ai-check=true/,
+      );
+      assert.doesNotMatch(result.stdout, /Claude Code CLI was not found on PATH/);
+      assert.match(result.stdout, /native git push output/);
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "origin",
+        "feature",
+      ]);
+    });
   });
 });
 
 test("push wrapper keeps skip-all precedence when both wrapper flags are present", async () => {
-  await withGitStub(async ({ argsPath, env, root }) => {
-    const result = await runRunner(
-      ["push", "--skip-ai-check", "--skip-all-checks", "origin", "feature"],
-      undefined,
-      { cwd: root, env },
-    );
+  await withGitRepo(async (root) => {
+    await writeRepoFile(root, ".pushgate.yml", "version: nope\n");
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(
+        ["push", "--skip-ai-check", "--skip-all-checks", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
 
-    assert.equal(result.code, 23, formatResult(result));
-    assert.deepEqual(await readArgLines(argsPath), [
-      "-c",
-      "pushgate.skip-all-checks=true",
-      "push",
-      "origin",
-      "feature",
-    ]);
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(
+        result.stdout,
+        /Skipping all local Pushgate checks because pushgate\.skip-all-checks=true/,
+      );
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "origin",
+        "feature",
+      ]);
+    });
   });
 });
 
 test("push wrapper forwards Git args after -- without interpreting them as Pushgate flags", async () => {
-  await withGitStub(async ({ argsPath, env, root }) => {
-    const result = await runRunner(
-      ["push", "--", "--skip-ai-check", "origin", "feature"],
-      undefined,
-      { cwd: root, env },
+  await withGitRepo(async (root) => {
+    await writeRepoFile(
+      root,
+      ".pushgate.yml",
+      "version: 2\nai:\n  mode: off\ntools: []\n",
     );
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(
+        ["push", "--", "--skip-ai-check", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
 
-    assert.equal(result.code, 23, formatResult(result));
-    assert.deepEqual(await readArgLines(argsPath), [
-      "push",
-      "--",
-      "--skip-ai-check",
-      "origin",
-      "feature",
-    ]);
+      assert.equal(result.code, 0, formatResult(result));
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "--",
+        "--skip-ai-check",
+        "origin",
+        "feature",
+      ]);
+    });
+  });
+});
+
+test("push wrapper runs local preflight before native push and bypasses the hook", async () => {
+  await withGitRepo(async (root) => {
+    await writeRepoFile(
+      root,
+      ".pushgate.yml",
+      "version: 2\nai:\n  mode: off\ntools: []\n",
+    );
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(["push", "origin", "feature"], undefined, {
+        cwd: root,
+        env,
+      });
+
+      assert.equal(result.code, 0, formatResult(result));
+      assert.match(result.stdout, /Pushgate v\d+\.\d+\.\d+ - pre-push/);
+      assert.match(result.stdout, /Pushgate passed/);
+      assert.match(result.stdout, /native git push output/);
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "origin",
+        "feature",
+      ]);
+    });
+  });
+});
+
+test("push wrapper normalizes verify flags before bypassing the native hook", async () => {
+  await withGitRepo(async (root) => {
+    await writeRepoFile(
+      root,
+      ".pushgate.yml",
+      "version: 2\nai:\n  mode: off\ntools: []\n",
+    );
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(
+        ["push", "--no-verify", "--verify", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
+
+      assert.equal(result.code, 0, formatResult(result));
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "origin",
+        "feature",
+      ]);
+    });
+  });
+});
+
+test("push wrapper does not open native push when local preflight fails", async () => {
+  await withGitRepo(async (root) => {
+    await writeRepoFile(root, ".pushgate.yml", "version: nope\n");
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(["push", "origin", "feature"], undefined, {
+        cwd: root,
+        env,
+      });
+
+      assert.equal(result.code, 1, formatResult(result));
+      assert.match(result.stderr, /Invalid Pushgate v2 config/);
+      await assert.rejects(readFile(argsPath, "utf8"));
+    });
   });
 });
 
@@ -1159,6 +1268,44 @@ async function withGitStub(
   }
 }
 
+async function withPreflightGitPushStub(
+  root: string,
+  callback: (context: {
+    argsPath: string;
+    env: NodeJS.ProcessEnv;
+  }) => Promise<void>,
+): Promise<void> {
+  const binDir = join(root, "preflight-bin");
+  const argsPath = join(root, "git-push-args.txt");
+
+  await mkdir(binDir, { recursive: true });
+  await writeFile(
+    join(binDir, "git"),
+    [
+      "#!/usr/bin/env bash",
+      "set -eu",
+      "if [ \"${1:-}\" = 'push' ]; then",
+      "  printf '%s\\n' \"$@\" > \"$PUSHGATE_GIT_PUSH_ARGS_OUT\"",
+      "  printf 'native git push output\\n'",
+      "  exit \"${PUSHGATE_GIT_PUSH_EXIT:-0}\"",
+      "fi",
+      "exec \"$PUSHGATE_REAL_GIT\" \"$@\"",
+    ].join("\n"),
+  );
+  await chmod(join(binDir, "git"), 0o755);
+
+  await callback({
+    argsPath,
+    env: {
+      ...sanitizeGitLocalEnv(process.env),
+      PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      PUSHGATE_GIT_PUSH_ARGS_OUT: argsPath,
+      PUSHGATE_GIT_PUSH_EXIT: "0",
+      PUSHGATE_REAL_GIT: "/usr/bin/git",
+    },
+  });
+}
+
 async function withGitPushSummaryStub(
   options: {
     currentBranch: string;
@@ -1172,62 +1319,65 @@ async function withGitPushSummaryStub(
     root: string;
   }) => Promise<void>,
 ): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), "pushgate-push-summary-stub-"));
-  const binDir = join(root, "bin");
-  const logPath = join(root, "git-calls.txt");
+  await withGitRepo(async (root) => {
+    const binDir = join(root, "bin");
+    const logPath = join(root, "git-calls.txt");
 
-  await mkdir(binDir, { recursive: true });
-  await writeFile(
-    join(binDir, "git"),
-    [
-      "#!/usr/bin/env bash",
-      "set -eu",
-      "{ printf 'call'; for arg in \"$@\"; do printf '\\t%s' \"$arg\"; done; printf '\\n'; } >> \"$PUSHGATE_GIT_CALLS_OUT\"",
-      "if [ \"${1:-}\" = 'push' ] || { [ \"${1:-}\" = '-c' ] && [ \"${3:-}\" = 'push' ]; }; then",
-      "  printf 'native git push output\\n'",
-      "  exit \"${PUSHGATE_GIT_PUSH_EXIT:-0}\"",
-      "fi",
-      "if [ \"${1:-}\" = 'rev-parse' ] && [ \"${2:-}\" = '--abbrev-ref' ] && [ \"${3:-}\" = '--symbolic-full-name' ]; then",
-      "  if [ -n \"${PUSHGATE_GIT_UPSTREAM:-}\" ]; then",
-      "    printf '%s\\n' \"$PUSHGATE_GIT_UPSTREAM\"",
-      "    exit 0",
-      "  fi",
-      "  exit 1",
-      "fi",
-      "if [ \"${1:-}\" = 'rev-parse' ] && [ \"${2:-}\" = '--abbrev-ref' ] && [ \"${3:-}\" = 'HEAD' ]; then",
-      "  printf '%s\\n' \"$PUSHGATE_GIT_CURRENT_BRANCH\"",
-      "  exit 0",
-      "fi",
-      "if [ \"${1:-}\" = 'remote' ] && [ \"${2:-}\" = 'get-url' ]; then",
-      "  printf '%s\\n' \"$PUSHGATE_GIT_REMOTE_URL\"",
-      "  exit 0",
-      "fi",
-      "if [ \"${1:-}\" = 'config' ] && [ \"${2:-}\" = '--get' ]; then",
-      "  printf 'origin\\n'",
-      "  exit 0",
-      "fi",
-      "exit 19",
-    ].join("\n"),
-  );
-  await chmod(join(binDir, "git"), 0o755);
+    await writeRepoFile(
+      root,
+      ".pushgate.yml",
+      "version: 2\nai:\n  mode: off\ntools: []\n",
+    );
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "git"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "{ printf 'call'; for arg in \"$@\"; do printf '\\t%s' \"$arg\"; done; printf '\\n'; } >> \"$PUSHGATE_GIT_CALLS_OUT\"",
+        "if [ \"${1:-}\" = 'push' ] || { [ \"${1:-}\" = '-c' ] && [ \"${3:-}\" = 'push' ]; }; then",
+        "  printf 'native git push output\\n'",
+        "  exit \"${PUSHGATE_GIT_PUSH_EXIT:-0}\"",
+        "fi",
+        "if [ \"${1:-}\" = 'rev-parse' ] && [ \"${2:-}\" = '--abbrev-ref' ] && [ \"${3:-}\" = '--symbolic-full-name' ]; then",
+        "  if [ -n \"${PUSHGATE_GIT_UPSTREAM:-}\" ]; then",
+        "    printf '%s\\n' \"$PUSHGATE_GIT_UPSTREAM\"",
+        "    exit 0",
+        "  fi",
+        "  exit 1",
+        "fi",
+        "if [ \"${1:-}\" = 'rev-parse' ] && [ \"${2:-}\" = '--abbrev-ref' ] && [ \"${3:-}\" = 'HEAD' ]; then",
+        "  printf '%s\\n' \"$PUSHGATE_GIT_CURRENT_BRANCH\"",
+        "  exit 0",
+        "fi",
+        "if [ \"${1:-}\" = 'remote' ] && [ \"${2:-}\" = 'get-url' ]; then",
+        "  printf '%s\\n' \"$PUSHGATE_GIT_REMOTE_URL\"",
+        "  exit 0",
+        "fi",
+        "if [ \"${1:-}\" = 'config' ] && [ \"${2:-}\" = '--get' ]; then",
+        "  printf 'origin\\n'",
+        "  exit 0",
+        "fi",
+        "exec \"$PUSHGATE_REAL_GIT\" \"$@\"",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "git"), 0o755);
 
-  try {
     await callback({
       env: {
-        ...process.env,
+        ...sanitizeGitLocalEnv(process.env),
         PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
         PUSHGATE_GIT_CALLS_OUT: logPath,
         PUSHGATE_GIT_CURRENT_BRANCH: options.currentBranch,
         PUSHGATE_GIT_PUSH_EXIT: options.pushExit ?? "0",
         PUSHGATE_GIT_REMOTE_URL: options.remoteUrl,
+        PUSHGATE_REAL_GIT: "/usr/bin/git",
         PUSHGATE_GIT_UPSTREAM: options.upstream ?? "",
       },
       logPath,
       root,
     });
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  });
 }
 
 async function readArgLines(path: string): Promise<string[]> {

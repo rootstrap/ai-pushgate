@@ -1,36 +1,28 @@
 import { basename } from "node:path";
 
-import { runLocalAiReview } from "../ai/index.js";
-import { loadConfig, type PushgateConfig } from "../config/index.js";
+import { loadConfig } from "../config/index.js";
 import { resolveGitRepositoryRoot } from "../git/repository.js";
 import {
-  resolveChangedFiles,
-  type ChangedFileResolution,
-} from "../path-policy/index.js";
-import { runDeterministicChecks } from "../runner/deterministic.js";
-import { resolveSkipControlState } from "../skip-controls.js";
+  resolveSkipControlState,
+  SKIP_ALL_CHECKS_CONFIG_KEY,
+} from "../skip-controls.js";
 import {
-  writeDetail,
   writeHeader,
-  writeLine,
   writeResultRow,
-  writeSection,
 } from "../terminal/format.js";
 import { PUSHGATE_VERSION } from "../version.js";
+import { runLocalPushGate } from "./local-push-gate-run.js";
 import {
-  buildPrePushConfigDecision,
-  buildPrePushRunDecision,
-  formatRunSkipReason,
-  type LocalAiPhaseDecision,
-  type PrePushRunDecision,
-  type RunSkipReason,
-} from "./run-decisions.js";
-import {
-  createTerminalWarningConfirmer,
-  WarningConfirmationError,
-  type WarningConfirmationPhase,
-  type WarningConfirmer,
-} from "./warning-confirmation.js";
+  buildPrePushContext,
+  readPrePushBranchFromStdin,
+  type PrePushHookContext,
+} from "./pre-push-hook-context.js";
+import type { WarningConfirmer } from "./warning-confirmation.js";
+
+export {
+  parseBranchFromPrePushLine,
+  readPrePushBranchFromStdin,
+} from "./pre-push-hook-context.js";
 
 export interface PrePushWorkflowIO {
   env: NodeJS.ProcessEnv;
@@ -53,10 +45,9 @@ export async function runPrePushWorkflow(
   writePrePushHeader(io.stdout, repoRoot, hookContext);
 
   const skipControls = await resolveSkipControlState(repoRoot, io.env);
-  const configDecision = buildPrePushConfigDecision(skipControls);
 
-  if (configDecision.kind === "skip") {
-    writeVisibleSkipReason(io.stdout, configDecision.reason);
+  if (skipControls.active.kind === "skip-all-checks") {
+    writeSkipAllChecksReason(io.stdout);
     return 0;
   }
 
@@ -66,197 +57,30 @@ export async function runPrePushWorkflow(
     io.stdout.write(`[pushgate] Warning: ${warning}\n`);
   }
 
-  const runDecision = buildPrePushRunDecision(loaded.config, skipControls);
-  const changedFileResolution = await maybeResolveChangedFiles(loaded.config, {
-    repoRoot,
-    runDecision,
-  });
-
-  const summary = await runDeterministicChecks({
-    changedFileResolution,
+  return await runLocalPushGate({
     config: loaded.config,
     env: io.env,
     repoRoot,
     stdout: io.stdout,
+    skipControls,
+    ...(io.warningConfirmer
+      ? { warningConfirmer: io.warningConfirmer }
+      : {}),
   });
+}
 
-  if (summary.exitCode !== 0) {
-    return summary.exitCode;
-  }
-
-  if (
-    !(await confirmWarningsBeforeContinuing({
-      confirmer: io.warningConfirmer,
-      phase: "deterministic checks",
-      stdout: io.stdout,
-      warningCount: summary.results.filter(
-        (result) => result.status === "warning",
-      ).length,
-    }))
-  ) {
-    return 1;
-  }
-
-  const localAiSummary = await runLocalAiPhase(
-    loaded.config,
-    runDecision.localAi,
-    changedFileResolution,
-    {
-      env: io.env,
-      repoRoot,
-      stdout: io.stdout,
-    },
+function writeSkipAllChecksReason(stdout: NodeJS.WritableStream): void {
+  writeResultRow(
+    stdout,
+    "skipped",
+    `Skipping all local Pushgate checks because ${SKIP_ALL_CHECKS_CONFIG_KEY}=true.`,
   );
-
-  if (localAiSummary.exitCode !== 0) {
-    return localAiSummary.exitCode;
-  }
-
-  if (
-    !(await confirmWarningsBeforeContinuing({
-      confirmer: io.warningConfirmer,
-      phase: "local AI review",
-      stdout: io.stdout,
-      warningCount: localAiSummary.warningCount,
-    }))
-  ) {
-    return 1;
-  }
-
-  writeLine(io.stdout);
-  writeLine(io.stdout, "Pushgate passed. Git is pushing...");
-  return 0;
-}
-
-async function runLocalAiPhase(
-  config: PushgateConfig,
-  decision: LocalAiPhaseDecision,
-  changedFileResolution: ChangedFileResolution | null,
-  options: {
-    env: NodeJS.ProcessEnv;
-    repoRoot: string;
-    stdout: NodeJS.WritableStream;
-  },
-): Promise<{ exitCode: number; warningCount: number }> {
-  if (decision.kind === "skip") {
-    const message = formatRunSkipReason(decision.reason);
-
-    if (message !== null) {
-      writeSection(options.stdout, "AI review");
-      writeResultRow(options.stdout, "skipped", message);
-    }
-
-    return { exitCode: 0, warningCount: 0 };
-  }
-
-  writeSection(options.stdout, "AI review");
-
-  return await runLocalAiReview({
-    aiConfig: config.ai,
-    changedFileResolution: requireChangedFileResolution(
-      changedFileResolution,
-      "local AI phase",
-    ),
-    env: options.env,
-    repoRoot: options.repoRoot,
-    reviewConfig: config.review,
-    stdout: options.stdout,
-  });
-}
-
-async function confirmWarningsBeforeContinuing(options: {
-  confirmer: WarningConfirmer | undefined;
-  phase: WarningConfirmationPhase;
-  stdout: NodeJS.WritableStream;
-  warningCount: number;
-}): Promise<boolean> {
-  if (options.warningCount === 0) {
-    return true;
-  }
-
-  const confirmer = options.confirmer ?? createTerminalWarningConfirmer();
-
-  try {
-    const confirmed = await confirmer({
-      phase: options.phase,
-      warningCount: options.warningCount,
-    });
-
-    if (confirmed) {
-      options.stdout.write(
-        `Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.\n`,
-      );
-      return true;
-    }
-
-    options.stdout.write(
-      `Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.\n`,
-    );
-    return false;
-  } catch (error) {
-    if (error instanceof WarningConfirmationError) {
-      options.stdout.write(`${error.message}\n`);
-      options.stdout.write(
-        "Push blocked because warning confirmation could not be collected.\n",
-      );
-      return false;
-    }
-
-    throw error;
-  }
-}
-
-async function maybeResolveChangedFiles(
-  config: PushgateConfig,
-  options: {
-    repoRoot: string;
-    runDecision: PrePushRunDecision;
-  },
-): Promise<ChangedFileResolution | null> {
-  if (options.runDecision.changedFiles.kind === "not-required") {
-    return null;
-  }
-
-  return await resolveChangedFiles({
-    repoRoot: options.repoRoot,
-    targetBranch: config.review.target_branch,
-    ignorePaths: config.ignore_paths,
-  });
-}
-
-function writeVisibleSkipReason(
-  stdout: NodeJS.WritableStream,
-  reason: RunSkipReason,
-): void {
-  const message = formatRunSkipReason(reason);
-
-  if (message !== null) {
-    writeResultRow(stdout, "skipped", message);
-  }
-}
-
-function requireChangedFileResolution(
-  changedFileResolution: ChangedFileResolution | null,
-  phaseName: string,
-): ChangedFileResolution {
-  if (changedFileResolution !== null) {
-    return changedFileResolution;
-  }
-
-  throw new Error(
-    `Pushgate could not prepare changed files for the ${phaseName}.`,
-  );
-}
-
-interface PrePushContext {
-  branch?: string;
-  remote?: string;
 }
 
 function writePrePushHeader(
   stdout: NodeJS.WritableStream,
   repoRoot: string,
-  context: PrePushContext,
+  context: PrePushHookContext,
 ): void {
   const lines = [
     `Pushgate v${PUSHGATE_VERSION} - pre-push`,
@@ -272,95 +96,4 @@ function writePrePushHeader(
   }
 
   writeHeader(stdout, lines);
-}
-
-function buildPrePushContext(options: {
-  args: readonly string[];
-  branch: string | undefined;
-}): PrePushContext {
-  return {
-    branch: options.branch,
-    remote: options.args[0],
-  };
-}
-
-const MAX_PRE_PUSH_STDIN_LINE_CHARS = 8 * 1024;
-
-export function parseBranchFromPrePushLine(
-  line: string,
-): string | undefined {
-  const trimmed = line.trim();
-
-  if (!trimmed) {
-    return undefined;
-  }
-
-  const [localRef] = trimmed.split(/\s+/, 1);
-
-  if (localRef?.startsWith("refs/heads/")) {
-    return localRef.slice("refs/heads/".length);
-  }
-
-  return undefined;
-}
-
-export function readPrePushBranchFromStdin(
-  stdin: NodeJS.ReadableStream,
-): Promise<string | undefined> {
-  return new Promise((resolve, reject) => {
-    if ((stdin as { isTTY?: boolean }).isTTY) {
-      resolve(undefined);
-      return;
-    }
-
-    let branch: string | undefined;
-    let line = "";
-    let lineOverflowed = false;
-
-    const parseLine = () => {
-      if (branch !== undefined || lineOverflowed) {
-        return;
-      }
-
-      branch = parseBranchFromPrePushLine(line);
-    };
-
-    stdin.setEncoding("utf8");
-    stdin.on("error", reject);
-    stdin.on("data", (chunk: string) => {
-      if (branch !== undefined) {
-        return;
-      }
-
-      for (const character of chunk) {
-        if (character === "\n") {
-          if (line.endsWith("\r")) {
-            line = line.slice(0, -1);
-          }
-
-          parseLine();
-          line = "";
-          lineOverflowed = false;
-          continue;
-        }
-
-        if (lineOverflowed) {
-          continue;
-        }
-
-        if (line.length >= MAX_PRE_PUSH_STDIN_LINE_CHARS) {
-          line = "";
-          lineOverflowed = true;
-          continue;
-        }
-
-        line += character;
-      }
-    });
-    stdin.on("end", () => {
-      parseLine();
-      resolve(branch);
-    });
-    stdin.resume();
-  });
 }
