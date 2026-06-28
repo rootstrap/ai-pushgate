@@ -31,10 +31,8 @@ git push
 ```
 
 `git push` stays the main entry point. Pushgate plugs into it through the
-installed `pre-push` hook; `pushgate push` is an optional friendly wrapper for
-the same workflow. For long interactive runs, such as warning prompts plus local
-AI review, `pushgate push` runs the local Pushgate preflight before opening the
-native Git push and then invokes `git push --no-verify` after Pushgate passes.
+installed `pre-push` hook, so developers keep the usual Git workflow while
+local checks and AI review run before the push proceeds.
 
 Local deterministic checks can block a push. Warning results require an explicit yes/no confirmation before the push continues. Local AI supports `blocking`, `advisory`, and `off` modes; `blocking` is the default, matching the review gate shown above. CI and PR checks remain the final enforcement point for policy that must survive local hook skips.
 
@@ -227,15 +225,6 @@ follows. They use Git's temporary config channel:
 ```bash
 git -c pushgate.skip-ai-check=true push
 git -c pushgate.skip-all-checks=true push
-```
-
-The optional wrapper maps friendly flags to the same one-push config. It also
-runs Pushgate locally before the native network push, so long checks and warning
-prompts do not hold an already-open Git remote session idle:
-
-```bash
-pushgate push --skip-ai-check
-pushgate push --skip-all-checks
 ```
 
 ## Runner overrides

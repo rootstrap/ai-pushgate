@@ -226,12 +226,12 @@
       "locked": false,
       "fontSize": 18,
       "fontFamily": 5,
-      "text": "CLI layer\nsrc/cli.ts\npushgate pre-push / push",
-      "rawText": "CLI layer\nsrc/cli.ts\npushgate pre-push / push",
+      "text": "CLI layer\nsrc/cli.ts\npushgate pre-push",
+      "rawText": "CLI layer\nsrc/cli.ts\npushgate pre-push",
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": null,
-      "originalText": "CLI layer\nsrc/cli.ts\npushgate pre-push / push",
+      "originalText": "CLI layer\nsrc/cli.ts\npushgate pre-push",
       "lineHeight": 1.2
     },
     {
@@ -847,12 +847,12 @@
       "locked": false,
       "fontSize": 18,
       "fontFamily": 5,
-      "text": "Stable interfaces: hook protocol 1 | pushgate pre-push/push | .pushgate.yml v2 | ChangedFileResolution | DeterministicCheckSummary | LocalAiProviderAdapter | AI output v1",
-      "rawText": "Stable interfaces: hook protocol 1 | pushgate pre-push/push | .pushgate.yml v2 | ChangedFileResolution | DeterministicCheckSummary | LocalAiProviderAdapter | AI output v1",
+      "text": "Stable interfaces: hook protocol 1 | pushgate pre-push | .pushgate.yml v2 | ChangedFileResolution | DeterministicCheckSummary | LocalAiProviderAdapter | AI output v1",
+      "rawText": "Stable interfaces: hook protocol 1 | pushgate pre-push | .pushgate.yml v2 | ChangedFileResolution | DeterministicCheckSummary | LocalAiProviderAdapter | AI output v1",
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Stable interfaces: hook protocol 1 | pushgate pre-push/push | .pushgate.yml v2 | ChangedFileResolution | DeterministicCheckSummary | LocalAiProviderAdapter | AI output v1",
+      "originalText": "Stable interfaces: hook protocol 1 | pushgate pre-push | .pushgate.yml v2 | ChangedFileResolution | DeterministicCheckSummary | LocalAiProviderAdapter | AI output v1",
       "lineHeight": 1.25
     },
     {

@@ -7827,7 +7827,6 @@ var require_ignore = __commonJS({
 
 // src/cli.ts
 import { realpathSync } from "node:fs";
-import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 // src/config/constants.ts
@@ -10046,49 +10045,23 @@ function writePushgateError(stderr, error51) {
 `);
 }
 
-// src/cli/push-args.ts
-function parsePushCommandArgs(args) {
-  const gitPushArgs = [];
-  let parsePushgateFlags = true;
-  let skipAiCheck = false;
-  let skipAllChecks = false;
-  for (const arg of args) {
-    if (parsePushgateFlags && arg === "--skip-all-checks") {
-      skipAllChecks = true;
-      continue;
-    }
-    if (parsePushgateFlags && arg === "--skip-ai-check") {
-      skipAiCheck = true;
-      continue;
-    }
-    if (arg === "--") {
-      parsePushgateFlags = false;
-    }
-    gitPushArgs.push(arg);
-  }
-  return {
-    gitPushArgs,
-    skipControls: createSkipControlState({
-      skipAllChecks,
-      skipAiCheck
-    })
-  };
-}
+// src/workflows/pre-push.ts
+import { basename } from "node:path";
 
-// src/process/inherited-command.ts
-import { spawn as spawn2 } from "node:child_process";
-function runInheritedCommand(options) {
-  return new Promise((resolve, reject) => {
-    const child = spawn2(options.command, [...options.args], {
-      cwd: options.cwd,
-      env: options.env,
-      stdio: "inherit"
-    });
-    child.on("error", reject);
-    child.on("close", (code, signal) => {
-      resolve({ code, signal });
-    });
+// src/git/repository.ts
+async function resolveGitRepositoryRoot(env = process.env) {
+  const result = await runCommand({
+    args: ["rev-parse", "--show-toplevel"],
+    command: "git",
+    env
   });
+  if (result.code === 0) {
+    return result.stdout.trim();
+  }
+  const stderr = result.stderr.trim();
+  throw new Error(
+    `Pushgate must run inside a Git repository. git rev-parse exited with ${String(result.code)}.${stderr ? ` ${stderr}` : ""}`
+  );
 }
 
 // src/terminal/format.ts
@@ -10213,245 +10186,6 @@ function withStream(stream, options) {
     ...options,
     stream: options.stream ?? stream
   };
-}
-
-// src/git/push.ts
-function runGitPush(args, options) {
-  return runInheritedCommand({
-    args,
-    command: "git",
-    env: options.env
-  });
-}
-async function resolveGitPushSuccessSummary(args, options) {
-  const parsed = parseGitPushArgs(args);
-  if (parsed.intent === "non-branch") {
-    return { kind: "non-branch" };
-  }
-  const currentUpstream = parsed.setsUpstream ? await readCurrentUpstream(options.env) : void 0;
-  const branch = parsed.branch ?? branchFromUpstream(currentUpstream) ?? await readCurrentBranch(options.env);
-  const remote = parsed.remote ?? remoteFromUpstream(currentUpstream) ?? (branch ? await readConfiguredBranchRemote(branch, options.env) : void 0);
-  const upstream = parsed.setsUpstream ? currentUpstream ?? upstreamFromParts(remote, branch) : void 0;
-  const remoteUrl = remote ? await readRemoteUrl(remote, options.env) : void 0;
-  return {
-    kind: "branch-update",
-    pullRequestUrl: remoteUrl && branch ? githubPullRequestUrl(remoteUrl, branch) : void 0,
-    upstream
-  };
-}
-function writeGitPushSuccessSummary(stream, summary, options = {}) {
-  if (summary.kind === "non-branch") {
-    return;
-  }
-  writeLine(stream);
-  writeSection(stream, "Pushing branch", options);
-  writeResultRow(stream, "passed", "Branch pushed", void 0, options);
-  if (summary.upstream) {
-    writeResultRow(stream, "passed", "Upstream set", summary.upstream, options);
-  }
-  if (summary.pullRequestUrl) {
-    writeLine(stream);
-    writeSection(stream, "Create a pull request:", options);
-    writeDetail(stream, summary.pullRequestUrl);
-  }
-}
-function parseGitPushArgs(args) {
-  const positionals = [];
-  let remoteFromOption;
-  let hasRemoteFromOption = false;
-  let parseOptions = true;
-  let nonBranchPush = false;
-  let setsUpstream = false;
-  let readNextAsRemote = false;
-  let skipNext = false;
-  for (const arg of args) {
-    if (readNextAsRemote) {
-      remoteFromOption = arg || void 0;
-      hasRemoteFromOption = true;
-      readNextAsRemote = false;
-      continue;
-    }
-    if (skipNext) {
-      skipNext = false;
-      continue;
-    }
-    if (parseOptions && arg === "--") {
-      parseOptions = false;
-      continue;
-    }
-    if (parseOptions && (arg === "-u" || arg === "--set-upstream")) {
-      setsUpstream = true;
-      continue;
-    }
-    if (parseOptions && arg.startsWith("-")) {
-      if (isNonBranchPushOption(arg)) {
-        nonBranchPush = true;
-        continue;
-      }
-      const inlineRemote = inlineOptionValue(arg, "--repo");
-      if (inlineRemote !== void 0) {
-        remoteFromOption = inlineRemote || void 0;
-        hasRemoteFromOption = true;
-        continue;
-      }
-      if (arg === "--repo") {
-        readNextAsRemote = true;
-        continue;
-      }
-      skipNext = optionTakesSeparateValue(arg);
-      continue;
-    }
-    positionals.push(arg);
-  }
-  const branchPosition = hasRemoteFromOption ? 0 : 1;
-  const refspec = positionals[branchPosition];
-  const branch = refspec ? branchFromRefspec(refspec) : void 0;
-  return {
-    branch,
-    intent: nonBranchPush || refspec !== void 0 && branch === void 0 ? "non-branch" : "branch-update",
-    remote: hasRemoteFromOption ? remoteFromOption : positionals[0],
-    setsUpstream
-  };
-}
-function inlineOptionValue(arg, option) {
-  const prefix = `${option}=`;
-  return arg.startsWith(prefix) ? arg.slice(prefix.length) : void 0;
-}
-function optionTakesSeparateValue(arg) {
-  if (arg.includes("=")) {
-    return false;
-  }
-  return arg === "--exec" || arg === "--recurse-submodules" || arg === "--receive-pack" || arg === "--push-option" || arg === "-o";
-}
-function isNonBranchPushOption(arg) {
-  return arg === "--all" || arg === "--delete" || arg === "-d" || arg === "--mirror" || arg === "--tags";
-}
-function branchFromRefspec(refspec) {
-  let branch = refspec.trim();
-  if (!branch || branch.includes("*")) {
-    return void 0;
-  }
-  if (branch.startsWith("+")) {
-    branch = branch.slice(1);
-  }
-  const remoteBranchSeparator = branch.lastIndexOf(":");
-  if (remoteBranchSeparator >= 0) {
-    if (remoteBranchSeparator === 0) {
-      return void 0;
-    }
-    branch = branch.slice(remoteBranchSeparator + 1);
-  }
-  if (!branch || branch === "HEAD") {
-    return void 0;
-  }
-  if (branch.startsWith("refs/heads/")) {
-    return branch.slice("refs/heads/".length);
-  }
-  if (branch.startsWith("refs/")) {
-    return void 0;
-  }
-  return branch;
-}
-async function readCurrentBranch(env) {
-  const branch = await readGitStdout(["rev-parse", "--abbrev-ref", "HEAD"], env);
-  if (!branch || branch === "HEAD") {
-    return void 0;
-  }
-  return branch;
-}
-async function readCurrentUpstream(env) {
-  return readGitStdout(
-    ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
-    env
-  );
-}
-async function readConfiguredBranchRemote(branch, env) {
-  return readGitStdout(["config", "--get", `branch.${branch}.remote`], env);
-}
-async function readRemoteUrl(remote, env) {
-  return readGitStdout(["remote", "get-url", remote], env);
-}
-async function readGitStdout(args, env) {
-  try {
-    const result = await runCommand({
-      args,
-      command: "git",
-      env
-    });
-    if (result.code !== 0) {
-      return void 0;
-    }
-    const output = result.stdout.trim();
-    return output ? output : void 0;
-  } catch {
-    return void 0;
-  }
-}
-function upstreamFromParts(remote, branch) {
-  return remote && branch ? `${remote}/${branch}` : void 0;
-}
-function remoteFromUpstream(upstream) {
-  const separator = upstream?.indexOf("/") ?? -1;
-  return separator > 0 ? upstream?.slice(0, separator) : void 0;
-}
-function branchFromUpstream(upstream) {
-  const separator = upstream?.indexOf("/") ?? -1;
-  return separator > 0 ? upstream?.slice(separator + 1) : void 0;
-}
-function githubPullRequestUrl(remoteUrl, branch) {
-  const repository = githubRepository(remoteUrl);
-  if (!repository) {
-    return void 0;
-  }
-  return `https://github.com/${repository.owner}/${repository.repo}/pull/new/${encodeURIComponent(
-    branch
-  )}`;
-}
-function githubRepository(remoteUrl) {
-  const trimmed = remoteUrl.trim();
-  const sshMatch = /^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i.exec(
-    trimmed
-  );
-  if (sshMatch) {
-    return {
-      owner: sshMatch[1],
-      repo: sshMatch[2]
-    };
-  }
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "github.com") {
-      return void 0;
-    }
-    const pathParts = parsed.pathname.replace(/^\/|\/$/g, "").split("/");
-    if (pathParts.length !== 2) {
-      return void 0;
-    }
-    const [owner, repoWithPossibleSuffix] = pathParts;
-    const repo = repoWithPossibleSuffix.endsWith(".git") ? repoWithPossibleSuffix.slice(0, -".git".length) : repoWithPossibleSuffix;
-    return owner && repo ? { owner, repo } : void 0;
-  } catch {
-    return void 0;
-  }
-}
-
-// src/workflows/pre-push.ts
-import { basename } from "node:path";
-
-// src/git/repository.ts
-async function resolveGitRepositoryRoot(env = process.env) {
-  const result = await runCommand({
-    args: ["rev-parse", "--show-toplevel"],
-    command: "git",
-    env
-  });
-  if (result.code === 0) {
-    return result.stdout.trim();
-  }
-  const stderr = result.stderr.trim();
-  throw new Error(
-    `Pushgate must run inside a Git repository. git rev-parse exited with ${String(result.code)}.${stderr ? ` ${stderr}` : ""}`
-  );
 }
 
 // src/version.ts
@@ -28140,8 +27874,7 @@ function writePrePushHeader(stdout, repoRoot, context) {
 var HOOK_PROTOCOL = "1";
 var USAGE = `Usage:
   pushgate hook-protocol
-  pushgate pre-push [git-hook-args...]
-  pushgate push [--skip-all-checks] [--skip-ai-check] [git-push-args...]`;
+  pushgate pre-push [git-hook-args...]`;
 async function main(argv = process.argv.slice(2), io = {
   env: process.env,
   stderr: process.stderr,
@@ -28163,8 +27896,6 @@ async function main(argv = process.argv.slice(2), io = {
       return 0;
     case "pre-push":
       return runPrePushCommand(args, io);
-    case "push":
-      return runPushCommand(args, io);
     default:
       writeUsageError(
         io.stderr,
@@ -28179,95 +27910,6 @@ async function runPrePushCommand(args, io) {
   } catch (error51) {
     writePushgateError(io.stderr, error51);
     return 1;
-  }
-}
-async function runPushCommand(args, io) {
-  try {
-    const parsed = parsePushCommandArgs(args);
-    const preflightExitCode = await runPrePushWorkflow({
-      ...io,
-      env: withSkipControlConfigOverlay(io.env, parsed.skipControls),
-      hookArgs: hookArgsForPush(parsed.gitPushArgs),
-      stdin: Readable.from("")
-    });
-    if (preflightExitCode !== 0) {
-      return preflightExitCode;
-    }
-    const result = await runGitPush(
-      buildNoVerifyGitPushArgs(parsed.gitPushArgs),
-      { env: io.env }
-    ).catch((error51) => {
-      const spawnError = error51;
-      throw new SkipControlError(
-        spawnError.code === "ENOENT" ? "Git is required for `pushgate push`, but it was not found on PATH." : `Failed to run git push: ${error51 instanceof Error ? error51.message : String(error51)}`
-      );
-    });
-    if (result.code !== null) {
-      if (result.code === 0) {
-        await writeResolvedGitPushSuccessSummary(parsed.gitPushArgs, io);
-      }
-      return result.code;
-    }
-    throw new SkipControlError(
-      `git push ended unexpectedly with signal ${result.signal ?? "unknown"}.`
-    );
-  } catch (error51) {
-    writePushgateError(io.stderr, error51);
-    return 1;
-  }
-}
-function hookArgsForPush(gitPushArgs) {
-  const parsed = parseGitPushArgs(gitPushArgs);
-  return parsed.remote ? [parsed.remote] : [];
-}
-function buildNoVerifyGitPushArgs(gitPushArgs) {
-  return ["push", "--no-verify", ...withoutHookVerificationOptions(gitPushArgs)];
-}
-function withoutHookVerificationOptions(gitPushArgs) {
-  const normalized = [];
-  let parseOptions = true;
-  for (const arg of gitPushArgs) {
-    if (parseOptions && arg === "--") {
-      parseOptions = false;
-      normalized.push(arg);
-      continue;
-    }
-    if (parseOptions && (arg === "--verify" || arg === "--no-verify")) {
-      continue;
-    }
-    normalized.push(arg);
-  }
-  return normalized;
-}
-function withSkipControlConfigOverlay(env, skipControls) {
-  if (skipControls.active.kind === "none") {
-    return env;
-  }
-  const count = parseGitConfigCount(env.GIT_CONFIG_COUNT);
-  return {
-    ...env,
-    GIT_CONFIG_COUNT: String(count + 1),
-    [`GIT_CONFIG_KEY_${String(count)}`]: skipControls.active.configKey,
-    [`GIT_CONFIG_VALUE_${String(count)}`]: "true"
-  };
-}
-function parseGitConfigCount(value) {
-  if (value === void 0) {
-    return 0;
-  }
-  const count = Number(value);
-  return Number.isInteger(count) && count >= 0 ? count : 0;
-}
-async function writeResolvedGitPushSuccessSummary(gitPushArgs, io) {
-  try {
-    writeGitPushSuccessSummary(
-      io.stdout,
-      await resolveGitPushSuccessSummary(gitPushArgs, {
-        env: io.env
-      }),
-      { env: io.env }
-    );
-  } catch {
   }
 }
 function writeUsageError(stderr, message) {

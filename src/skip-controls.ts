@@ -33,21 +33,6 @@ export class SkipControlError extends Error {
   }
 }
 
-export function buildGitPushArgs(
-  pushArgs: readonly string[],
-  state: SkipControlState,
-): string[] {
-  const gitArgs: string[] = [];
-
-  if (state.active.kind !== "none") {
-    gitArgs.push("-c", `${state.active.configKey}=true`);
-  }
-
-  gitArgs.push("push", ...pushArgs);
-
-  return gitArgs;
-}
-
 export function createSkipControlState(options: {
   skipAllChecks: boolean;
   skipAiCheck: boolean;
