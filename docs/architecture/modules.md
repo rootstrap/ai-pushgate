@@ -10,8 +10,8 @@ know.
 |---|---|---|---|
 | Hook delegator | Executable Git `pre-push` hook plus hook protocol check | `hook/pre-push` | Small by design. It should stay a delegator. |
 | Installer | `install.sh [--template name]` | `install.sh`, `templates/*.yml` | Owns runner placement, hook backup, template install, and validation. |
-| CLI | `main(argv, io)` and `pushgate` subcommands | `src/cli.ts`, `src/cli/*` | Public command surface for hook and wrapper use. |
-| Pre-push workflow | `runPrePushWorkflow(io)` | `src/workflows/pre-push.ts`, `src/workflows/run-decisions.ts` | Owns phase order and warning confirmation. |
+| CLI | `main(argv, io)` and `pushgate` subcommands | `src/cli.ts`, `src/cli/*` | Public command surface for hook use. |
+| Pre-push workflow | `runPrePushWorkflow(io)` | `src/workflows/pre-push.ts`, `src/workflows/local-push-gate-run.ts`, `src/workflows/pre-push-hook-context.ts` | Owns pre-push context, phase order, and warning confirmation. |
 | Config | `loadConfig`, `parseConfigYaml`, `PushgateConfig` | `src/config/*`, `schemas/pushgate-config-v2.schema.json` | Converts user YAML into one normalized internal shape. |
 | Path policy | `resolveChangedFiles`, `selectToolChangedFilePaths` | `src/path-policy/*`, `src/git/*` | Owns Git range, diff parsing, ignore, and live-path semantics. |
 | Process execution | `runCommand`, `runTimedCommand`, `runProcessOutcome`, `runInheritedCommand` | `src/process/*` | Shared child-process mechanics and outcome formatting. |
