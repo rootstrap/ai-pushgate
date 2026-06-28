@@ -1,289 +1,263 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { Readable, Writable } from "node:stream";
 import test from "node:test";
 
-import type { PushgateConfig } from "../src/config/index.js";
-import { createSkipControlState } from "../src/skip-controls.js";
-import {
-  buildPrePushConfigDecision,
-  buildPrePushRunDecision,
-  formatRunSkipReason,
-} from "../src/workflows/run-decisions.js";
+import { sanitizeGitLocalEnv } from "../src/git/environment.js";
+import { runPrePushWorkflow } from "../src/workflows/pre-push.js";
 
-test("skip-all-checks owns the pre-config decision and visible reason", () => {
-  const decision = buildPrePushConfigDecision(
-    createSkipControlState({ skipAllChecks: true, skipAiCheck: true }),
-  );
+test("skip-all-checks bypasses config loading", async () => {
+  await withGitRepo(async (repoRoot) => {
+    await writeRepoFile(repoRoot, ".pushgate.yml", "version: nope\n");
+    await checkedRun("git", ["config", "pushgate.skip-all-checks", "true"], {
+      cwd: repoRoot,
+    });
 
-  assert.deepEqual(decision, {
-    kind: "skip",
-    reason: {
-      configKey: "pushgate.skip-all-checks",
-      control: "skip-all-checks",
-      kind: "skip-control",
-      scope: "all-local-checks",
-    },
+    const result = await runWorkflowInRepo(repoRoot);
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(
+      result.stdout,
+      /Skipping all local Pushgate checks because pushgate\.skip-all-checks=true/,
+    );
+    assert.equal(result.stderr, "");
   });
-  if (decision.kind !== "skip") {
-    assert.fail("Expected skip-all-checks to skip before config loading.");
+});
+
+test("skip-ai-check still loads config", async () => {
+  await withGitRepo(async (repoRoot) => {
+    await writeRepoFile(repoRoot, ".pushgate.yml", "version: nope\n");
+    await checkedRun("git", ["config", "pushgate.skip-ai-check", "true"], {
+      cwd: repoRoot,
+    });
+
+    await assert.rejects(
+      () => runWorkflowInRepo(repoRoot),
+      /Invalid Pushgate v2 config/,
+    );
+  });
+});
+
+test("inactive deterministic checks and local AI do not resolve changed files", async () => {
+  await withGitRepo(async (repoRoot) => {
+    await writeRepoFile(
+      repoRoot,
+      ".pushgate.yml",
+      [
+        "version: 2",
+        "review:",
+        "  target_branch: branch-that-does-not-exist",
+        "ai:",
+        "  mode: off",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runWorkflowInRepo(repoRoot);
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /\[skip\] No checks configured/);
+    assert.match(result.stdout, /Pushgate passed\. Git is pushing/);
+    assert.equal(result.stderr, "");
+  });
+});
+
+test("skip-ai-check keeps deterministic changed-file work", async () => {
+  await withChangedFileRepo(async (repoRoot) => {
+    await writeRepoFile(
+      repoRoot,
+      ".pushgate.yml",
+      [
+        "version: 2",
+        "ai:",
+        "  mode: blocking",
+        "  provider: claude",
+        "  providers:",
+        "    claude: {}",
+        "tools:",
+        "  - name: changed-files-tool",
+        `    command: ${JSON.stringify([process.execPath, "-e", "process.exit(0);"])}`,
+        "    run: changed_files",
+        "",
+      ].join("\n"),
+    );
+    await checkedRun("git", ["config", "pushgate.skip-ai-check", "true"], {
+      cwd: repoRoot,
+    });
+
+    const result = await runWorkflowInRepo(repoRoot);
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /Running 1 check/);
+    assert.match(result.stdout, /\[ok\] Changed files tool/);
+    assert.match(
+      result.stdout,
+      /Skipping local AI because pushgate\.skip-ai-check=true/,
+    );
+    assert.doesNotMatch(result.stdout, /Claude Code CLI was not found on PATH/);
+    assert.equal(result.stderr, "");
+  });
+});
+
+interface WorkflowResult {
+  code: number;
+  stderr: string;
+  stdout: string;
+}
+
+async function runWorkflowInRepo(repoRoot: string): Promise<WorkflowResult> {
+  const previousCwd = process.cwd();
+  const stdout = captureOutput();
+  const stderr = captureOutput();
+
+  process.chdir(repoRoot);
+
+  try {
+    const code = await runPrePushWorkflow({
+      env: sanitizeGitLocalEnv(process.env),
+      stderr: stderr.stream,
+      stdin: Readable.from(""),
+      stdout: stdout.stream,
+    });
+
+    return {
+      code,
+      stderr: stderr.text(),
+      stdout: stdout.text(),
+    };
+  } finally {
+    process.chdir(previousCwd);
   }
-  assert.equal(
-    formatRunSkipReason(decision.reason),
-    "Skipping all local Pushgate checks because pushgate.skip-all-checks=true.",
-  );
-});
+}
 
-test("skip-ai-check still allows config loading", () => {
-  assert.deepEqual(
-    buildPrePushConfigDecision(
-      createSkipControlState({ skipAllChecks: false, skipAiCheck: true }),
-    ),
-    { kind: "load-config" },
-  );
-});
+function captureOutput(): {
+  stream: Writable;
+  text(): string;
+} {
+  let output = "";
 
-test("skips changed-file planning when deterministic checks and local AI are inactive", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig(),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
-  );
-
-  assert.deepEqual(decision, {
-    changedFiles: {
-      kind: "not-required",
-      requiredBy: [],
-    },
-    deterministicChecks: {
-      kind: "not-configured",
-    },
-    localAi: {
-      kind: "skip",
-      reason: {
-        kind: "local-ai-mode-off",
-      },
-    },
-  });
-  if (decision.localAi.kind !== "skip") {
-    assert.fail("Expected local AI to be skipped when ai.mode is off.");
-  }
-  assert.equal(formatRunSkipReason(decision.localAi.reason), null);
-});
-
-test("plans changed files for configured deterministic tools and policies", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig({
-      policies: {
-        diff_size: { max_changed_lines: 10, mode: "warning" },
-        forbidden_paths: { mode: "blocking", patterns: ["secrets/**"] },
-      },
-      tools: [
-        {
-          command: ["pnpm", "test"],
-          fail_fast: true,
-          mode: "blocking",
-          name: "test",
-          run: "changed_files",
-          timeout_seconds: 60,
-        },
-      ],
-    }),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
-  );
-
-  assert.deepEqual(decision.changedFiles, {
-    kind: "required",
-    requiredBy: ["deterministic-checks"],
-  });
-  assert.deepEqual(decision.deterministicChecks, {
-    checkCount: 3,
-    kind: "configured",
-  });
-  assert.deepEqual(decision.localAi, {
-    kind: "skip",
-    reason: {
-      kind: "local-ai-mode-off",
-    },
-  });
-});
-
-test("plans changed files for enabled deterministic plugins", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig({
-      plugins: {
-        gitleaks: {
-          command: "gitleaks",
-          enabled: true,
-          fail_fast: true,
-          mode: "blocking",
-          redact: true,
-          timeout_seconds: 60,
-        },
-      },
-    }),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
-  );
-
-  assert.deepEqual(decision.changedFiles, {
-    kind: "required",
-    requiredBy: ["deterministic-checks"],
-  });
-  assert.deepEqual(decision.deterministicChecks, {
-    checkCount: 1,
-    kind: "configured",
-  });
-});
-
-test("skips disabled deterministic plugins", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig({
-      plugins: {
-        gitleaks: {
-          command: "gitleaks",
-          enabled: false,
-          fail_fast: true,
-          mode: "blocking",
-          redact: true,
-          timeout_seconds: 60,
-        },
-      },
-    }),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
-  );
-
-  assert.deepEqual(decision, {
-    changedFiles: {
-      kind: "not-required",
-      requiredBy: [],
-    },
-    deterministicChecks: {
-      kind: "not-configured",
-    },
-    localAi: {
-      kind: "skip",
-      reason: {
-        kind: "local-ai-mode-off",
-      },
-    },
-  });
-});
-
-test("plans changed files for active local AI without deterministic checks", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig({
-      ai: {
-        ...baseConfig().ai,
-        mode: "blocking",
-        provider: "claude",
-      },
-    }),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: false }),
-  );
-
-  assert.deepEqual(decision.changedFiles, {
-    kind: "required",
-    requiredBy: ["local-ai-review"],
-  });
-  assert.deepEqual(decision.localAi, {
-    kind: "run",
-  });
-});
-
-test("skip-ai-check removes local AI changed-file work", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig({
-      ai: {
-        ...baseConfig().ai,
-        mode: "advisory",
-        provider: "copilot",
-      },
-    }),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: true }),
-  );
-
-  assert.deepEqual(decision, {
-    changedFiles: {
-      kind: "not-required",
-      requiredBy: [],
-    },
-    deterministicChecks: {
-      kind: "not-configured",
-    },
-    localAi: {
-      kind: "skip",
-      reason: {
-        configKey: "pushgate.skip-ai-check",
-        control: "skip-ai-check",
-        kind: "skip-control",
-        scope: "local-ai",
-      },
-    },
-  });
-  if (decision.localAi.kind !== "skip") {
-    assert.fail("Expected skip-ai-check to skip local AI.");
-  }
-  assert.equal(
-    formatRunSkipReason(decision.localAi.reason),
-    "Skipping local AI because pushgate.skip-ai-check=true.",
-  );
-});
-
-test("skip-ai-check leaves deterministic changed-file work intact", () => {
-  const decision = buildPrePushRunDecision(
-    baseConfig({
-      ai: {
-        ...baseConfig().ai,
-        mode: "blocking",
-        provider: "claude",
-      },
-      tools: [
-        {
-          command: ["pnpm", "test"],
-          fail_fast: true,
-          mode: "blocking",
-          name: "test",
-          run: "changed_files",
-          timeout_seconds: 60,
-        },
-      ],
-    }),
-    createSkipControlState({ skipAllChecks: false, skipAiCheck: true }),
-  );
-
-  assert.deepEqual(decision.changedFiles, {
-    kind: "required",
-    requiredBy: ["deterministic-checks"],
-  });
-  assert.deepEqual(decision.localAi, {
-    kind: "skip",
-    reason: {
-      configKey: "pushgate.skip-ai-check",
-      control: "skip-ai-check",
-      kind: "skip-control",
-      scope: "local-ai",
-    },
-  });
-});
-
-function baseConfig(
-  overrides: Partial<PushgateConfig> = {},
-): PushgateConfig {
   return {
-    ai: {
-      max_changed_lines: 500,
-      max_prompt_tokens: 12000,
-      mode: "off",
-      providers: {},
-      timeout_seconds: 120,
+    stream: new Writable({
+      write(chunk, _encoding, callback) {
+        output += String(chunk);
+        callback();
+      },
+    }),
+    text() {
+      return output;
     },
-    ignore_paths: [],
-    policies: {},
-    plugins: {},
-    review: {
-      context_lines: 10,
-      max_lines_for_full_file: 300,
-      target_branch: "main",
-    },
-    tools: [],
-    version: 2,
-    ...overrides,
   };
+}
+
+async function withGitRepo(
+  callback: (repoRoot: string) => Promise<void>,
+): Promise<void> {
+  const repoRoot = await mkdtemp(join(tmpdir(), "pushgate-workflow-"));
+
+  try {
+    await checkedRun("git", ["init", "--quiet", "--initial-branch=main"], {
+      cwd: repoRoot,
+    });
+    await callback(repoRoot);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+}
+
+async function withChangedFileRepo(
+  callback: (repoRoot: string) => Promise<void>,
+): Promise<void> {
+  await withGitRepo(async (repoRoot) => {
+    await checkedRun("git", ["config", "user.email", "workflow@example.test"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["config", "user.name", "Pushgate Workflow"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "src/changed.ts", "export const value = 1;\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "baseline"], {
+      cwd: repoRoot,
+    });
+    await checkedRun("git", ["switch", "--quiet", "-c", "feature"], {
+      cwd: repoRoot,
+    });
+    await writeRepoFile(repoRoot, "src/changed.ts", "export const value = 2;\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await checkedRun("git", ["commit", "--quiet", "-m", "feature"], {
+      cwd: repoRoot,
+    });
+
+    await callback(repoRoot);
+  });
+}
+
+async function writeRepoFile(
+  repoRoot: string,
+  relativePath: string,
+  content: string,
+): Promise<void> {
+  const filePath = join(repoRoot, relativePath);
+
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content);
+}
+
+interface CommandOptions {
+  cwd: string;
+}
+
+async function checkedRun(
+  command: string,
+  args: string[],
+  options: CommandOptions,
+): Promise<void> {
+  const result = await new Promise<{
+    code: number | null;
+    stderr: string;
+    stdout: string;
+  }>((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: sanitizeGitLocalEnv(process.env),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    let stdout = "";
+
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (data: string) => {
+      stdout += data;
+    });
+    child.stderr?.on("data", (data: string) => {
+      stderr += data;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      resolve({ code, stderr, stdout });
+    });
+  });
+
+  if (result.code !== 0) {
+    throw new Error(formatResult(result));
+  }
+}
+
+function formatResult(result: {
+  code: number | null;
+  stderr: string;
+  stdout: string;
+}): string {
+  return [
+    `exit: ${String(result.code)}`,
+    "stdout:",
+    result.stdout,
+    "stderr:",
+    result.stderr,
+  ].join("\n");
 }
