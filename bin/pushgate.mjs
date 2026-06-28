@@ -10033,18 +10033,6 @@ async function readSkipBooleanConfig(repoRoot, env, key) {
   }
 }
 
-// src/cli/errors.ts
-function writePushgateError(stderr, error51) {
-  if (error51 instanceof ConfigError || error51 instanceof ChangedFilePolicyError || error51 instanceof SkipControlError) {
-    stderr.write(`[pushgate] ${error51.message}
-`);
-    return;
-  }
-  const detail = error51 instanceof Error ? error51.message : String(error51);
-  stderr.write(`[pushgate] Unexpected Pushgate failure: ${detail}
-`);
-}
-
 // src/workflows/pre-push.ts
 import { basename } from "node:path";
 
@@ -27916,6 +27904,16 @@ function writeUsageError(stderr, message) {
   stderr.write(`${message}
 
 ${USAGE}
+`);
+}
+function writePushgateError(stderr, error51) {
+  if (error51 instanceof ConfigError || error51 instanceof ChangedFilePolicyError || error51 instanceof SkipControlError) {
+    stderr.write(`[pushgate] ${error51.message}
+`);
+    return;
+  }
+  const detail = error51 instanceof Error ? error51.message : String(error51);
+  stderr.write(`[pushgate] Unexpected Pushgate failure: ${detail}
 `);
 }
 if (isCliEntrypoint()) {
