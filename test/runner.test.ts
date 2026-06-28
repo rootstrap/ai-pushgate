@@ -590,6 +590,31 @@ test("push wrapper runs local preflight before native push and bypasses the hook
   });
 });
 
+test("push wrapper normalizes verify flags before bypassing the native hook", async () => {
+  await withGitRepo(async (root) => {
+    await writeRepoFile(
+      root,
+      ".pushgate.yml",
+      "version: 2\nai:\n  mode: off\ntools: []\n",
+    );
+    await withPreflightGitPushStub(root, async ({ argsPath, env }) => {
+      const result = await runRunner(
+        ["push", "--no-verify", "--verify", "origin", "feature"],
+        undefined,
+        { cwd: root, env },
+      );
+
+      assert.equal(result.code, 0, formatResult(result));
+      assert.deepEqual(await readArgLines(argsPath), [
+        "push",
+        "--no-verify",
+        "origin",
+        "feature",
+      ]);
+    });
+  });
+});
+
 test("push wrapper does not open native push when local preflight fails", async () => {
   await withGitRepo(async (root) => {
     await writeRepoFile(root, ".pushgate.yml", "version: nope\n");

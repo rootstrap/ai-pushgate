@@ -27919,7 +27919,7 @@ async function runLocalPushGate(options) {
     return 1;
   }
   writeLine(options.stdout);
-  writeLine(options.stdout, "Pushgate passed. Returning control to Git...");
+  writeLine(options.stdout, "Pushgate passed. Changes allowed...");
   return 0;
 }
 async function resolveChangedFilesIfRequired(options) {
@@ -28221,21 +28221,23 @@ function hookArgsForPush(gitPushArgs) {
   return parsed.remote ? [parsed.remote] : [];
 }
 function buildNoVerifyGitPushArgs(gitPushArgs) {
-  if (hasNoVerifyOption(gitPushArgs)) {
-    return ["push", ...gitPushArgs];
-  }
-  return ["push", "--no-verify", ...gitPushArgs];
+  return ["push", "--no-verify", ...withoutHookVerificationOptions(gitPushArgs)];
 }
-function hasNoVerifyOption(gitPushArgs) {
+function withoutHookVerificationOptions(gitPushArgs) {
+  const normalized = [];
+  let parseOptions = true;
   for (const arg of gitPushArgs) {
-    if (arg === "--") {
-      return false;
+    if (parseOptions && arg === "--") {
+      parseOptions = false;
+      normalized.push(arg);
+      continue;
     }
-    if (arg === "--no-verify") {
-      return true;
+    if (parseOptions && (arg === "--verify" || arg === "--no-verify")) {
+      continue;
     }
+    normalized.push(arg);
   }
-  return false;
+  return normalized;
 }
 function withSkipControlConfigOverlay(env, skipControls) {
   if (skipControls.active.kind === "none") {

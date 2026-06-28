@@ -126,25 +126,30 @@ function hookArgsForPush(gitPushArgs: readonly string[]): readonly string[] {
 }
 
 function buildNoVerifyGitPushArgs(gitPushArgs: readonly string[]): string[] {
-  if (hasNoVerifyOption(gitPushArgs)) {
-    return ["push", ...gitPushArgs];
-  }
-
-  return ["push", "--no-verify", ...gitPushArgs];
+  return ["push", "--no-verify", ...withoutHookVerificationOptions(gitPushArgs)];
 }
 
-function hasNoVerifyOption(gitPushArgs: readonly string[]): boolean {
+function withoutHookVerificationOptions(
+  gitPushArgs: readonly string[],
+): string[] {
+  const normalized: string[] = [];
+  let parseOptions = true;
+
   for (const arg of gitPushArgs) {
-    if (arg === "--") {
-      return false;
+    if (parseOptions && arg === "--") {
+      parseOptions = false;
+      normalized.push(arg);
+      continue;
     }
 
-    if (arg === "--no-verify") {
-      return true;
+    if (parseOptions && (arg === "--verify" || arg === "--no-verify")) {
+      continue;
     }
+
+    normalized.push(arg);
   }
 
-  return false;
+  return normalized;
 }
 
 function withSkipControlConfigOverlay(
