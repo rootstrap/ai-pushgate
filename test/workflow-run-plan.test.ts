@@ -61,7 +61,7 @@ test("inactive deterministic checks and local AI do not resolve changed files", 
 
     assert.equal(result.code, 0, formatResult(result));
     assert.match(result.stdout, /\[skip\] No checks configured/);
-    assert.match(result.stdout, /Pushgate passed\. Git is pushing/);
+    assert.match(result.stdout, /Pushgate passed\. Changes allowed\.\.\./);
     assert.equal(result.stderr, "");
   });
 });

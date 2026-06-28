@@ -47,8 +47,9 @@ docs, issues, and code comments.
 
 ## Boundary Rules
 
-- `git push` is the normal workflow. `pushgate push` is a convenience wrapper,
-  not the required path.
+- `git push` is the normal workflow. `pushgate push` is a convenience wrapper
+  that runs the same local Pushgate workflow before opening the native Git push,
+  then delegates with `git push --no-verify` after Pushgate passes.
 - `git push --no-verify` bypasses the hook entirely and is outside Pushgate's
   runtime control.
 - `pushgate.skip-all-checks` skips all local Pushgate work for one push.

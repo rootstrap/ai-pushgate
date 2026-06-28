@@ -60,7 +60,7 @@ TypeScript `interface` declarations.
 |---|---|---|
 | Hook protocol | `hook/pre-push`, `src/cli.ts` | The hook requires protocol `1` before delegating to the runner. |
 | `pushgate pre-push` | `src/cli.ts`, `src/workflows/pre-push.ts` | Drains Git hook stdin, runs Pushgate phases, and returns the local verdict. |
-| `pushgate push` | `src/cli.ts`, `src/cli/push-args.ts` | Wraps `git push` while mapping friendly skip flags to one-push Git config. |
+| `pushgate push` | `src/cli.ts`, `src/cli/push-args.ts` | Runs a local Pushgate preflight, maps friendly skip flags to one-push Git config, then delegates to `git push --no-verify`. |
 | `.pushgate.yml` v2 | `schemas/pushgate-config-v2.schema.json`, `src/config/*` | Strict user config with normalized defaults before modules consume it. |
 | Changed-file resolution | `src/path-policy/*` | One normalized changed-file list plus named review and scan ranges. |
 | Deterministic check summary | `src/runner/deterministic.ts` | Exit code plus per-check results after policies, plugins, and tools run. |

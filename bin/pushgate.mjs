@@ -7827,6 +7827,7 @@ var require_ignore = __commonJS({
 
 // src/cli.ts
 import { realpathSync } from "node:fs";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 // src/config/constants.ts
@@ -9970,14 +9971,6 @@ var SkipControlError = class extends Error {
     this.name = new.target.name;
   }
 };
-function buildGitPushArgs(pushArgs, state) {
-  const gitArgs = [];
-  if (state.active.kind !== "none") {
-    gitArgs.push("-c", `${state.active.configKey}=true`);
-  }
-  gitArgs.push("push", ...pushArgs);
-  return gitArgs;
-}
 function createSkipControlState(options) {
   if (options.skipAllChecks) {
     return {
@@ -27926,7 +27919,7 @@ async function runLocalPushGate(options) {
     return 1;
   }
   writeLine(options.stdout);
-  writeLine(options.stdout, "Pushgate passed. Git is pushing...");
+  writeLine(options.stdout, "Pushgate passed. Returning control to Git...");
   return 0;
 }
 async function resolveChangedFilesIfRequired(options) {
@@ -28191,8 +28184,17 @@ async function runPrePushCommand(args, io) {
 async function runPushCommand(args, io) {
   try {
     const parsed = parsePushCommandArgs(args);
+    const preflightExitCode = await runPrePushWorkflow({
+      ...io,
+      env: withSkipControlConfigOverlay(io.env, parsed.skipControls),
+      hookArgs: hookArgsForPush(parsed.gitPushArgs),
+      stdin: Readable.from("")
+    });
+    if (preflightExitCode !== 0) {
+      return preflightExitCode;
+    }
     const result = await runGitPush(
-      buildGitPushArgs(parsed.gitPushArgs, parsed.skipControls),
+      buildNoVerifyGitPushArgs(parsed.gitPushArgs),
       { env: io.env }
     ).catch((error51) => {
       const spawnError = error51;
@@ -28213,6 +28215,46 @@ async function runPushCommand(args, io) {
     writePushgateError(io.stderr, error51);
     return 1;
   }
+}
+function hookArgsForPush(gitPushArgs) {
+  const parsed = parseGitPushArgs(gitPushArgs);
+  return parsed.remote ? [parsed.remote] : [];
+}
+function buildNoVerifyGitPushArgs(gitPushArgs) {
+  if (hasNoVerifyOption(gitPushArgs)) {
+    return ["push", ...gitPushArgs];
+  }
+  return ["push", "--no-verify", ...gitPushArgs];
+}
+function hasNoVerifyOption(gitPushArgs) {
+  for (const arg of gitPushArgs) {
+    if (arg === "--") {
+      return false;
+    }
+    if (arg === "--no-verify") {
+      return true;
+    }
+  }
+  return false;
+}
+function withSkipControlConfigOverlay(env, skipControls) {
+  if (skipControls.active.kind === "none") {
+    return env;
+  }
+  const count = parseGitConfigCount(env.GIT_CONFIG_COUNT);
+  return {
+    ...env,
+    GIT_CONFIG_COUNT: String(count + 1),
+    [`GIT_CONFIG_KEY_${String(count)}`]: skipControls.active.configKey,
+    [`GIT_CONFIG_VALUE_${String(count)}`]: "true"
+  };
+}
+function parseGitConfigCount(value) {
+  if (value === void 0) {
+    return 0;
+  }
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 ? count : 0;
 }
 async function writeResolvedGitPushSuccessSummary(gitPushArgs, io) {
   try {

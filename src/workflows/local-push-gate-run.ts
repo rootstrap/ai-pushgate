@@ -108,7 +108,7 @@ export async function runLocalPushGate(
   }
 
   writeLine(options.stdout);
-  writeLine(options.stdout, "Pushgate passed. Git is pushing...");
+  writeLine(options.stdout, "Pushgate passed. Changes allowed...");
   return 0;
 }
 

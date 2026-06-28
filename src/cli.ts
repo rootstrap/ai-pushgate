@@ -1,17 +1,16 @@
 import { realpathSync } from "node:fs";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 import { writePushgateError } from "./cli/errors.js";
 import { parsePushCommandArgs } from "./cli/push-args.js";
 import {
+  parseGitPushArgs,
   resolveGitPushSuccessSummary,
   runGitPush,
   writeGitPushSuccessSummary,
 } from "./git/push.js";
-import {
-  buildGitPushArgs,
-  SkipControlError,
-} from "./skip-controls.js";
+import { SkipControlError, type SkipControlState } from "./skip-controls.js";
 import {
   runPrePushWorkflow,
   type PrePushWorkflowIO,
@@ -79,9 +78,19 @@ async function runPushCommand(
 ): Promise<number> {
   try {
     const parsed = parsePushCommandArgs(args);
+    const preflightExitCode = await runPrePushWorkflow({
+      ...io,
+      env: withSkipControlConfigOverlay(io.env, parsed.skipControls),
+      hookArgs: hookArgsForPush(parsed.gitPushArgs),
+      stdin: Readable.from(""),
+    });
+
+    if (preflightExitCode !== 0) {
+      return preflightExitCode;
+    }
 
     const result = await runGitPush(
-      buildGitPushArgs(parsed.gitPushArgs, parsed.skipControls),
+      buildNoVerifyGitPushArgs(parsed.gitPushArgs),
       { env: io.env },
     ).catch((error: unknown) => {
       const spawnError = error as NodeJS.ErrnoException;
@@ -108,6 +117,62 @@ async function runPushCommand(
     writePushgateError(io.stderr, error);
     return 1;
   }
+}
+
+function hookArgsForPush(gitPushArgs: readonly string[]): readonly string[] {
+  const parsed = parseGitPushArgs(gitPushArgs);
+
+  return parsed.remote ? [parsed.remote] : [];
+}
+
+function buildNoVerifyGitPushArgs(gitPushArgs: readonly string[]): string[] {
+  if (hasNoVerifyOption(gitPushArgs)) {
+    return ["push", ...gitPushArgs];
+  }
+
+  return ["push", "--no-verify", ...gitPushArgs];
+}
+
+function hasNoVerifyOption(gitPushArgs: readonly string[]): boolean {
+  for (const arg of gitPushArgs) {
+    if (arg === "--") {
+      return false;
+    }
+
+    if (arg === "--no-verify") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function withSkipControlConfigOverlay(
+  env: NodeJS.ProcessEnv,
+  skipControls: SkipControlState,
+): NodeJS.ProcessEnv {
+  if (skipControls.active.kind === "none") {
+    return env;
+  }
+
+  const count = parseGitConfigCount(env.GIT_CONFIG_COUNT);
+
+  return {
+    ...env,
+    GIT_CONFIG_COUNT: String(count + 1),
+    [`GIT_CONFIG_KEY_${String(count)}`]: skipControls.active.configKey,
+    [`GIT_CONFIG_VALUE_${String(count)}`]: "true",
+  };
+}
+
+function parseGitConfigCount(value: string | undefined): number {
+  if (value === undefined) {
+    return 0;
+  }
+
+  const count = Number(value);
+
+  return Number.isInteger(count) && count >= 0 ? count : 0;
 }
 
 async function writeResolvedGitPushSuccessSummary(
