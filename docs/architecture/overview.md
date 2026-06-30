@@ -42,7 +42,7 @@ flowchart TD
 |---|---|---|
 | Product contract | User workflow, config examples, templates | `README.md`, `templates/*.yml` |
 | Hook and install | Managed runner placement and thin hook delegation | `install.sh`, `hook/pre-push` |
-| CLI and workflow | Command dispatch and pre-push phase order | `src/cli.ts`, `src/cli/*`, `src/workflows/*` |
+| CLI and workflow | Command dispatch and pre-push phase order | `src/cli.ts`, `src/workflows/*` |
 | Configuration | Strict v2 schema, YAML parsing, defaults, provider validation | `src/config/*`, `schemas/pushgate-config-v2.schema.json` |
 | Path policy | Target-ref resolution, merge-base selection, diff parsing, ignore filtering, named ranges | `src/path-policy/*`, `src/git/*` |
 | Process execution | Shared child-process mechanics and outcome policy | `src/process/*` |

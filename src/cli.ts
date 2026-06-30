@@ -1,7 +1,9 @@
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { writePushgateError } from "./cli/errors.js";
+import { ConfigError } from "./config/index.js";
+import { ChangedFilePolicyError } from "./path-policy/index.js";
+import { SkipControlError } from "./skip-controls.js";
 import {
   runPrePushWorkflow,
   type PrePushWorkflowIO,
@@ -65,6 +67,24 @@ function writeUsageError(
   message: string,
 ): void {
   stderr.write(`${message}\n\n${USAGE}\n`);
+}
+
+function writePushgateError(
+  stderr: NodeJS.WritableStream,
+  error: unknown,
+): void {
+  if (
+    error instanceof ConfigError ||
+    error instanceof ChangedFilePolicyError ||
+    error instanceof SkipControlError
+  ) {
+    stderr.write(`[pushgate] ${error.message}\n`);
+    return;
+  }
+
+  const detail = error instanceof Error ? error.message : String(error);
+
+  stderr.write(`[pushgate] Unexpected Pushgate failure: ${detail}\n`);
 }
 
 if (isCliEntrypoint()) {
