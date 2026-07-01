@@ -1,9 +1,14 @@
 import type { AiConfig } from "../config/index.js";
+import type { LocalAiTranscriptEvent } from "../transcript/index.js";
 import type {
   LocalAiProviderResult,
-  LocalAiTranscriptEvent,
-  LocalAiVerdict,
 } from "./types.js";
+
+export interface LocalAiVerdict {
+  exitCode: number;
+  transcriptEvents: readonly LocalAiTranscriptEvent[];
+  warningCount: number;
+}
 
 export function buildLocalAiVerdict(
   aiMode: AiConfig["mode"],

@@ -17,6 +17,7 @@ know.
 | Process execution | `runCommand`, `runTimedCommand`, `runProcessOutcome`, `runInheritedCommand` | `src/process/*` | Shared child-process mechanics and outcome formatting. |
 | Deterministic runner | `runDeterministicChecks` | `src/runner/*` | Runs built-in policies, plugin checks, configured tools, transcript, and summary. |
 | Local AI review | `runLocalAiReview` | `src/ai/*` | Applies guardrails, builds payload, calls provider runtime, builds verdict. |
+| Transcript | `createPushgateTranscript(stdout)` | `src/transcript/*`, `src/terminal/format.ts` | Owns language-agnostic developer-facing Local Push Gate output. |
 | Provider adapters | `LocalAiProviderAdapter.runReview` | `src/ai/providers/*` | Isolates Claude and Copilot command and transport details. |
 | Generated runner | Executable `bin/pushgate.mjs` | `bin/pushgate.mjs`, `scripts/build-runner.mjs` | Installer-facing artifact; source of truth remains `src/`. |
 
@@ -31,7 +32,7 @@ know.
 | `LocalAiReviewPayload` | AI review context | Provider adapters | Contains changed files, rendered diff, optional full-file context, and final prompt. |
 | `RawAiReviewOutput` | Provider output parser | AI verdict and transcript | Must match schema version `1` and strict finding fields. |
 | `AiFinding` | Review-output normalization | Verdict and transcript | Adds provider/model source metadata and normalized severity/category. |
-| `LocalAiVerdict` | Verdict module | AI gate | Contains final exit code plus transcript events. |
+| `LocalAiVerdict` | Verdict module | AI gate and Transcript | Contains final exit code plus Local AI transcript events. |
 
 ## Dependency Shape
 
@@ -43,6 +44,7 @@ The high fan-in files are useful because they hide internal layout:
 | `src/path-policy/index.ts` | Public changed-file policy barrel for resolver, filters, errors, and types. |
 | `src/ai/types.ts` | Shared local AI review types and provider contracts. |
 | `src/runner/deterministic.ts` | Main deterministic-check interface and changed-file token helpers. |
+| `src/transcript/index.ts` | Public Transcript interface for phase-specific rendering adapters. |
 | `src/git/command.ts` | Shared Git command execution and checked-error behavior. |
 
 Keep barrels deep. They should expose module interfaces, not every internal
@@ -59,3 +61,4 @@ helper.
 | Installer behavior and installed hook assets | `test/install.test.ts` |
 | Process outcome behavior | `test/process.test.ts` |
 | Local AI prompt context, guardrails, provider adapters, output repair, verdicts | `test/ai.test.ts` |
+| Transcript rendering for Local Push Gate output | `test/transcript.test.ts` |

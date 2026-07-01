@@ -61,7 +61,7 @@ test("inactive deterministic checks and local AI do not resolve changed files", 
 
     assert.equal(result.code, 0, formatResult(result));
     assert.match(result.stdout, /\[skip\] No checks configured/);
-    assert.match(result.stdout, /Pushgate passed\. Changes allowed\.\.\./);
+    assert.match(result.stdout, /Local Push Gate passed\. Push allowed\./);
     assert.equal(result.stderr, "");
   });
 });
@@ -96,7 +96,7 @@ test("skip-ai-check keeps deterministic changed-file work", async () => {
     assert.match(result.stdout, /\[ok\] Changed files tool/);
     assert.match(
       result.stdout,
-      /Skipping local AI because pushgate\.skip-ai-check=true/,
+      /Local AI Review\s+skipped because pushgate\.skip-ai-check=true/,
     );
     assert.doesNotMatch(result.stdout, /Claude Code CLI was not found on PATH/);
     assert.equal(result.stderr, "");

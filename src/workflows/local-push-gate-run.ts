@@ -9,18 +9,15 @@ import {
   runDeterministicChecks,
 } from "../runner/deterministic.js";
 import {
-  SKIP_AI_CHECK_CONFIG_KEY,
-  type SkipControlState,
-} from "../skip-controls.js";
-import {
-  writeLine,
-  writeResultRow,
-  writeSection,
-} from "../terminal/format.js";
+  createPushgateTranscript,
+  type LocalAiTranscript,
+  type WarningConfirmationPhase,
+  type WarningConfirmationTranscript,
+} from "../transcript/index.js";
+import type { SkipControlState } from "../skip-controls.js";
 import {
   createTerminalWarningConfirmer,
   WarningConfirmationError,
-  type WarningConfirmationPhase,
   type WarningConfirmer,
 } from "./warning-confirmation.js";
 
@@ -51,6 +48,7 @@ type LocalAiPhaseDecision =
 export async function runLocalPushGate(
   options: LocalPushGateRunOptions,
 ): Promise<number> {
+  const transcript = createPushgateTranscript(options.stdout);
   const localAi = getLocalAiPhaseDecision(options.config, options.skipControls);
   const changedFileResolution = await resolveChangedFilesIfRequired({
     config: options.config,
@@ -63,7 +61,7 @@ export async function runLocalPushGate(
     config: options.config,
     env: options.env,
     repoRoot: options.repoRoot,
-    stdout: options.stdout,
+    transcript: transcript.deterministic,
   });
 
   if (deterministicSummary.exitCode !== 0) {
@@ -74,7 +72,7 @@ export async function runLocalPushGate(
     !(await confirmWarningsBeforeContinuing({
       confirmer: options.warningConfirmer,
       phase: "deterministic checks",
-      stdout: options.stdout,
+      transcript: transcript.warningConfirmation,
       warningCount: deterministicSummary.results.filter(
         (result) => result.status === "warning",
       ).length,
@@ -89,7 +87,7 @@ export async function runLocalPushGate(
     decision: localAi,
     env: options.env,
     repoRoot: options.repoRoot,
-    stdout: options.stdout,
+    transcript: transcript.localAi,
   });
 
   if (localAiSummary.exitCode !== 0) {
@@ -100,15 +98,14 @@ export async function runLocalPushGate(
     !(await confirmWarningsBeforeContinuing({
       confirmer: options.warningConfirmer,
       phase: "local AI review",
-      stdout: options.stdout,
+      transcript: transcript.warningConfirmation,
       warningCount: localAiSummary.warningCount,
     }))
   ) {
     return 1;
   }
 
-  writeLine(options.stdout);
-  writeLine(options.stdout, "Pushgate passed. Changes allowed...");
+  transcript.push.writePassed();
   return 0;
 }
 
@@ -139,20 +136,17 @@ async function runLocalAiPhase(options: {
   decision: LocalAiPhaseDecision;
   env: NodeJS.ProcessEnv;
   repoRoot: string;
-  stdout: NodeJS.WritableStream;
+  transcript: LocalAiTranscript;
 }): Promise<{ exitCode: number; warningCount: number }> {
   if (options.decision.kind === "skip") {
-    const message = formatLocalAiSkipReason(options.decision.reason);
-
-    if (message !== null) {
-      writeSection(options.stdout, "AI review");
-      writeResultRow(options.stdout, "skipped", message);
-    }
+    options.transcript.writeSkipped({
+      reason: options.decision.reason,
+    });
 
     return { exitCode: 0, warningCount: 0 };
   }
 
-  writeSection(options.stdout, "AI review");
+  options.transcript.writeSection();
 
   return await runLocalAiReview({
     aiConfig: options.config.ai,
@@ -163,14 +157,14 @@ async function runLocalAiPhase(options: {
     env: options.env,
     repoRoot: options.repoRoot,
     reviewConfig: options.config.review,
-    stdout: options.stdout,
+    transcript: options.transcript,
   });
 }
 
 async function confirmWarningsBeforeContinuing(options: {
   confirmer: WarningConfirmer | undefined;
   phase: WarningConfirmationPhase;
-  stdout: NodeJS.WritableStream;
+  transcript: WarningConfirmationTranscript;
   warningCount: number;
 }): Promise<boolean> {
   if (options.warningCount === 0) {
@@ -186,22 +180,21 @@ async function confirmWarningsBeforeContinuing(options: {
     });
 
     if (confirmed) {
-      options.stdout.write(
-        `Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.\n`,
-      );
+      options.transcript.writeConfirmed({
+        phase: options.phase,
+        warningCount: options.warningCount,
+      });
       return true;
     }
 
-    options.stdout.write(
-      `Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.\n`,
-    );
+    options.transcript.writeDeclined({
+      phase: options.phase,
+      warningCount: options.warningCount,
+    });
     return false;
   } catch (error) {
     if (error instanceof WarningConfirmationError) {
-      options.stdout.write(`${error.message}\n`);
-      options.stdout.write(
-        "Push blocked because warning confirmation could not be collected.\n",
-      );
+      options.transcript.writeUnavailable({ message: error.message });
       return false;
     }
 
@@ -228,16 +221,6 @@ function getLocalAiPhaseDecision(
   }
 
   return { kind: "run" };
-}
-
-function formatLocalAiSkipReason(
-  reason: Extract<LocalAiPhaseDecision, { kind: "skip" }>["reason"],
-): string | null {
-  if (reason === "local-ai-mode-off") {
-    return null;
-  }
-
-  return `Skipping local AI because ${SKIP_AI_CHECK_CONFIG_KEY}=true.`;
 }
 
 function requireChangedFileResolution(

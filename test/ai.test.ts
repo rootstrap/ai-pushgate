@@ -31,7 +31,6 @@ import { createCommandProviderAdapter } from "../src/ai/providers/command-provid
 import { claudeProvider } from "../src/ai/providers/claude.js";
 import { copilotProvider } from "../src/ai/providers/copilot.js";
 import type { ProviderCommandResult } from "../src/ai/providers/run-provider-command.js";
-import { renderLocalAiTranscript } from "../src/ai/transcript.js";
 import { buildLocalAiVerdict } from "../src/ai/verdict.js";
 import type { LocalAiProviderAdapter } from "../src/ai/types.js";
 import {
@@ -39,6 +38,7 @@ import {
   sanitizeGitLocalEnv,
 } from "../src/git/environment.js";
 import { resolveChangedFiles } from "../src/path-policy/index.js";
+import { createLocalAiTranscript } from "../src/transcript/index.js";
 
 test("validates the canonical AI review contract with Zod", () => {
   const result = AiReviewOutputSchema.safeParse(canonicalAiReviewOutput());
@@ -804,7 +804,7 @@ test("builds and renders local AI verdict output without provider execution", ()
   });
 
   assert.equal(verdict.exitCode, 0);
-  renderLocalAiTranscript(verdict.transcriptEvents, output.stream);
+  createLocalAiTranscript(output.stream).writeEvents(verdict.transcriptEvents);
 
   assert.match(
     output.text(),
@@ -1054,7 +1054,7 @@ test("runs the Claude adapter through the provider interface with model selectio
         max_lines_for_full_file: 300,
         target_branch: "main",
       },
-      stdout: output.stream,
+      transcript: createLocalAiTranscript(output.stream),
     });
 
     assert.equal(result.exitCode, 0, output.text());
@@ -1861,7 +1861,7 @@ test("maps Copilot auth-like failures through advisory mode", async () => {
         max_lines_for_full_file: 300,
         target_branch: "main",
       },
-      stdout: output.stream,
+      transcript: createLocalAiTranscript(output.stream),
     });
 
     assert.equal(result.exitCode, 0, output.text());
@@ -2085,12 +2085,12 @@ test("blocks local AI before provider invocation when changed-line guardrail is 
         max_lines_for_full_file: 300,
         target_branch: "main",
       },
-      stdout: output.stream,
+      transcript: createLocalAiTranscript(output.stream),
     });
 
     assert.equal(result.exitCode, 1, output.text());
     assert.match(output.text(), /\[block\] Changed lines\s+\d+ changed lines exceed ai\.max_changed_lines 1/);
-    assert.match(output.text(), /Local AI review blocked the push/);
+    assert.match(output.text(), /Local AI Review blocked the push/);
     assert.doesNotMatch(output.text(), /provider claude failed/);
   });
 });
@@ -2130,7 +2130,7 @@ test("reports unsupported local AI providers through the public gate", async () 
       max_lines_for_full_file: 300,
       target_branch: "main",
     },
-    stdout: output.stream,
+    transcript: createLocalAiTranscript(output.stream),
   });
 
   assert.equal(result.exitCode, 1, output.text());
@@ -2139,7 +2139,7 @@ test("reports unsupported local AI providers through the public gate", async () 
     output.text(),
     /does not implement the configured AI provider "openai" yet/,
   );
-  assert.match(output.text(), /Local AI is blocking in this repository/);
+  assert.match(output.text(), /Local AI Review is blocking in this repository/);
   assert.doesNotMatch(output.text(), /Provider: Openai/);
 });
 
@@ -2169,7 +2169,7 @@ test("skips local AI after prompt rendering when prompt token guardrail is excee
         max_lines_for_full_file: 300,
         target_branch: "main",
       },
-      stdout: output.stream,
+      transcript: createLocalAiTranscript(output.stream),
     });
 
     assert.equal(result.exitCode, 0, output.text());
@@ -2222,7 +2222,7 @@ test("passes configured timeout seconds to the Claude adapter", async () => {
         max_lines_for_full_file: 300,
         target_branch: "main",
       },
-      stdout: output.stream,
+      transcript: createLocalAiTranscript(output.stream),
     });
 
     assert.equal(result.exitCode, 1, output.text());

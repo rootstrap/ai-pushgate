@@ -34,6 +34,9 @@ flowchart TD
   Deterministic --> Process["src/process/*"]
   AI --> Process
   AI --> Providers["Claude / Copilot adapters"]
+  Workflow --> Transcript["src/transcript/*"]
+  Deterministic --> Transcript
+  AI --> Transcript
 ```
 
 ## Architectural Layers
@@ -48,6 +51,7 @@ flowchart TD
 | Process execution | Shared child-process mechanics and outcome policy | `src/process/*` |
 | Deterministic runner | Built-in policies, plugin checks, configured tools, fail-fast behavior | `src/runner/*` |
 | Local AI review | Guardrails, prompt context, provider adapters, output parsing, verdict rendering | `src/ai/*`, `schemas/ai-review-output-v1.schema.json` |
+| Transcript | Language-agnostic developer-facing Local Push Gate output | `src/transcript/*`, `src/terminal/format.ts` |
 | Distribution | Generated runner and generated validators | `bin/pushgate.mjs`, `src/generated/*`, `scripts/*` |
 | Tests | Behavior-level coverage for hook, install, runner, config, path policy, process, and AI | `test/*.test.ts`, `test/support/*` |
 
@@ -65,6 +69,7 @@ TypeScript `interface` declarations.
 | Deterministic check summary | `src/runner/deterministic.ts` | Exit code plus per-check results after policies, plugins, and tools run. |
 | Local AI provider adapter | `src/ai/types.ts`, `src/ai/provider-runtime.ts` | Provider-specific execution returns one provider-neutral result. |
 | AI review output contract | `src/ai/review-contract.ts` | Every provider response validates against the same strict finding schema. |
+| Transcript rendering | `src/transcript/*` | Phase modules pass language-agnostic facts; Transcript owns terminal copy and bypass guidance. |
 
 ## Read First
 

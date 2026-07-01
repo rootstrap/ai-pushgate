@@ -3,10 +3,7 @@ import {
   InteractiveTerminalError,
   type InteractiveTerminal,
 } from "./terminal.js";
-
-export type WarningConfirmationPhase =
-  | "deterministic checks"
-  | "local AI review";
+import type { WarningConfirmationPhase } from "../transcript/index.js";
 
 export interface WarningConfirmationRequest {
   phase: WarningConfirmationPhase;

@@ -9,10 +9,10 @@ import {
   type ChangedFileResolution,
 } from "../path-policy/index.js";
 import { humanizeIdentifier } from "../terminal/format.js";
+import type { DeterministicTranscriptCheckResult } from "../transcript/index.js";
 import type { ToolResult, ToolResultStatus } from "./deterministic.js";
 import { runGitleaksPlugin } from "./plugins/gitleaks.js";
 import { runBuiltInPolicies } from "./policies.js";
-import type { DeterministicTranscriptCheckResult } from "./transcript.js";
 import { runToolCommand } from "./tool-command.js";
 
 export interface DeterministicCheckExecutionContext {

@@ -1,8 +1,11 @@
 import type { PushgateConfig } from "../config/index.js";
 import type { ChangedFileResolution } from "../path-policy/index.js";
+import {
+  createDeterministicTranscript,
+  type DeterministicTranscript,
+} from "../transcript/index.js";
 import { buildDeterministicCheckRunPlan } from "./deterministic-plan.js";
 import { summarizeDeterministicResults } from "./summary.js";
-import { createDeterministicTranscript } from "./transcript.js";
 
 export {
   CHANGED_FILES_TOKEN,
@@ -34,7 +37,7 @@ export interface DeterministicCheckRequest {
   config: PushgateConfig;
   env?: NodeJS.ProcessEnv;
   repoRoot?: string;
-  stdout?: NodeJS.WritableStream;
+  transcript?: DeterministicTranscript;
 }
 
 export function buildDeterministicCheckPlan(
@@ -53,11 +56,11 @@ export async function runDeterministicChecks(
   request: DeterministicCheckRequest,
 ): Promise<DeterministicCheckSummary> {
   const { config } = request;
-  const stdout = request.stdout ?? process.stdout;
   const repoRoot = request.repoRoot ?? process.cwd();
   const env = request.env ?? process.env;
   const results: ToolResult[] = [];
-  const transcript = createDeterministicTranscript(stdout);
+  const transcript =
+    request.transcript ?? createDeterministicTranscript(process.stdout);
   const runPlan = buildDeterministicCheckRunPlan(config);
 
   if (runPlan.length === 0) {
