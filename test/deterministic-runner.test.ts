@@ -568,18 +568,17 @@ test("renders deterministic transcript without running commands", () => {
   const transcript = createDeterministicTranscript(output.stream);
 
   transcript.writeStart(3);
-  transcript.writePolicyResult({
-    name: "policy:diff_size",
+  transcript.writeCheckResult({
+    label: "Diff size",
     status: "passed",
-    detail: "5 changed line(s) within max_changed_lines 10",
+    detail: "5 / 10 changed lines",
   });
-  transcript.writePolicyResult({
-    name: "policy:diff_size",
+  transcript.writeCheckResult({
+    label: "Diff size",
     status: "passed",
-    detail: "",
   });
-  transcript.writeToolResult(tool(), {
-    name: "check",
+  transcript.writeCheckResult({
+    label: "Check",
     status: "blocked",
     detail: "exited with code 2",
     outputTail: "first line\nsecond line",
