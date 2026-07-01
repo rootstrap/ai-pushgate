@@ -178,13 +178,47 @@ test("renders and clears a TTY local AI provider wait spinner", () => {
   assert.match(output.text(), /\r\u001B\[2K\nValidated findings/);
 });
 
+test("writes provider response deltas without per-character writes", () => {
+  const output = captureOutput();
+  const transcript = createPushgateTranscript(output.stream);
+
+  transcript.localAi.writeEvents([
+    {
+      kind: "provider-response-start",
+      providerLabel: "GitHub Copilot",
+    },
+  ]);
+
+  const writeCountBeforeDeltas = output.writeCount();
+
+  transcript.localAi.writeEvents([
+    {
+      kind: "provider-response-delta",
+      text: "First streamed line\nSecond streamed line\n",
+    },
+    {
+      kind: "provider-response-delta",
+      text: "Third streamed line",
+    },
+  ]);
+
+  assert.equal(output.writeCount() - writeCountBeforeDeltas, 2);
+  assert.match(
+    output.text(),
+    /GitHub Copilot response\n  First streamed line\n  Second streamed line\n  Third streamed line/,
+  );
+});
+
 function captureOutput(options: { isTTY?: boolean } = {}): {
   stream: Writable;
   text(): string;
+  writeCount(): number;
 } {
   let output = "";
+  let writeCount = 0;
   const stream = new Writable({
     write(chunk, _encoding, callback) {
+      writeCount += 1;
       output += String(chunk);
       callback();
     },
@@ -201,6 +235,9 @@ function captureOutput(options: { isTTY?: boolean } = {}): {
     stream,
     text() {
       return output;
+    },
+    writeCount() {
+      return writeCount;
     },
   };
 }

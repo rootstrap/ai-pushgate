@@ -31,6 +31,7 @@ import { createCommandProviderAdapter } from "../src/ai/providers/command-provid
 import { claudeProvider } from "../src/ai/providers/claude.js";
 import { copilotProvider } from "../src/ai/providers/copilot.js";
 import type { ProviderCommandResult } from "../src/ai/providers/run-provider-command.js";
+import { looksLikePushgateReviewContractText } from "../src/ai/providers/streaming.js";
 import { buildLocalAiVerdict } from "../src/ai/verdict.js";
 import type { LocalAiProviderAdapter } from "../src/ai/types.js";
 import {
@@ -268,6 +269,47 @@ test("rejects ambiguous key repair in parsed AI review objects", () => {
 test("marks current CLI provider structured-output capabilities", () => {
   assert.equal(claudeProvider.structuredOutputCapability, "native_json_schema");
   assert.equal(copilotProvider.structuredOutputCapability, "jsonl_transport");
+});
+
+test("identifies only complete review contract JSON as stream-suppressed text", () => {
+  assert.equal(
+    looksLikePushgateReviewContractText(
+      JSON.stringify({
+        schema_version: 1,
+        findings: [],
+      }),
+    ),
+    true,
+  );
+  assert.equal(
+    looksLikePushgateReviewContractText(
+      [
+        "```json",
+        JSON.stringify({
+          schema_version: 1,
+          findings: [],
+        }),
+        "```",
+      ].join("\n"),
+    ),
+    true,
+  );
+  assert.equal(
+    looksLikePushgateReviewContractText('{"schema_version":'),
+    false,
+  );
+  assert.equal(
+    looksLikePushgateReviewContractText(
+      "[findings overview] Mention schema_version as prose.",
+    ),
+    false,
+  );
+  assert.equal(
+    looksLikePushgateReviewContractText(
+      "The findings list describes user-facing behavior.",
+    ),
+    false,
+  );
 });
 
 test("parses structured AI review output into findings and summary", () => {
@@ -2012,6 +2054,77 @@ test("does not stream non-assistant Copilot delta events", async () => {
     assert.equal(result.exitCode, 0, text);
     assert.match(text, /GitHub Copilot response\n  Visible provider text\./);
     assert.doesNotMatch(text, /internal tool text/);
+  });
+});
+
+test("does not stream untyped Copilot delta-shaped events", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        JSON.stringify({
+          delta: "internal metadata",
+        }),
+        JSON.stringify({
+          type: "assistant.message.delta",
+          data: {
+            delta: "Visible provider text.",
+          },
+        }),
+        copilotAssistantMessageJsonl(
+          JSON.stringify({
+            schema_version: 1,
+            findings: [],
+          }),
+        ),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: true,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "copilot",
+        providers: {
+          copilot: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 0, text);
+    assert.match(text, /GitHub Copilot response\n  Visible provider text\./);
+    assert.doesNotMatch(text, /internal metadata/);
   });
 });
 

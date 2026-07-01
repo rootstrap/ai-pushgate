@@ -335,7 +335,7 @@ function isAssistantDeltaEvent(event: JsonObject): boolean {
     return true;
   }
 
-  if (type === "message.delta" || type === "delta" || type === undefined) {
+  if (type === "message.delta" || type === "delta") {
     return role === undefined || role === "assistant";
   }
 

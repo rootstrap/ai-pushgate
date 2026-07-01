@@ -10620,16 +10620,26 @@ function writeProviderResponseDelta(stdout, state, text) {
     return;
   }
   state.responseWroteText = true;
-  for (const char of sanitized) {
+  stdout.write(renderProviderResponseDelta(state, sanitized));
+}
+function renderProviderResponseDelta(state, sanitized) {
+  let rendered = "";
+  let index = 0;
+  while (index < sanitized.length) {
     if (state.responseLineStart) {
-      stdout.write("  ");
+      rendered += "  ";
       state.responseLineStart = false;
     }
-    stdout.write(char);
-    if (char === "\n") {
-      state.responseLineStart = true;
+    const newlineIndex = sanitized.indexOf("\n", index);
+    if (newlineIndex === -1) {
+      rendered += sanitized.slice(index);
+      break;
     }
+    rendered += sanitized.slice(index, newlineIndex + 1);
+    state.responseLineStart = true;
+    index = newlineIndex + 1;
   }
+  return rendered;
 }
 function writeEmptyProviderResponse(stdout, state) {
   if (!state.responseStarted || state.responseWroteText || state.responseEmptyRendered) {
@@ -26506,11 +26516,28 @@ function emitHumanResponseText(streaming, text) {
   return true;
 }
 function looksLikePushgateReviewContractText(text) {
-  const trimmed = text.trimStart();
-  return /^[{[]/.test(trimmed) && /"?schema_version"?|"?findings"?/.test(trimmed);
+  const candidate = unwrapJsonCandidate(text.trim());
+  if (candidate === null || !/^[{[]/.test(candidate)) {
+    return false;
+  }
+  try {
+    return isReviewContractObject(JSON.parse(candidate));
+  } catch {
+    return false;
+  }
 }
 function isJsonObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function unwrapJsonCandidate(text) {
+  const fencedJson = text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i);
+  if (fencedJson) {
+    return fencedJson[1]?.trim() ?? null;
+  }
+  return text;
+}
+function isReviewContractObject(value) {
+  return isJsonObject(value) && "schema_version" in value && "findings" in value;
 }
 
 // src/ai/providers/claude.ts
@@ -27051,7 +27078,7 @@ function isAssistantDeltaEvent(event) {
   if (type === "assistant.message.delta" || type === "assistant.delta" || type === "assistant.reasoning_delta") {
     return true;
   }
-  if (type === "message.delta" || type === "delta" || type === void 0) {
+  if (type === "message.delta" || type === "delta") {
     return role === void 0 || role === "assistant";
   }
   return false;

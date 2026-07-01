@@ -559,19 +559,35 @@ function writeProviderResponseDelta(
   }
 
   state.responseWroteText = true;
+  stdout.write(renderProviderResponseDelta(state, sanitized));
+}
 
-  for (const char of sanitized) {
+function renderProviderResponseDelta(
+  state: LocalAiStreamingTranscriptState,
+  sanitized: string,
+): string {
+  let rendered = "";
+  let index = 0;
+
+  while (index < sanitized.length) {
     if (state.responseLineStart) {
-      stdout.write("  ");
+      rendered += "  ";
       state.responseLineStart = false;
     }
 
-    stdout.write(char);
+    const newlineIndex = sanitized.indexOf("\n", index);
 
-    if (char === "\n") {
-      state.responseLineStart = true;
+    if (newlineIndex === -1) {
+      rendered += sanitized.slice(index);
+      break;
     }
+
+    rendered += sanitized.slice(index, newlineIndex + 1);
+    state.responseLineStart = true;
+    index = newlineIndex + 1;
   }
+
+  return rendered;
 }
 
 function writeEmptyProviderResponse(

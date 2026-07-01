@@ -58,14 +58,37 @@ export function emitHumanResponseText(
 }
 
 export function looksLikePushgateReviewContractText(text: string): boolean {
-  const trimmed = text.trimStart();
+  const candidate = unwrapJsonCandidate(text.trim());
 
-  return (
-    /^[{[]/.test(trimmed) &&
-    /"?schema_version"?|"?findings"?/.test(trimmed)
-  );
+  if (candidate === null || !/^[{[]/.test(candidate)) {
+    return false;
+  }
+
+  try {
+    return isReviewContractObject(JSON.parse(candidate));
+  } catch {
+    return false;
+  }
 }
 
 export function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function unwrapJsonCandidate(text: string): string | null {
+  const fencedJson = text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i);
+
+  if (fencedJson) {
+    return fencedJson[1]?.trim() ?? null;
+  }
+
+  return text;
+}
+
+function isReviewContractObject(value: unknown): boolean {
+  return (
+    isJsonObject(value) &&
+    "schema_version" in value &&
+    "findings" in value
+  );
 }
