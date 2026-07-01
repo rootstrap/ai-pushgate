@@ -38,10 +38,12 @@ test("parses a representative v2 config with nested provider settings", async ()
     diff_size: {
       max_changed_lines: 250,
       mode: "warning",
+      fail_fast: false,
     },
     forbidden_paths: {
       patterns: [".env", "secrets/**"],
       mode: "blocking",
+      fail_fast: true,
     },
   });
   assert.equal(config.ai.mode, "advisory");
@@ -162,10 +164,12 @@ test("normalizes built-in policy defaults", () => {
     diff_size: {
       max_changed_lines: 200,
       mode: "blocking",
+      fail_fast: true,
     },
     forbidden_paths: {
       patterns: [".env", "secrets/**"],
       mode: "blocking",
+      fail_fast: true,
     },
   });
 });
@@ -304,6 +308,18 @@ test("rejects invalid built-in policy settings", () => {
       "    mode: advisory",
     ].join("\n"),
     /\/policies\/forbidden_paths\/mode must be equal to one of the allowed values/,
+  );
+  assertValidationError(
+    [
+      "version: 2",
+      "ai:",
+      "  mode: off",
+      "policies:",
+      "  diff_size:",
+      "    max_changed_lines: 100",
+      "    fail_fast: eventually",
+    ].join("\n"),
+    /\/policies\/diff_size\/fail_fast must be boolean/,
   );
 });
 

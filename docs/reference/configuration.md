@@ -27,11 +27,13 @@ policies:
   diff_size:
     max_changed_lines: 500
     mode: warning
+    fail_fast: false
   forbidden_paths:
     patterns:
       - ".env"
       - "secrets/**"
     mode: blocking
+    fail_fast: true
 
 plugins:
   gitleaks:
@@ -84,7 +86,9 @@ extension point for provider-specific nested settings.
 | `tools[].run` | `changed_files` |
 | `tools[].fail_fast` | `true` |
 | `policies.diff_size.mode` | `blocking` |
+| `policies.diff_size.fail_fast` | `true` |
 | `policies.forbidden_paths.mode` | `blocking` |
+| `policies.forbidden_paths.fail_fast` | `true` |
 | `plugins.gitleaks.enabled` | `true` |
 | `plugins.gitleaks.command` | `gitleaks` |
 | `plugins.gitleaks.timeout_seconds` | `60` |
@@ -132,8 +136,8 @@ commands. They run before plugins and configured tools.
 | `diff_size` | Counts added plus deleted text lines in the normalized changed-file list. Binary diffs do not contribute. |
 | `forbidden_paths` | Matches gitignore-like patterns against live changed paths after `ignore_paths` filtering. Deleted files are ignored. |
 
-Policy `mode` uses the same `blocking` or `warning` behavior as configured
-tools.
+Policy `mode` and `fail_fast` use the same blocking, warning, and fail-fast
+behavior as configured tools.
 
 ## Plugins
 

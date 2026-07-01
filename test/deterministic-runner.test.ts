@@ -75,6 +75,7 @@ test("plans deterministic check count and changed-file needs in the runner modul
         diff_size: {
           max_changed_lines: 10,
           mode: "warning",
+          fail_fast: true,
         },
       },
       plugins: {
@@ -328,6 +329,61 @@ test("fail_fast controls whether later tools run after blocking failures", async
   });
 });
 
+test("fail_fast controls whether later built-in policies run after blocking failures", async () => {
+  const failFastOutput = captureOutput();
+  const failFastSummary = await runChecks(
+    {
+      ...configWithTools([]),
+      policies: {
+        diff_size: {
+          max_changed_lines: 1,
+          mode: "blocking",
+          fail_fast: true,
+        },
+        forbidden_paths: {
+          patterns: ["src/**"],
+          mode: "blocking",
+          fail_fast: true,
+        },
+      },
+    },
+    { stdout: failFastOutput.stream },
+  );
+
+  assert.equal(failFastSummary.exitCode, 1, failFastOutput.text());
+  assert.deepEqual(
+    failFastSummary.results.map((result) => result.name),
+    ["policy:diff_size"],
+  );
+  assert.match(failFastOutput.text(), /not run after fail_fast/);
+
+  const aggregateOutput = captureOutput();
+  const aggregateSummary = await runChecks(
+    {
+      ...configWithTools([]),
+      policies: {
+        diff_size: {
+          max_changed_lines: 1,
+          mode: "blocking",
+          fail_fast: false,
+        },
+        forbidden_paths: {
+          patterns: ["src/**"],
+          mode: "blocking",
+          fail_fast: true,
+        },
+      },
+    },
+    { stdout: aggregateOutput.stream },
+  );
+
+  assert.equal(aggregateSummary.exitCode, 1, aggregateOutput.text());
+  assert.deepEqual(
+    aggregateSummary.results.map((result) => result.name),
+    ["policy:diff_size", "policy:forbidden_paths"],
+  );
+});
+
 test("missing commands are handled according to tool mode", async () => {
   await withTempDir(async (repoRoot) => {
     const output = captureOutput();
@@ -488,10 +544,12 @@ test("runs built-in policies and makes warning versus blocking behavior explicit
           diff_size: {
             max_changed_lines: 2,
             mode: "warning",
+            fail_fast: true,
           },
           forbidden_paths: {
             patterns: ["src/**"],
             mode: "blocking",
+            fail_fast: true,
           },
         },
       },
@@ -518,6 +576,7 @@ test("warning-mode built-in policy failures do not block", async () => {
           diff_size: {
             max_changed_lines: 1,
             mode: "warning",
+            fail_fast: true,
           },
         },
       },

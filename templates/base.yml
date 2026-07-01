@@ -103,6 +103,7 @@ tools: []
 #   diff_size:
 #     max_changed_lines: 500
 #     mode: warning      # asks before continuing
+#     fail_fast: false   # if blocking, continue later checks after a violation
 #
 #   forbidden_paths:
 #     patterns:
@@ -111,6 +112,7 @@ tools: []
 #       - "secrets/**"
 #       - "*.pem"
 #     mode: blocking
+#     fail_fast: true
 #
 policies: {}
 

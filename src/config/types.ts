@@ -44,6 +44,8 @@ export interface DiffSizePolicyConfig {
   max_changed_lines: number;
   /** Whether a policy violation blocks the push or only warns locally. */
   mode: BuiltInPolicyMode;
+  /** Whether a blocking violation stops later deterministic checks. */
+  fail_fast: boolean;
 }
 
 /** Built-in forbidden-path policy configuration. */
@@ -52,6 +54,8 @@ export interface ForbiddenPathsPolicyConfig {
   patterns: string[];
   /** Whether a policy violation blocks the push or only warns locally. */
   mode: BuiltInPolicyMode;
+  /** Whether a blocking violation stops later deterministic checks. */
+  fail_fast: boolean;
 }
 
 /** Optional built-in deterministic policies. */
@@ -157,12 +161,14 @@ export interface RawToolConfig {
 export interface RawDiffSizePolicyConfig {
   max_changed_lines: number;
   mode?: BuiltInPolicyMode;
+  fail_fast?: boolean;
 }
 
 /** Raw built-in forbidden-path policy shape before defaults are normalized. */
 export interface RawForbiddenPathsPolicyConfig {
   patterns: string[];
   mode?: BuiltInPolicyMode;
+  fail_fast?: boolean;
 }
 
 /** Raw built-in policy config before optional policy modes are normalized. */
