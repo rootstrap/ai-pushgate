@@ -30,18 +30,12 @@ export const copilotProvider = createCommandProviderAdapter({
       return undefined;
     }
 
+    const responseStream = createCopilotResponseStreamEmitter();
+
     return {
       onStdoutChunk: createJsonLineStreamObserver({
         onJsonLine(event) {
-          const content = readAssistantMessageContent(event);
-
-          if (content === null) {
-            return;
-          }
-
-          const message = content.endsWith("\n") ? content : `${content}\n`;
-
-          emitHumanResponseText(options.streaming, message);
+          responseStream.emit(event, options.streaming);
         },
       }),
     };
@@ -250,6 +244,116 @@ function readAssistantMessageContent(event: JsonObject): string | null {
     (event.role === undefined || event.role === "assistant")
   ) {
     return event.content;
+  }
+
+  return null;
+}
+
+function createCopilotResponseStreamEmitter(): {
+  emit(
+    event: JsonObject,
+    streaming: Parameters<typeof emitHumanResponseText>[0],
+  ): void;
+} {
+  let previousCumulativeContent = "";
+  let wroteResponseContent = false;
+
+  return {
+    emit(event, streaming) {
+      const delta = readAssistantMessageDelta(event);
+
+      if (delta !== null) {
+        if (emitHumanResponseText(streaming, delta)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+
+      const content = readAssistantMessageContent(event);
+
+      if (content === null) {
+        return;
+      }
+
+      if (
+        previousCumulativeContent.length > 0 &&
+        content.startsWith(previousCumulativeContent)
+      ) {
+        const suffix = content.slice(previousCumulativeContent.length);
+        previousCumulativeContent = content;
+        if (emitHumanResponseText(streaming, suffix)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+
+      previousCumulativeContent = content;
+      const prefix = wroteResponseContent ? "\n" : "";
+
+      if (emitHumanResponseText(streaming, `${prefix}${content}`)) {
+        wroteResponseContent = true;
+      }
+    },
+  };
+}
+
+function readAssistantMessageDelta(event: JsonObject): string | null {
+  if (!isAssistantDeltaEvent(event)) {
+    return null;
+  }
+
+  const data = isJsonObject(event.data) ? event.data : undefined;
+
+  return (
+    readDeltaText(event.delta) ??
+    readDeltaText(data?.delta) ??
+    readDeltaText(event.text_delta) ??
+    readDeltaText(data?.text_delta) ??
+    readDeltaText(event.content_delta) ??
+    readDeltaText(data?.content_delta)
+  );
+}
+
+function isAssistantDeltaEvent(event: JsonObject): boolean {
+  const type = typeof event.type === "string" ? event.type : undefined;
+  const data = isJsonObject(event.data) ? event.data : undefined;
+  const role =
+    typeof event.role === "string"
+      ? event.role
+      : typeof data?.role === "string"
+        ? data.role
+        : undefined;
+
+  if (type === "assistant.message.delta" || type === "assistant.delta") {
+    return true;
+  }
+
+  if (type === "message.delta" || type === "delta" || type === undefined) {
+    return role === undefined || role === "assistant";
+  }
+
+  return false;
+}
+
+function readDeltaText(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (!isJsonObject(value)) {
+    return null;
+  }
+
+  if (typeof value.text === "string") {
+    return value.text;
+  }
+
+  if (typeof value.content === "string") {
+    return value.content;
+  }
+
+  if (typeof value.value === "string") {
+    return value.value;
   }
 
   return null;

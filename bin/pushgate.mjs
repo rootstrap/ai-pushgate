@@ -26847,16 +26847,11 @@ var copilotProvider = createCommandProviderAdapter({
     if (!options.streaming?.responseText) {
       return void 0;
     }
+    const responseStream = createCopilotResponseStreamEmitter();
     return {
       onStdoutChunk: createJsonLineStreamObserver({
         onJsonLine(event) {
-          const content = readAssistantMessageContent(event);
-          if (content === null) {
-            return;
-          }
-          const message = content.endsWith("\n") ? content : `${content}
-`;
-          emitHumanResponseText(options.streaming, message);
+          responseStream.emit(event, options.streaming);
         }
       })
     };
@@ -27006,6 +27001,75 @@ function readAssistantMessageContent(event) {
   }
   if ((type === void 0 || type === "message" || type === "assistant") && typeof event.content === "string" && (event.role === void 0 || event.role === "assistant")) {
     return event.content;
+  }
+  return null;
+}
+function createCopilotResponseStreamEmitter() {
+  let previousCumulativeContent = "";
+  let wroteResponseContent = false;
+  return {
+    emit(event, streaming) {
+      const delta = readAssistantMessageDelta(event);
+      if (delta !== null) {
+        if (emitHumanResponseText(streaming, delta)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+      const content = readAssistantMessageContent(event);
+      if (content === null) {
+        return;
+      }
+      if (previousCumulativeContent.length > 0 && content.startsWith(previousCumulativeContent)) {
+        const suffix = content.slice(previousCumulativeContent.length);
+        previousCumulativeContent = content;
+        if (emitHumanResponseText(streaming, suffix)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+      previousCumulativeContent = content;
+      const prefix = wroteResponseContent ? "\n" : "";
+      if (emitHumanResponseText(streaming, `${prefix}${content}`)) {
+        wroteResponseContent = true;
+      }
+    }
+  };
+}
+function readAssistantMessageDelta(event) {
+  if (!isAssistantDeltaEvent(event)) {
+    return null;
+  }
+  const data = isJsonObject(event.data) ? event.data : void 0;
+  return readDeltaText(event.delta) ?? readDeltaText(data?.delta) ?? readDeltaText(event.text_delta) ?? readDeltaText(data?.text_delta) ?? readDeltaText(event.content_delta) ?? readDeltaText(data?.content_delta);
+}
+function isAssistantDeltaEvent(event) {
+  const type = typeof event.type === "string" ? event.type : void 0;
+  const data = isJsonObject(event.data) ? event.data : void 0;
+  const role = typeof event.role === "string" ? event.role : typeof data?.role === "string" ? data.role : void 0;
+  if (type === "assistant.message.delta" || type === "assistant.delta") {
+    return true;
+  }
+  if (type === "message.delta" || type === "delta" || type === void 0) {
+    return role === void 0 || role === "assistant";
+  }
+  return false;
+}
+function readDeltaText(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (!isJsonObject(value)) {
+    return null;
+  }
+  if (typeof value.text === "string") {
+    return value.text;
+  }
+  if (typeof value.content === "string") {
+    return value.content;
+  }
+  if (typeof value.value === "string") {
+    return value.value;
   }
   return null;
 }
