@@ -24,6 +24,7 @@ policies:
   diff_size:
     max_changed_lines: 250
     mode: warning
+    fail_fast: false
   forbidden_paths:
     patterns:
       - ".env"

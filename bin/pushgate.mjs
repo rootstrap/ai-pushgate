@@ -7953,13 +7953,15 @@ function normalizePolicies(rawConfig) {
     ...policies.diff_size ? {
       diff_size: {
         max_changed_lines: policies.diff_size.max_changed_lines,
-        mode: policies.diff_size.mode ?? "blocking"
+        mode: policies.diff_size.mode ?? "blocking",
+        fail_fast: policies.diff_size.fail_fast ?? true
       }
     } : {},
     ...policies.forbidden_paths ? {
       forbidden_paths: {
         patterns: [...policies.forbidden_paths.patterns],
-        mode: policies.forbidden_paths.mode ?? "blocking"
+        mode: policies.forbidden_paths.mode ?? "blocking",
+        fail_fast: policies.forbidden_paths.fail_fast ?? true
       }
     } : {}
   };
@@ -8011,7 +8013,7 @@ function validate12(data, { instancePath = "", parentData, parentDataProperty, r
       errors++;
     }
     for (const key0 in data) {
-      if (!(key0 === "max_changed_lines" || key0 === "mode")) {
+      if (!(key0 === "max_changed_lines" || key0 === "mode" || key0 === "fail_fast")) {
         const err1 = { instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" };
         if (vErrors === null) {
           vErrors = [err1];
@@ -8065,12 +8067,23 @@ function validate12(data, { instancePath = "", parentData, parentDataProperty, r
         errors++;
       }
     }
+    if (data.fail_fast !== void 0) {
+      if (typeof data.fail_fast !== "boolean") {
+        const err6 = { instancePath: instancePath + "/fail_fast", schemaPath: "#/properties/fail_fast/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" };
+        if (vErrors === null) {
+          vErrors = [err6];
+        } else {
+          vErrors.push(err6);
+        }
+        errors++;
+      }
+    }
   } else {
-    const err6 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+    const err7 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
     if (vErrors === null) {
-      vErrors = [err6];
+      vErrors = [err7];
     } else {
-      vErrors.push(err6);
+      vErrors.push(err7);
     }
     errors++;
   }
@@ -8091,7 +8104,7 @@ function validate14(data, { instancePath = "", parentData, parentDataProperty, r
       errors++;
     }
     for (const key0 in data) {
-      if (!(key0 === "patterns" || key0 === "mode")) {
+      if (!(key0 === "patterns" || key0 === "mode" || key0 === "fail_fast")) {
         const err1 = { instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" };
         if (vErrors === null) {
           vErrors = [err1];
@@ -8167,12 +8180,23 @@ function validate14(data, { instancePath = "", parentData, parentDataProperty, r
         errors++;
       }
     }
+    if (data.fail_fast !== void 0) {
+      if (typeof data.fail_fast !== "boolean") {
+        const err8 = { instancePath: instancePath + "/fail_fast", schemaPath: "#/properties/fail_fast/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" };
+        if (vErrors === null) {
+          vErrors = [err8];
+        } else {
+          vErrors.push(err8);
+        }
+        errors++;
+      }
+    }
   } else {
-    const err8 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+    const err9 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
     if (vErrors === null) {
-      vErrors = [err8];
+      vErrors = [err9];
     } else {
-      vErrors.push(err8);
+      vErrors.push(err9);
     }
     errors++;
   }
@@ -27401,6 +27425,7 @@ function buildBuiltInPolicyEntries(policies) {
         policies: {
           diff_size: policies.diff_size
         },
+        failFast: policies.diff_size.fail_fast,
         resultName: "policy:diff_size",
         transformDetail: formatDiffSizeDisplayDetail
       })
@@ -27413,6 +27438,7 @@ function buildBuiltInPolicyEntries(policies) {
         policies: {
           forbidden_paths: policies.forbidden_paths
         },
+        failFast: policies.forbidden_paths.fail_fast,
         resultName: "policy:forbidden_paths"
       })
     );
@@ -27424,7 +27450,7 @@ function buildBuiltInPolicyEntry(options) {
     display: {
       label: options.label
     },
-    failFast: false,
+    failFast: options.failFast,
     async run(context) {
       const result = runBuiltInPolicies(
         options.policies,

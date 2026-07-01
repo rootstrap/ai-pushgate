@@ -87,6 +87,7 @@ function normalizePolicies(
           diff_size: {
             max_changed_lines: policies.diff_size.max_changed_lines,
             mode: policies.diff_size.mode ?? "blocking",
+            fail_fast: policies.diff_size.fail_fast ?? true,
           },
         }
       : {}),
@@ -95,6 +96,7 @@ function normalizePolicies(
           forbidden_paths: {
             patterns: [...policies.forbidden_paths.patterns],
             mode: policies.forbidden_paths.mode ?? "blocking",
+            fail_fast: policies.forbidden_paths.fail_fast ?? true,
           },
         }
       : {}),

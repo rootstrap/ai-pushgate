@@ -61,6 +61,7 @@ function buildBuiltInPolicyEntries(
         policies: {
           diff_size: policies.diff_size,
         },
+        failFast: policies.diff_size.fail_fast,
         resultName: "policy:diff_size",
         transformDetail: formatDiffSizeDisplayDetail,
       }),
@@ -74,6 +75,7 @@ function buildBuiltInPolicyEntries(
         policies: {
           forbidden_paths: policies.forbidden_paths,
         },
+        failFast: policies.forbidden_paths.fail_fast,
         resultName: "policy:forbidden_paths",
       }),
     );
@@ -85,6 +87,7 @@ function buildBuiltInPolicyEntries(
 function buildBuiltInPolicyEntry(options: {
   label: string;
   policies: BuiltInPoliciesConfig;
+  failFast: boolean;
   resultName: string;
   transformDetail?: (detail: string | undefined) => string | undefined;
 }): DeterministicCheckPlanEntry {
@@ -92,7 +95,7 @@ function buildBuiltInPolicyEntry(options: {
     display: {
       label: options.label,
     },
-    failFast: false,
+    failFast: options.failFast,
     async run(context) {
       const result = runBuiltInPolicies(
         options.policies,
