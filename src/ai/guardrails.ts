@@ -1,4 +1,7 @@
-import type { ChangedFileResolution } from "../path-policy/index.js";
+import {
+  countChangedTextLines,
+  type ChangedFileResolution,
+} from "../path-policy/index.js";
 
 export type ChangedFileGuardrailDecision =
   | {
@@ -33,7 +36,7 @@ export function evaluateChangedFileGuardrails(options: {
     return { kind: "skip-no-files" };
   }
 
-  const changedLineCount = countChangedLines(options.changedFiles);
+  const changedLineCount = countChangedTextLines(options.changedFiles);
 
   if (changedLineCount > options.maxChangedLines) {
     return {
@@ -67,18 +70,6 @@ export function evaluatePromptGuardrail(options: {
     kind: "run",
     estimatedPromptTokens,
   };
-}
-
-export function countChangedLines(
-  changedFiles: ChangedFileResolution["files"],
-): number {
-  return changedFiles.reduce((total, file) => {
-    if (file.binary) {
-      return total;
-    }
-
-    return total + (file.additions ?? 0) + (file.deletions ?? 0);
-  }, 0);
 }
 
 export function estimatePromptTokens(prompt: string): number {

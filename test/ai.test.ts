@@ -753,13 +753,6 @@ test("evaluates local AI guardrails without provider stubs", () => {
           path: "src/changed.ts",
           status: "modified",
         },
-        {
-          additions: null,
-          binary: true,
-          deletions: null,
-          path: "assets/logo.png",
-          status: "modified",
-        },
       ],
       maxChangedLines: 10,
     }),

@@ -6,7 +6,11 @@ import type {
   DiffSizePolicyConfig,
   ForbiddenPathsPolicyConfig,
 } from "../config/index.js";
-import type { ChangedFile } from "../path-policy/index.js";
+import {
+  countChangedTextLines,
+  selectLiveChangedFiles,
+  type ChangedFile,
+} from "../path-policy/index.js";
 
 export type BuiltInPolicyResultStatus = "passed" | "warning" | "blocked";
 
@@ -55,9 +59,7 @@ function runDiffSizePolicy(
   policy: DiffSizePolicyConfig,
   changedFiles: readonly ChangedFile[],
 ): BuiltInPolicyResult {
-  const changedLines = changedFiles.reduce((total, file) => {
-    return total + (file.additions ?? 0) + (file.deletions ?? 0);
-  }, 0);
+  const changedLines = countChangedTextLines(changedFiles);
 
   if (changedLines <= policy.max_changed_lines) {
     return {
@@ -82,8 +84,7 @@ function runForbiddenPathsPolicy(
   policy: ForbiddenPathsPolicyConfig,
   changedFiles: readonly ChangedFile[],
 ): BuiltInPolicyResult {
-  const matches = changedFiles
-    .filter((file) => file.status !== "deleted")
+  const matches = selectLiveChangedFiles(changedFiles)
     .flatMap((file) => {
       const pattern = firstMatchingPattern(policy.patterns, file.path);
 

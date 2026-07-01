@@ -7,9 +7,14 @@ export {
 } from "./errors.js";
 import { filterIgnoredChangedFiles as applyIgnorePathFiltering } from "./filtering.js";
 export {
+  countChangedTextLines,
   filterIgnoredChangedFiles,
+  isLiveChangedFile,
+  selectLiveChangedFilePaths,
+  selectLiveChangedFiles,
   selectToolChangedFilePaths,
 } from "./filtering.js";
+export type { SelectLiveChangedFilePathsOptions } from "./filtering.js";
 import {
   readChangedFileDiffs,
   resolveDiffBase,
