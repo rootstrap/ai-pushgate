@@ -337,7 +337,7 @@ test("skip-ai-check keeps deterministic checks running on a real installed-hook 
     assert.match(output, /\[ok\] Record tool/);
     assert.match(
       output,
-      /Skipping local AI because pushgate\.skip-ai-check=true/,
+      /Local AI Review\s+skipped because pushgate\.skip-ai-check=true/,
     );
   });
 });

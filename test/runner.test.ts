@@ -112,7 +112,7 @@ test("deterministic warnings prompt before local AI runs", async () => {
     assert.match(result.stdout, /\[warn\] Warn tool\s+exited with code 7/);
     assert.match(
       result.stdout,
-      /Continuing with 1 warning\(s\) from deterministic checks after confirmation/,
+      /Warning Confirmation accepted: continuing with 1 warning\(s\) from deterministic checks/,
     );
     assert.deepEqual(prompts, [
       { phase: "deterministic checks", warningCount: 1 },
@@ -136,7 +136,7 @@ test("declining deterministic warnings blocks the pre-push runner", async () => 
     assert.match(result.stdout, /\[warn\] Warn tool\s+exited with code 7/);
     assert.match(
       result.stdout,
-      /Push blocked because deterministic checks produced 1 warning\(s\) and continuation was not confirmed/,
+      /Push blocked because Warning Confirmation was declined for 1 warning\(s\) from deterministic checks/,
     );
     assert.deepEqual(prompts, [
       { phase: "deterministic checks", warningCount: 1 },
@@ -195,7 +195,7 @@ test("skip-ai-check keeps deterministic work and prints visible AI skip output",
     assert.match(result.stdout, /\[skip\] No checks configured/);
     assert.match(
       result.stdout,
-      /Skipping local AI because pushgate\.skip-ai-check=true/,
+      /Local AI Review\s+skipped because pushgate\.skip-ai-check=true/,
     );
     assert.equal(result.stderr, "");
   });
@@ -227,7 +227,7 @@ test("blocking local AI findings block the pre-push runner", async () => {
     assert.equal(result.code, 1, formatResult(result));
     assert.match(result.stdout, /Provider: Claude/);
     assert.match(result.stdout, /\[block\] AI logic errors\s+src\/changed\.ts:2-3/);
-    assert.match(result.stdout, /Local AI review blocked the push/);
+    assert.match(result.stdout, /Local AI Review blocked the push/);
     assert.equal(result.stderr, "");
   });
 });
@@ -268,7 +268,7 @@ test("Copilot local AI warnings continue after confirmation", async () => {
     );
     assert.match(
       result.stdout,
-      /Continuing with 1 warning\(s\) from local AI review after confirmation/,
+      /Warning Confirmation accepted: continuing with 1 warning\(s\) from local AI review/,
     );
     assert.deepEqual(prompts, [
       { phase: "local AI review", warningCount: 1 },
@@ -308,7 +308,7 @@ test("declining local AI warnings blocks the pre-push runner", async () => {
     assert.match(result.stdout, /\[warn\] AI performance\s+src\/changed\.ts:2/);
     assert.match(
       result.stdout,
-      /Push blocked because local AI review produced 1 warning\(s\) and continuation was not confirmed/,
+      /Push blocked because Warning Confirmation was declined for 1 warning\(s\) from local AI review/,
     );
     assert.deepEqual(prompts, [
       { phase: "local AI review", warningCount: 1 },
@@ -344,7 +344,7 @@ test("blocking local AI provider failures block the pre-push runner", async () =
       result.stdout,
       /\[block\] Claude provider\s+Claude Code CLI was not found on PATH/,
     );
-    assert.match(result.stdout, /Local AI is blocking in this repository/);
+    assert.match(result.stdout, /Local AI Review is blocking in this repository/);
     assert.equal(result.stderr, "");
   });
 });
@@ -411,7 +411,7 @@ test("advisory local AI provider failures continue after confirmation", async ()
     assert.match(result.stdout, /Continuing because ai.mode is advisory/);
     assert.match(
       result.stdout,
-      /Continuing with 1 warning\(s\) from local AI review after confirmation/,
+      /Warning Confirmation accepted: continuing with 1 warning\(s\) from local AI review/,
     );
     assert.deepEqual(prompts, [
       { phase: "local AI review", warningCount: 1 },
@@ -448,7 +448,7 @@ test("AI changed-line guardrail blocks provider invocation visibly", async () =>
       result.stdout,
       /\[block\] Changed lines\s+\d+ changed lines exceed ai\.max_changed_lines 1/,
     );
-    assert.match(result.stdout, /Local AI review blocked the push/);
+    assert.match(result.stdout, /Local AI Review blocked the push/);
     assert.doesNotMatch(result.stdout, /Running local AI review with claude/);
     assert.equal(result.stderr, "");
   });

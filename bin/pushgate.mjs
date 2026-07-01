@@ -10205,6 +10205,316 @@ function withStream(stream, options) {
 // src/version.ts
 var PUSHGATE_VERSION = "3.5.0";
 
+// src/transcript/pushgate-transcript.ts
+function createPushgateTranscript(stdout) {
+  return {
+    deterministic: createDeterministicTranscript(stdout),
+    localAi: createLocalAiTranscript(stdout),
+    push: createPushTranscript(stdout),
+    warningConfirmation: createWarningConfirmationTranscript(stdout)
+  };
+}
+function createDeterministicTranscript(stdout) {
+  const warnings = [];
+  const blockers = [];
+  const plannedChecks = [];
+  const liveUpdates = supportsLiveUpdates(stdout);
+  let completedCheckCount = 0;
+  let linesBelowCheckRows = 0;
+  return {
+    writeFailFast() {
+      writeSkippedRemainingChecks("not run after fail_fast");
+      writeDetail(
+        stdout,
+        "Stopped after a blocking failure because fail_fast is true."
+      );
+    },
+    writeNoChecks() {
+      writeSection(stdout, "Checks");
+      writeResultRow(stdout, "skipped", "No checks configured");
+      writeLine(stdout);
+    },
+    writeCheckResult(result) {
+      writeRenderedCheckResult(result);
+    },
+    writeStart(checks) {
+      plannedChecks.push(...checks);
+      writeSection(stdout, "Checks");
+      writeDetail(stdout, `Running ${formatCount(checks.length, "check")}.`);
+      for (const check2 of checks) {
+        writeResultRow(stdout, "running", check2.label, check2.detail);
+      }
+    },
+    writeSummary(summary) {
+      writeLine(stdout);
+      if (summary.blockedCount > 0) {
+        writeLine(
+          stdout,
+          `Checks completed with ${formatCount(summary.blockedCount, "blocking failure")} and ${formatCount(summary.warningCount, "warning")}.`
+        );
+        writeLine(stdout);
+        writeSection(
+          stdout,
+          summary.blockedCount === 1 ? "Blocked" : "Blocked checks"
+        );
+        for (const blocker of blockers) {
+          writeDetail(
+            stdout,
+            `${blocker} failed and is configured as a blocking check.`
+          );
+        }
+        writeLine(stdout);
+        writeLine(
+          stdout,
+          "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass the Local Push Gate."
+        );
+        return;
+      }
+      if (summary.warningCount > 0) {
+        writeLine(
+          stdout,
+          `Checks completed with ${formatCount(summary.warningCount, "non-blocking warning")}.`
+        );
+        writeLine(stdout);
+        writeSection(
+          stdout,
+          summary.warningCount === 1 ? "Warning" : "Warnings"
+        );
+        for (const warning of warnings) {
+          writeDetail(
+            stdout,
+            `${warning} failed, but this check does not block the push.`
+          );
+        }
+        writeLine(stdout);
+        return;
+      }
+      writeLine(stdout, "Checks passed.");
+      writeLine(stdout);
+    }
+  };
+  function writeRenderedCheckResult(result) {
+    const status = mapDeterministicStatus(result.status);
+    writeCompletedCheckResult(status, result);
+    if (result.outputTail) {
+      writeCommandOutputTail(result.outputTail);
+    }
+    if (result.status === "warning") {
+      warnings.push(result.label);
+    }
+    if (result.status === "blocked") {
+      blockers.push(result.label);
+    }
+  }
+  function writeCompletedCheckResult(status, result) {
+    const plannedCheck = plannedChecks[completedCheckCount];
+    const detail = result.detail ?? plannedCheck?.detail;
+    writeCompletedCheckRow(status, result.label, detail);
+  }
+  function writeSkippedRemainingChecks(detail) {
+    while (completedCheckCount < plannedChecks.length) {
+      const plannedCheck = plannedChecks[completedCheckCount];
+      if (!plannedCheck) {
+        return;
+      }
+      writeCompletedCheckRow("skipped", plannedCheck.label, detail);
+    }
+  }
+  function writeCompletedCheckRow(status, label, detail) {
+    if (liveUpdates && plannedChecks[completedCheckCount]) {
+      replacePlannedCheckRow(completedCheckCount, status, label, detail);
+    } else {
+      writeResultRow(stdout, status, label, detail);
+    }
+    completedCheckCount += 1;
+  }
+  function replacePlannedCheckRow(index, status, label, detail) {
+    const distanceFromCursor = linesBelowCheckRows + plannedChecks.length - index;
+    stdout.write(
+      `\x1B[${distanceFromCursor}A\r\x1B[2K${formatResultRow(
+        status,
+        label,
+        detail,
+        { stream: stdout }
+      )}\x1B[${distanceFromCursor}B\r`
+    );
+  }
+  function writeCommandOutputTail(outputTail) {
+    const lines = outputTail.split("\n");
+    writeDetail(stdout, "Command output:");
+    writeIndentedBlock(stdout, lines);
+    linesBelowCheckRows += 1 + lines.length;
+  }
+}
+function createLocalAiTranscript(stdout) {
+  return {
+    writeEvents(events) {
+      for (const event of events) {
+        renderLocalAiTranscriptEvent(event, stdout);
+      }
+    },
+    writeSection() {
+      writeSection(stdout, "AI review");
+    },
+    writeSkipped(options) {
+      if (options.reason === "local-ai-mode-off") {
+        return;
+      }
+      writeSection(stdout, "AI review");
+      writeResultRow(
+        stdout,
+        "skipped",
+        "Local AI Review",
+        `skipped because ${SKIP_AI_CHECK_CONFIG_KEY}=true`
+      );
+    }
+  };
+}
+function createWarningConfirmationTranscript(stdout) {
+  return {
+    writeConfirmed(options) {
+      writeLine(
+        stdout,
+        `Warning Confirmation accepted: continuing with ${String(options.warningCount)} warning(s) from ${options.phase}.`
+      );
+    },
+    writeDeclined(options) {
+      writeLine(
+        stdout,
+        `Push blocked because Warning Confirmation was declined for ${String(options.warningCount)} warning(s) from ${options.phase}.`
+      );
+    },
+    writeUnavailable(options) {
+      writeLine(stdout, options.message);
+      writeLine(
+        stdout,
+        "Push blocked because Warning Confirmation could not be collected."
+      );
+    }
+  };
+}
+function createPushTranscript(stdout) {
+  return {
+    writePassed() {
+      writeLine(stdout);
+      writeLine(stdout, "Local Push Gate passed. Push allowed.");
+    }
+  };
+}
+function renderLocalAiTranscriptEvent(event, stdout) {
+  switch (event.kind) {
+    case "skip-no-files":
+      writeResultRow(stdout, "skipped", "No changed files to review");
+      return;
+    case "block-changed-lines":
+      writeResultRow(
+        stdout,
+        "blocked",
+        "Changed lines",
+        `${String(event.changedLineCount)} changed lines exceed ai.max_changed_lines ${String(event.maxChangedLines)}`
+      );
+      return;
+    case "skip-prompt-tokens":
+      writeResultRow(
+        stdout,
+        "skipped",
+        "Prompt budget",
+        `approximately ${String(event.estimatedPromptTokens)} tokens exceeds ai.max_prompt_tokens ${String(event.maxPromptTokens)}`
+      );
+      return;
+    case "review-start":
+      writeDetail(stdout, `Provider: ${capitalize(event.providerId)}`);
+      writeDetail(stdout, `Files reviewed: ${String(event.changedFileCount)}`);
+      return;
+    case "full-file-context":
+      writeDetail(
+        stdout,
+        `Context: ${formatCount(event.diffLineCount, "diff line")} plus ${formatCount(event.fullFileCount, "full file")} for extra context`
+      );
+      return;
+    case "provider-failure": {
+      const status = event.aiMode === "advisory" ? "warning" : "blocked";
+      writeResultRow(
+        stdout,
+        status,
+        `${capitalize(event.result.provider)} provider`,
+        event.result.message
+      );
+      if (event.result.detail) {
+        writeDetail(stdout, "Detail:");
+        writeIndentedBlock(stdout, event.result.detail.split("\n"));
+      }
+      if (event.result.output) {
+        writeDetail(stdout, "Provider output:");
+        writeIndentedBlock(stdout, event.result.output.split("\n"));
+      }
+      return;
+    }
+    case "normalization-note":
+      writeDetail(stdout, `Note: ${event.note}`);
+      return;
+    case "review-passed":
+      writeResultRow(stdout, "passed", "No findings");
+      return;
+    case "finding": {
+      const status = event.finding.severity === "blocking" ? "blocked" : "warning";
+      const location = event.finding.line === "N/A" ? event.finding.file : `${event.finding.file}:${event.finding.line}`;
+      writeResultRow(
+        stdout,
+        status,
+        `AI ${humanizeCategory(event.finding.category)}`,
+        location
+      );
+      writeDetail(stdout, `Message: ${event.finding.message}`);
+      writeDetail(stdout, `Suggestion: ${event.finding.suggestion}`);
+      return;
+    }
+    case "review-summary":
+      if (event.summary.blockingCount > 0 || event.summary.warningCount > 0) {
+        writeDetail(
+          stdout,
+          `Finished with ${formatCount(event.summary.blockingCount, "blocking finding")} and ${formatCount(event.summary.warningCount, "warning")}.`
+        );
+      }
+      return;
+    case "advisory-continue":
+      writeDetail(stdout, "Continuing because ai.mode is advisory.");
+      return;
+    case "provider-blocked":
+      writeLine(stdout);
+      writeLine(stdout, "Local AI Review is blocking in this repository.");
+      writeLine(
+        stdout,
+        `Fix the provider issue, or use \`git -c ${SKIP_AI_CHECK_CONFIG_KEY}=true push\` to bypass only Local AI Review for this push.`
+      );
+      return;
+    case "review-blocked":
+      writeLine(stdout);
+      writeLine(stdout, "Local AI Review blocked the push.");
+      writeLine(
+        stdout,
+        `Fix the findings above, or use \`git -c ${SKIP_AI_CHECK_CONFIG_KEY}=true push\` to bypass only Local AI Review for this push.`
+      );
+      return;
+  }
+}
+function mapDeterministicStatus(status) {
+  const statusByResult = {
+    blocked: "blocked",
+    passed: "passed",
+    skipped: "skipped",
+    warning: "warning"
+  };
+  return statusByResult[status];
+}
+function supportsLiveUpdates(stream) {
+  const output = stream;
+  return output.isTTY === true && process.env.TERM !== "dumb";
+}
+function humanizeCategory(category) {
+  return category.replace(/_/g, " ");
+}
+
 // src/ai/guardrails.ts
 function evaluateChangedFileGuardrails(options) {
   if (options.changedFiles.length === 0) {
@@ -26645,107 +26955,6 @@ function countTextLines(text) {
   return text.endsWith("\n") ? newlineCount : newlineCount + 1;
 }
 
-// src/ai/transcript.ts
-function renderLocalAiTranscript(events, stdout) {
-  for (const event of events) {
-    renderLocalAiTranscriptEvent(event, stdout);
-  }
-}
-function renderLocalAiTranscriptEvent(event, stdout) {
-  switch (event.kind) {
-    case "skip-no-files":
-      writeResultRow(stdout, "skipped", "No changed files to review");
-      return;
-    case "block-changed-lines":
-      writeResultRow(
-        stdout,
-        "blocked",
-        "Changed lines",
-        `${String(event.changedLineCount)} changed lines exceed ai.max_changed_lines ${String(event.maxChangedLines)}`
-      );
-      return;
-    case "skip-prompt-tokens":
-      writeResultRow(
-        stdout,
-        "skipped",
-        "Prompt budget",
-        `approximately ${String(event.estimatedPromptTokens)} tokens exceeds ai.max_prompt_tokens ${String(event.maxPromptTokens)}`
-      );
-      return;
-    case "review-start":
-      writeDetail(stdout, `Provider: ${capitalize(event.providerId)}`);
-      writeDetail(stdout, `Files reviewed: ${String(event.changedFileCount)}`);
-      return;
-    case "full-file-context":
-      writeDetail(
-        stdout,
-        `Context: ${formatCount(event.diffLineCount, "diff line")} plus ${formatCount(event.fullFileCount, "full file")} for extra context`
-      );
-      return;
-    case "provider-failure": {
-      const status = event.aiMode === "advisory" ? "warning" : "blocked";
-      writeResultRow(
-        stdout,
-        status,
-        `${capitalize(event.result.provider)} provider`,
-        event.result.message
-      );
-      if (event.result.detail) {
-        writeDetail(stdout, "Detail:");
-        writeIndentedBlock(stdout, event.result.detail.split("\n"));
-      }
-      if (event.result.output) {
-        writeDetail(stdout, "Provider output:");
-        writeIndentedBlock(stdout, event.result.output.split("\n"));
-      }
-      return;
-    }
-    case "normalization-note":
-      writeDetail(stdout, `Note: ${event.note}`);
-      return;
-    case "review-passed":
-      writeResultRow(stdout, "passed", "No findings");
-      return;
-    case "finding": {
-      const status = event.finding.severity === "blocking" ? "blocked" : "warning";
-      const location = event.finding.line === "N/A" ? event.finding.file : `${event.finding.file}:${event.finding.line}`;
-      writeResultRow(
-        stdout,
-        status,
-        `AI ${humanizeCategory(event.finding.category)}`,
-        location
-      );
-      writeDetail(stdout, `Message: ${event.finding.message}`);
-      writeDetail(stdout, `Suggestion: ${event.finding.suggestion}`);
-      return;
-    }
-    case "review-summary":
-      if (event.summary.blockingCount > 0 || event.summary.warningCount > 0) {
-        writeDetail(
-          stdout,
-          `Finished with ${formatCount(event.summary.blockingCount, "blocking finding")} and ${formatCount(event.summary.warningCount, "warning")}.`
-        );
-      }
-      return;
-    case "advisory-continue":
-      writeDetail(stdout, "Continuing because ai.mode is advisory.");
-      return;
-    case "provider-blocked":
-      writeLine(stdout);
-      writeLine(stdout, "Local AI is blocking in this repository.");
-      writeLine(stdout, "Fix the provider issue, or use `git -c pushgate.skip-ai-check=true push` to bypass only the AI phase for one push.");
-      return;
-    case "review-blocked":
-      writeLine(stdout);
-      writeLine(stdout, "Local AI review blocked the push.");
-      writeLine(stdout, "Fix the findings above, or use `git -c pushgate.skip-ai-check=true push` to bypass only the AI phase for one push.");
-      return;
-  }
-}
-function humanizeCategory(category) {
-  return category.replace(/_/g, " ");
-}
-
 // src/ai/verdict.ts
 function buildLocalAiVerdict(aiMode, result) {
   if (result.kind === "provider-error") {
@@ -26817,19 +27026,22 @@ function buildLocalAiVerdict(aiMode, result) {
 
 // src/ai/local-ai-gate.ts
 async function runLocalAiReview(options) {
-  const stdout = options.stdout ?? process.stdout;
+  const transcript = options.transcript ?? createLocalAiTranscript(process.stdout);
   const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
   if (providerRuntime.kind === "provider-error") {
-    return renderVerdict(options.aiConfig.mode, providerRuntime.result, stdout);
+    return renderVerdict(
+      options.aiConfig.mode,
+      providerRuntime.result,
+      transcript
+    );
   }
   const changedFileGuardrail = evaluateChangedFileGuardrails({
     changedFiles: options.changedFileResolution.files,
     maxChangedLines: options.aiConfig.max_changed_lines
   });
   if (changedFileGuardrail.kind !== "run") {
-    renderLocalAiTranscript(
-      transcriptEventsForChangedFileGuardrail(changedFileGuardrail),
-      stdout
+    transcript.writeEvents(
+      transcriptEventsForChangedFileGuardrail(changedFileGuardrail)
     );
     return {
       exitCode: changedFileGuardrail.kind === "block-changed-lines" ? 1 : 0,
@@ -26847,38 +27059,35 @@ async function runLocalAiReview(options) {
     prompt: payload.prompt
   });
   if (promptGuardrail.kind !== "run") {
-    renderLocalAiTranscript(
+    transcript.writeEvents(
       [
         {
           kind: "skip-prompt-tokens",
           estimatedPromptTokens: promptGuardrail.estimatedPromptTokens,
           maxPromptTokens: promptGuardrail.maxPromptTokens
         }
-      ],
-      stdout
+      ]
     );
     return { exitCode: 0, warningCount: 0 };
   }
-  renderLocalAiTranscript(
+  transcript.writeEvents(
     [
       {
         kind: "review-start",
         providerId: providerRuntime.providerId,
         changedFileCount: payload.changedFiles.length
       }
-    ],
-    stdout
+    ]
   );
   if (payload.fullFiles.length > 0) {
-    renderLocalAiTranscript(
+    transcript.writeEvents(
       [
         {
           kind: "full-file-context",
           diffLineCount: payload.diffLineCount,
           fullFileCount: payload.fullFiles.length
         }
-      ],
-      stdout
+      ]
     );
   }
   return renderVerdict(
@@ -26889,12 +27098,12 @@ async function runLocalAiReview(options) {
       repoRoot: options.repoRoot,
       timeoutSeconds: options.aiConfig.timeout_seconds
     }),
-    stdout
+    transcript
   );
 }
-function renderVerdict(aiMode, result, stdout) {
+function renderVerdict(aiMode, result, transcript) {
   const verdict = buildLocalAiVerdict(aiMode, result);
-  renderLocalAiTranscript(verdict.transcriptEvents, stdout);
+  transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,
     warningCount: verdict.warningCount
@@ -27353,138 +27562,6 @@ function summarizeDeterministicResults(results) {
   };
 }
 
-// src/runner/transcript.ts
-function createDeterministicTranscript(stdout) {
-  const warnings = [];
-  const blockers = [];
-  const plannedChecks = [];
-  const liveUpdates = supportsLiveUpdates(stdout);
-  let completedCheckCount = 0;
-  let linesBelowCheckRows = 0;
-  return {
-    writeFailFast() {
-      writeSkippedRemainingChecks("not run after fail_fast");
-      writeDetail(stdout, "Stopped after a blocking failure because fail_fast is true.");
-    },
-    writeNoChecks() {
-      writeSection(stdout, "Checks");
-      writeResultRow(stdout, "skipped", "No checks configured");
-      writeLine(stdout);
-    },
-    writeCheckResult(result) {
-      writeRenderedCheckResult(result);
-    },
-    writeStart(checks) {
-      plannedChecks.push(...checks);
-      writeSection(stdout, "Checks");
-      writeDetail(stdout, `Running ${formatCount(checks.length, "check")}.`);
-      for (const check2 of checks) {
-        writeResultRow(stdout, "running", check2.label, check2.detail);
-      }
-    },
-    writeSummary(summary) {
-      writeLine(stdout);
-      if (summary.blockedCount > 0) {
-        writeLine(
-          stdout,
-          `Checks completed with ${formatCount(summary.blockedCount, "blocking failure")} and ${formatCount(summary.warningCount, "warning")}.`
-        );
-        writeLine(stdout);
-        writeSection(stdout, summary.blockedCount === 1 ? "Blocked" : "Blocked checks");
-        for (const blocker of blockers) {
-          writeDetail(stdout, `${blocker} failed and is configured as a blocking check.`);
-        }
-        writeLine(stdout);
-        writeLine(
-          stdout,
-          "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass local hooks."
-        );
-        return;
-      }
-      if (summary.warningCount > 0) {
-        writeLine(
-          stdout,
-          `Checks completed with ${formatCount(summary.warningCount, "non-blocking warning")}.`
-        );
-        writeLine(stdout);
-        writeSection(stdout, summary.warningCount === 1 ? "Warning" : "Warnings");
-        for (const warning of warnings) {
-          writeDetail(stdout, `${warning} failed, but this check does not block the push.`);
-        }
-        writeLine(stdout);
-        return;
-      }
-      writeLine(stdout, "Checks passed.");
-      writeLine(stdout);
-    }
-  };
-  function writeRenderedCheckResult(result) {
-    const status = mapStatus(result.status);
-    writeCompletedCheckResult(status, result);
-    if (result.outputTail) {
-      writeCommandOutputTail(result.outputTail);
-    }
-    if (result.status === "warning") {
-      warnings.push(result.label);
-    }
-    if (result.status === "blocked") {
-      blockers.push(result.label);
-    }
-  }
-  function writeCompletedCheckResult(status, result) {
-    const plannedCheck = plannedChecks[completedCheckCount];
-    const detail = result.detail ?? plannedCheck?.detail;
-    writeCompletedCheckRow(status, result.label, detail);
-  }
-  function writeSkippedRemainingChecks(detail) {
-    while (completedCheckCount < plannedChecks.length) {
-      const plannedCheck = plannedChecks[completedCheckCount];
-      if (!plannedCheck) {
-        return;
-      }
-      writeCompletedCheckRow("skipped", plannedCheck.label, detail);
-    }
-  }
-  function writeCompletedCheckRow(status, label, detail) {
-    if (liveUpdates && plannedChecks[completedCheckCount]) {
-      replacePlannedCheckRow(completedCheckCount, status, label, detail);
-    } else {
-      writeResultRow(stdout, status, label, detail);
-    }
-    completedCheckCount += 1;
-  }
-  function replacePlannedCheckRow(index, status, label, detail) {
-    const distanceFromCursor = linesBelowCheckRows + plannedChecks.length - index;
-    stdout.write(
-      `\x1B[${distanceFromCursor}A\r\x1B[2K${formatResultRow(
-        status,
-        label,
-        detail,
-        { stream: stdout }
-      )}\x1B[${distanceFromCursor}B\r`
-    );
-  }
-  function writeCommandOutputTail(outputTail) {
-    const lines = outputTail.split("\n");
-    writeDetail(stdout, "Command output:");
-    writeIndentedBlock(stdout, lines);
-    linesBelowCheckRows += 1 + lines.length;
-  }
-}
-function mapStatus(status) {
-  const statusByResult = {
-    blocked: "blocked",
-    passed: "passed",
-    skipped: "skipped",
-    warning: "warning"
-  };
-  return statusByResult[status];
-}
-function supportsLiveUpdates(stream) {
-  const output = stream;
-  return output.isTTY === true && process.env.TERM !== "dumb";
-}
-
 // src/runner/deterministic.ts
 function buildDeterministicCheckPlan(config2) {
   const checkCount = buildDeterministicCheckRunPlan(config2).length;
@@ -27496,11 +27573,10 @@ function buildDeterministicCheckPlan(config2) {
 }
 async function runDeterministicChecks(request) {
   const { config: config2 } = request;
-  const stdout = request.stdout ?? process.stdout;
   const repoRoot = request.repoRoot ?? process.cwd();
   const env = request.env ?? process.env;
   const results = [];
-  const transcript = createDeterministicTranscript(stdout);
+  const transcript = request.transcript ?? createDeterministicTranscript(process.stdout);
   const runPlan = buildDeterministicCheckRunPlan(config2);
   if (runPlan.length === 0) {
     transcript.writeNoChecks();
@@ -27718,6 +27794,7 @@ function createTerminalWarningConfirmer(options = {}) {
 
 // src/workflows/local-push-gate-run.ts
 async function runLocalPushGate(options) {
+  const transcript = createPushgateTranscript(options.stdout);
   const localAi = getLocalAiPhaseDecision(options.config, options.skipControls);
   const changedFileResolution = await resolveChangedFilesIfRequired({
     config: options.config,
@@ -27729,7 +27806,7 @@ async function runLocalPushGate(options) {
     config: options.config,
     env: options.env,
     repoRoot: options.repoRoot,
-    stdout: options.stdout
+    transcript: transcript.deterministic
   });
   if (deterministicSummary.exitCode !== 0) {
     return deterministicSummary.exitCode;
@@ -27737,7 +27814,7 @@ async function runLocalPushGate(options) {
   if (!await confirmWarningsBeforeContinuing({
     confirmer: options.warningConfirmer,
     phase: "deterministic checks",
-    stdout: options.stdout,
+    transcript: transcript.warningConfirmation,
     warningCount: deterministicSummary.results.filter(
       (result) => result.status === "warning"
     ).length
@@ -27750,7 +27827,7 @@ async function runLocalPushGate(options) {
     decision: localAi,
     env: options.env,
     repoRoot: options.repoRoot,
-    stdout: options.stdout
+    transcript: transcript.localAi
   });
   if (localAiSummary.exitCode !== 0) {
     return localAiSummary.exitCode;
@@ -27758,13 +27835,12 @@ async function runLocalPushGate(options) {
   if (!await confirmWarningsBeforeContinuing({
     confirmer: options.warningConfirmer,
     phase: "local AI review",
-    stdout: options.stdout,
+    transcript: transcript.warningConfirmation,
     warningCount: localAiSummary.warningCount
   })) {
     return 1;
   }
-  writeLine(options.stdout);
-  writeLine(options.stdout, "Pushgate passed. Changes allowed...");
+  transcript.push.writePassed();
   return 0;
 }
 async function resolveChangedFilesIfRequired(options) {
@@ -27780,14 +27856,12 @@ async function resolveChangedFilesIfRequired(options) {
 }
 async function runLocalAiPhase(options) {
   if (options.decision.kind === "skip") {
-    const message = formatLocalAiSkipReason(options.decision.reason);
-    if (message !== null) {
-      writeSection(options.stdout, "AI review");
-      writeResultRow(options.stdout, "skipped", message);
-    }
+    options.transcript.writeSkipped({
+      reason: options.decision.reason
+    });
     return { exitCode: 0, warningCount: 0 };
   }
-  writeSection(options.stdout, "AI review");
+  options.transcript.writeSection();
   return await runLocalAiReview({
     aiConfig: options.config.ai,
     changedFileResolution: requireChangedFileResolution2(
@@ -27797,7 +27871,7 @@ async function runLocalAiPhase(options) {
     env: options.env,
     repoRoot: options.repoRoot,
     reviewConfig: options.config.review,
-    stdout: options.stdout
+    transcript: options.transcript
   });
 }
 async function confirmWarningsBeforeContinuing(options) {
@@ -27811,24 +27885,20 @@ async function confirmWarningsBeforeContinuing(options) {
       warningCount: options.warningCount
     });
     if (confirmed) {
-      options.stdout.write(
-        `Continuing with ${String(options.warningCount)} warning(s) from ${options.phase} after confirmation.
-`
-      );
+      options.transcript.writeConfirmed({
+        phase: options.phase,
+        warningCount: options.warningCount
+      });
       return true;
     }
-    options.stdout.write(
-      `Push blocked because ${options.phase} produced ${String(options.warningCount)} warning(s) and continuation was not confirmed.
-`
-    );
+    options.transcript.writeDeclined({
+      phase: options.phase,
+      warningCount: options.warningCount
+    });
     return false;
   } catch (error51) {
     if (error51 instanceof WarningConfirmationError) {
-      options.stdout.write(`${error51.message}
-`);
-      options.stdout.write(
-        "Push blocked because warning confirmation could not be collected.\n"
-      );
+      options.transcript.writeUnavailable({ message: error51.message });
       return false;
     }
     throw error51;
@@ -27848,12 +27918,6 @@ function getLocalAiPhaseDecision(config2, skipControls) {
     };
   }
   return { kind: "run" };
-}
-function formatLocalAiSkipReason(reason) {
-  if (reason === "local-ai-mode-off") {
-    return null;
-  }
-  return `Skipping local AI because ${SKIP_AI_CHECK_CONFIG_KEY}=true.`;
 }
 function requireChangedFileResolution2(changedFileResolution, phaseName) {
   if (changedFileResolution !== null) {

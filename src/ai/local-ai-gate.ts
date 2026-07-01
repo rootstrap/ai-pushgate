@@ -1,16 +1,17 @@
 import type { AiConfig, ReviewConfig } from "../config/index.js";
 import type { ChangedFileResolution } from "../path-policy/index.js";
 import {
+  createLocalAiTranscript,
+  type LocalAiTranscript,
+  type LocalAiTranscriptEvent,
+} from "../transcript/index.js";
+import {
   evaluateChangedFileGuardrails,
   evaluatePromptGuardrail,
 } from "./guardrails.js";
 import { resolveLocalAiProviderRuntime } from "./provider-runtime.js";
 import { buildLocalAiReviewPayload } from "./review-context.js";
-import { renderLocalAiTranscript } from "./transcript.js";
-import type {
-  LocalAiProviderResult,
-  LocalAiTranscriptEvent,
-} from "./types.js";
+import type { LocalAiProviderResult } from "./types.js";
 import { buildLocalAiVerdict } from "./verdict.js";
 
 export interface LocalAiRunSummary {
@@ -24,13 +25,18 @@ export async function runLocalAiReview(options: {
   env?: NodeJS.ProcessEnv;
   repoRoot: string;
   reviewConfig: ReviewConfig;
-  stdout?: NodeJS.WritableStream;
+  transcript?: LocalAiTranscript;
 }): Promise<LocalAiRunSummary> {
-  const stdout = options.stdout ?? process.stdout;
+  const transcript =
+    options.transcript ?? createLocalAiTranscript(process.stdout);
   const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
 
   if (providerRuntime.kind === "provider-error") {
-    return renderVerdict(options.aiConfig.mode, providerRuntime.result, stdout);
+    return renderVerdict(
+      options.aiConfig.mode,
+      providerRuntime.result,
+      transcript,
+    );
   }
 
   const changedFileGuardrail = evaluateChangedFileGuardrails({
@@ -39,9 +45,8 @@ export async function runLocalAiReview(options: {
   });
 
   if (changedFileGuardrail.kind !== "run") {
-    renderLocalAiTranscript(
+    transcript.writeEvents(
       transcriptEventsForChangedFileGuardrail(changedFileGuardrail),
-      stdout,
     );
     return {
       exitCode: changedFileGuardrail.kind === "block-changed-lines" ? 1 : 0,
@@ -61,7 +66,7 @@ export async function runLocalAiReview(options: {
   });
 
   if (promptGuardrail.kind !== "run") {
-    renderLocalAiTranscript(
+    transcript.writeEvents(
       [
         {
           kind: "skip-prompt-tokens",
@@ -69,12 +74,11 @@ export async function runLocalAiReview(options: {
           maxPromptTokens: promptGuardrail.maxPromptTokens,
         },
       ],
-      stdout,
     );
     return { exitCode: 0, warningCount: 0 };
   }
 
-  renderLocalAiTranscript(
+  transcript.writeEvents(
     [
       {
         kind: "review-start",
@@ -82,11 +86,10 @@ export async function runLocalAiReview(options: {
         changedFileCount: payload.changedFiles.length,
       },
     ],
-    stdout,
   );
 
   if (payload.fullFiles.length > 0) {
-    renderLocalAiTranscript(
+    transcript.writeEvents(
       [
         {
           kind: "full-file-context",
@@ -94,7 +97,6 @@ export async function runLocalAiReview(options: {
           fullFileCount: payload.fullFiles.length,
         },
       ],
-      stdout,
     );
   }
 
@@ -106,17 +108,17 @@ export async function runLocalAiReview(options: {
       repoRoot: options.repoRoot,
       timeoutSeconds: options.aiConfig.timeout_seconds,
     }),
-    stdout,
+    transcript,
   );
 }
 
 function renderVerdict(
   aiMode: AiConfig["mode"],
   result: LocalAiProviderResult,
-  stdout: NodeJS.WritableStream,
+  transcript: LocalAiTranscript,
 ): LocalAiRunSummary {
   const verdict = buildLocalAiVerdict(aiMode, result);
-  renderLocalAiTranscript(verdict.transcriptEvents, stdout);
+  transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,
     warningCount: verdict.warningCount,

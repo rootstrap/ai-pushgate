@@ -91,7 +91,7 @@ resolution.
 5. Run configured tools in order.
 6. Expand `{changed_files}` into argv entries without shell interpolation.
 7. Apply timeout, output-tail, mode, and fail-fast behavior.
-8. Return a deterministic check summary and transcript output.
+8. Return a deterministic check summary while streaming Transcript output.
 
 ## Local AI Phase
 
@@ -108,7 +108,7 @@ flowchart TD
   Guard2 --> Adapter["provider.runReview"]
   Adapter --> Contract["validate AI review contract"]
   Contract --> Verdict["buildLocalAiVerdict"]
-  Verdict --> Transcript["renderLocalAiTranscript"]
+  Verdict --> Transcript["transcript.localAi.writeEvents"]
 ```
 
 Provider adapters currently exist for Claude and Copilot. Both receive the same

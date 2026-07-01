@@ -25,7 +25,10 @@ import {
   runDeterministicChecks,
 } from "../src/runner/deterministic.js";
 import { summarizeDeterministicResults } from "../src/runner/summary.js";
-import { createDeterministicTranscript } from "../src/runner/transcript.js";
+import {
+  createDeterministicTranscript,
+  type DeterministicTranscript,
+} from "../src/transcript/index.js";
 
 const changedFiles: ChangedFile[] = [
   {
@@ -615,7 +618,7 @@ test("renders deterministic transcript without running commands", () => {
       "Blocked",
       "  Check failed and is configured as a blocking check.",
       "",
-      "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass local hooks.",
+      "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass the Local Push Gate.",
       "",
     ].join("\n"),
   );
@@ -682,13 +685,20 @@ async function runChecks(
   config: PushgateConfig,
   options: Omit<
     Parameters<typeof runDeterministicChecks>[0],
-    "config"
-  > = {},
+    "config" | "transcript"
+  > & {
+    stdout?: NodeJS.WritableStream;
+    transcript?: DeterministicTranscript;
+  } = {},
 ) {
+  const { stdout, transcript, ...requestOptions } = options;
+
   return await runDeterministicChecks({
     changedFileResolution,
-    ...options,
+    ...requestOptions,
     config,
+    transcript:
+      transcript ?? (stdout ? createDeterministicTranscript(stdout) : undefined),
   });
 }
 
