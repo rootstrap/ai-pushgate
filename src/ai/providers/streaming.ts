@@ -2,38 +2,53 @@ import type { LocalAiProviderStreamingOptions } from "../types.js";
 
 type JsonObject = Record<string, unknown>;
 
+export interface JsonLineStreamObserver {
+  flush(): void;
+  onChunk(chunk: string): void;
+}
+
 export function createJsonLineStreamObserver(options: {
   onJsonLine(event: JsonObject, lineNumber: number): void;
-}): (chunk: string) => void {
+}): JsonLineStreamObserver {
   let buffer = "";
   let lineNumber = 0;
 
-  return (chunk: string) => {
-    buffer += chunk.replace(/\r/g, "");
+  return {
+    flush() {
+      processLine(buffer);
+      buffer = "";
+    },
+    onChunk(chunk) {
+      buffer += chunk.replace(/\r/g, "");
 
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      if (trimmed.length === 0) {
-        continue;
+      for (const line of lines) {
+        processLine(line);
       }
-
-      lineNumber += 1;
-
-      try {
-        const parsed = JSON.parse(trimmed);
-
-        if (isJsonObject(parsed)) {
-          options.onJsonLine(parsed, lineNumber);
-        }
-      } catch {
-        // The final captured output path reports malformed transport details.
-      }
-    }
+    },
   };
+
+  function processLine(line: string): void {
+    const trimmed = line.trim();
+
+    if (trimmed.length === 0) {
+      return;
+    }
+
+    lineNumber += 1;
+
+    try {
+      const parsed = JSON.parse(trimmed);
+
+      if (isJsonObject(parsed)) {
+        options.onJsonLine(parsed, lineNumber);
+      }
+    } catch {
+      // The final captured output path reports malformed transport details.
+    }
+  }
 }
 
 export function emitHumanResponseText(

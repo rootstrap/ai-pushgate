@@ -31,13 +31,15 @@ export const copilotProvider = createCommandProviderAdapter({
     }
 
     const responseStream = createCopilotResponseStreamEmitter();
+    const stdoutObserver = createJsonLineStreamObserver({
+      onJsonLine(event) {
+        responseStream.emit(event, options.streaming);
+      },
+    });
 
     return {
-      onStdoutChunk: createJsonLineStreamObserver({
-        onJsonLine(event) {
-          responseStream.emit(event, options.streaming);
-        },
-      }),
+      onStdoutChunk: stdoutObserver.onChunk,
+      onStdoutEnd: stdoutObserver.flush,
     };
   },
   missingBinaryMessage:

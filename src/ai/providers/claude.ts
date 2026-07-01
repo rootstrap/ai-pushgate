@@ -42,15 +42,18 @@ export const claudeProvider =
         return undefined;
       }
 
+      const stdoutObserver = createJsonLineStreamObserver({
+        onJsonLine(event) {
+          emitHumanResponseText(
+            options.streaming,
+            readClaudeStreamResponseText(event),
+          );
+        },
+      });
+
       return {
-        onStdoutChunk: createJsonLineStreamObserver({
-          onJsonLine(event) {
-            emitHumanResponseText(
-              options.streaming,
-              readClaudeStreamResponseText(event),
-            );
-          },
-        }),
+        onStdoutChunk: stdoutObserver.onChunk,
+        onStdoutEnd: stdoutObserver.flush,
       };
     },
     missingBinaryMessage:

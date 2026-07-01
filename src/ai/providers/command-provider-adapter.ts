@@ -86,6 +86,7 @@ export interface CommandProviderAdapterSpec<TContext> {
 export interface CommandProviderStreamObserver {
   onStderrChunk?: (chunk: string) => void;
   onStdoutChunk?: (chunk: string) => void;
+  onStdoutEnd?: () => void;
 }
 
 export interface CommandProviderAdapterDependencies {
@@ -116,6 +117,7 @@ export function createCommandProviderAdapter<TContext = undefined>(
         prompt: options.payload.prompt,
         timeoutSeconds: options.timeoutSeconds,
       });
+      streamObserver?.onStdoutEnd?.();
 
       if (commandResult.kind === "spawn-error") {
         return providerFailure({

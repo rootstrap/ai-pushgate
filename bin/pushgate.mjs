@@ -26360,6 +26360,7 @@ function createCommandProviderAdapter(spec, dependencies = {}) {
         prompt: options.payload.prompt,
         timeoutSeconds: options.timeoutSeconds
       });
+      streamObserver?.onStdoutEnd?.();
       if (commandResult.kind === "spawn-error") {
         return providerFailure({
           code: "missing_binary",
@@ -26485,25 +26486,34 @@ function selectProviderBoolean(providerConfig, key) {
 function createJsonLineStreamObserver(options) {
   let buffer = "";
   let lineNumber = 0;
-  return (chunk) => {
-    buffer += chunk.replace(/\r/g, "");
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.length === 0) {
-        continue;
-      }
-      lineNumber += 1;
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (isJsonObject(parsed)) {
-          options.onJsonLine(parsed, lineNumber);
-        }
-      } catch {
+  return {
+    flush() {
+      processLine(buffer);
+      buffer = "";
+    },
+    onChunk(chunk) {
+      buffer += chunk.replace(/\r/g, "");
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        processLine(line);
       }
     }
   };
+  function processLine(line) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+    lineNumber += 1;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (isJsonObject(parsed)) {
+        options.onJsonLine(parsed, lineNumber);
+      }
+    } catch {
+    }
+  }
 }
 function emitHumanResponseText(streaming, text) {
   if (!streaming?.responseText || !streaming.onEvent || text === null || text.length === 0 || looksLikePushgateReviewContractText(text)) {
@@ -26564,15 +26574,17 @@ var claudeProvider = createCommandProviderAdapter({
     if (!options.streaming?.responseText) {
       return void 0;
     }
+    const stdoutObserver = createJsonLineStreamObserver({
+      onJsonLine(event) {
+        emitHumanResponseText(
+          options.streaming,
+          readClaudeStreamResponseText(event)
+        );
+      }
+    });
     return {
-      onStdoutChunk: createJsonLineStreamObserver({
-        onJsonLine(event) {
-          emitHumanResponseText(
-            options.streaming,
-            readClaudeStreamResponseText(event)
-          );
-        }
-      })
+      onStdoutChunk: stdoutObserver.onChunk,
+      onStdoutEnd: stdoutObserver.flush
     };
   },
   missingBinaryMessage: "Claude Code CLI was not found on PATH. Install it before running Pushgate local AI review.",
@@ -26875,12 +26887,14 @@ var copilotProvider = createCommandProviderAdapter({
       return void 0;
     }
     const responseStream = createCopilotResponseStreamEmitter();
+    const stdoutObserver = createJsonLineStreamObserver({
+      onJsonLine(event) {
+        responseStream.emit(event, options.streaming);
+      }
+    });
     return {
-      onStdoutChunk: createJsonLineStreamObserver({
-        onJsonLine(event) {
-          responseStream.emit(event, options.streaming);
-        }
-      })
+      onStdoutChunk: stdoutObserver.onChunk,
+      onStdoutEnd: stdoutObserver.flush
     };
   },
   missingBinaryMessage: "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review.",

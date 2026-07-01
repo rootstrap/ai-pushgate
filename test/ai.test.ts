@@ -1215,6 +1215,62 @@ test("streams Claude response text before validated findings", async () => {
   });
 });
 
+test("streams Claude final JSONL response event without a trailing newline", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "printf '%s\\n' '{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"Reviewing \"}}}'",
+        "printf '%s' '{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"final chunk.\"}}}'",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: true,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 1, text);
+    assert.match(text, /Claude response\n  Reviewing final chunk\./);
+    assert.match(text, /Claude Code CLI returned malformed structured review output/);
+  });
+});
+
 test("suppresses Claude response text when AI verbose mode is false", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");
@@ -2141,7 +2197,7 @@ test("streams Copilot reasoning delta chunks before a timeout", async () => {
         "set -eu",
         "cat > /dev/null",
         "printf '%s\\n' '{\"type\":\"assistant.reasoning_delta\",\"data\":{\"deltaContent\":\"I’ll quickly inspect \"}}'",
-        "printf '%s\\n' '{\"type\":\"assistant.reasoning_delta\",\"data\":{\"deltaContent\":\"the updated provider parsing.\"}}'",
+        "printf '%s' '{\"type\":\"assistant.reasoning_delta\",\"data\":{\"deltaContent\":\"the updated provider parsing.\"}}'",
         "sleep 2",
       ].join("\n"),
     );
