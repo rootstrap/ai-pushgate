@@ -11,6 +11,8 @@ interface CapturedCommandBaseOptions {
   env?: NodeJS.ProcessEnv;
   ignoreStdinErrors?: boolean;
   killGraceMs?: number;
+  onStderrChunk?: (chunk: string) => void;
+  onStdoutChunk?: (chunk: Buffer | string) => void;
   outputCaptureLimit?: number;
   outputTailLimit?: number;
   shell?: boolean;
@@ -132,17 +134,20 @@ export function runCapturedCommand(
 
     if (outputEncoding === "buffer") {
       child.stdout.on("data", (data: Buffer) => {
+        options.onStdoutChunk?.(data);
         stdoutBuffers.push(data);
       });
     } else {
       child.stdout.setEncoding("utf8");
       child.stdout.on("data", (data: string) => {
+        options.onStdoutChunk?.(data);
         stdout = appendCaptured(stdout, data, options.outputCaptureLimit);
       });
     }
 
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (data: string) => {
+      options.onStderrChunk?.(data);
       stderr = appendCaptured(stderr, data, options.outputCaptureLimit);
     });
     child.on("error", (error) => {

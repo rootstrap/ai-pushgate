@@ -106,6 +106,8 @@ export type ProviderConfig = Record<string, unknown>;
 export interface AiConfig {
   /** Local AI behavior after config defaults are applied. */
   mode: AiMode;
+  /** Whether local AI streams human-readable provider response text. */
+  verbose: boolean;
   /** Maximum changed text lines before local AI blocks the push. */
   max_changed_lines: number;
   /** Approximate rendered prompt token budget before local AI is skipped. */
@@ -202,6 +204,7 @@ export interface RawPluginsConfig {
 /** Raw AI shape before default mode and provider diagnostics are applied. */
 export interface RawAiConfig {
   mode?: AiMode;
+  verbose?: boolean;
   max_changed_lines?: number;
   max_prompt_tokens?: number;
   timeout_seconds?: number;

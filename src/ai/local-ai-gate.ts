@@ -11,7 +11,10 @@ import {
 } from "./guardrails.js";
 import { resolveLocalAiProviderRuntime } from "./provider-runtime.js";
 import { buildLocalAiReviewPayload } from "./review-context.js";
-import type { LocalAiProviderResult } from "./types.js";
+import type {
+  LocalAiProviderResult,
+  LocalAiProviderStreamEvent,
+} from "./types.js";
 import { buildLocalAiVerdict } from "./verdict.js";
 
 export interface LocalAiRunSummary {
@@ -83,6 +86,7 @@ export async function runLocalAiReview(options: {
       {
         kind: "review-start",
         providerId: providerRuntime.providerId,
+        providerLabel: providerRuntime.providerDisplayName,
         changedFileCount: payload.changedFiles.length,
       },
     ],
@@ -100,16 +104,77 @@ export async function runLocalAiReview(options: {
     );
   }
 
+  let providerResponseStarted = false;
+  const responseTextRequested =
+    options.aiConfig.verbose &&
+    providerRuntime.streamingCapability === "human_response_and_final_result";
+
   return renderVerdict(
     options.aiConfig.mode,
     await providerRuntime.runReview({
       env: options.env ?? process.env,
       payload,
       repoRoot: options.repoRoot,
+      streaming: {
+        progress: true,
+        responseText: responseTextRequested,
+        onEvent(event) {
+          providerResponseStarted = renderProviderStreamEvent({
+            event,
+            providerLabel: providerRuntime.providerDisplayName,
+            responseTextRequested,
+            responseStarted: providerResponseStarted,
+            transcript,
+          });
+        },
+      },
       timeoutSeconds: options.aiConfig.timeout_seconds,
     }),
     transcript,
   );
+}
+
+function renderProviderStreamEvent(options: {
+  event: LocalAiProviderStreamEvent;
+  providerLabel: string;
+  responseStarted: boolean;
+  responseTextRequested: boolean;
+  transcript: LocalAiTranscript;
+}): boolean {
+  if (options.event.kind === "progress") {
+    if (options.event.message.trim().length > 0) {
+      options.transcript.writeEvents([
+        {
+          kind: "provider-progress",
+          message: options.event.message,
+        },
+      ]);
+    }
+
+    return options.responseStarted;
+  }
+
+  if (!options.responseTextRequested || options.event.text.length === 0) {
+    return options.responseStarted;
+  }
+
+  if (!options.responseStarted) {
+    options.transcript.writeEvents([
+      {
+        kind: "provider-response-start",
+        providerLabel: options.providerLabel,
+      },
+    ]);
+  }
+
+  options.transcript.writeEvents([
+    {
+      kind: "provider-response-delta",
+      text: options.event.text,
+    },
+  ]);
+
+  return true;
 }
 
 function renderVerdict(
@@ -118,6 +183,7 @@ function renderVerdict(
   transcript: LocalAiTranscript,
 ): LocalAiRunSummary {
   const verdict = buildLocalAiVerdict(aiMode, result);
+  transcript.writeEvents([{ kind: "validated-findings-start" }]);
   transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,

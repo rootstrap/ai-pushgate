@@ -1,16 +1,44 @@
 import { createCommandProviderAdapter } from "./command-provider-adapter.js";
 import { selectProviderModel } from "./config.js";
+import {
+  createJsonLineStreamObserver,
+  emitHumanResponseText,
+  isJsonObject,
+} from "./streaming.js";
+
+type JsonObject = Record<string, unknown>;
 
 export const copilotProvider = createCommandProviderAdapter({
   id: "copilot",
+  displayName: "GitHub Copilot",
+  streamingCapability: "human_response_and_final_result",
   structuredOutputCapability: "jsonl_transport",
   command: "copilot",
   buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
 
     return {
-      args: buildCopilotArgs(model),
+      args: buildCopilotArgs({
+        model,
+        streamResponse: options.streaming?.responseText === true,
+      }),
       model,
+    };
+  },
+  createStreamObserver(_invocation, options) {
+    if (!options.streaming?.responseText) {
+      return undefined;
+    }
+
+    return {
+      onStdoutChunk: createJsonLineStreamObserver({
+        onJsonLine(event) {
+          emitHumanResponseText(
+            options.streaming,
+            readAssistantMessageContent(event),
+          );
+        },
+      }),
     };
   },
   missingBinaryMessage:
@@ -75,11 +103,14 @@ export const copilotProvider = createCommandProviderAdapter({
   },
 });
 
-function buildCopilotArgs(model?: string): string[] {
+function buildCopilotArgs(options: {
+  model?: string;
+  streamResponse: boolean;
+}): string[] {
   const args = [
     "-s",
     "--no-ask-user",
-    "--stream=off",
+    `--stream=${options.streamResponse ? "on" : "off"}`,
     "--output-format=json",
     "--no-color",
     "--no-custom-instructions",
@@ -92,8 +123,8 @@ function buildCopilotArgs(model?: string): string[] {
     "--deny-tool=url",
   ];
 
-  if (model) {
-    args.push(`--model=${model}`);
+  if (options.model) {
+    args.push(`--model=${options.model}`);
   }
 
   return args;
@@ -116,8 +147,6 @@ function isCopilotAuthFailure(output: string): boolean {
     /access.*copilot/i,
   ].some((pattern) => pattern.test(output));
 }
-
-type JsonObject = Record<string, unknown>;
 
 function extractCopilotFinalAssistantResponse(stdout: string):
   | {
@@ -237,10 +266,6 @@ function isMainAssistantMessage(event: JsonObject): boolean {
     typeof data.phase !== "string" ||
     data.phase.toLowerCase() !== "thinking"
   );
-}
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function formatUnknownError(error: unknown): string {

@@ -3,26 +3,54 @@ import { runCommand } from "../../process/run-command.js";
 import { generateAiReviewOutputJsonSchema } from "../review-contract.js";
 import { createCommandProviderAdapter } from "./command-provider-adapter.js";
 import { selectProviderBoolean, selectProviderModel } from "./config.js";
+import {
+  createJsonLineStreamObserver,
+  emitHumanResponseText,
+  isJsonObject,
+} from "./streaming.js";
+
+type JsonObject = Record<string, unknown>;
 
 interface ClaudeInvocationContext {
   bare: boolean;
+  streamJson: boolean;
 }
 
 export const claudeProvider =
   createCommandProviderAdapter<ClaudeInvocationContext>({
     id: "claude",
+    displayName: "Claude",
+    streamingCapability: "human_response_and_final_result",
     structuredOutputCapability: "native_json_schema",
     command: "claude",
     buildInvocation(options) {
       const model = selectProviderModel(options.providerConfig);
       const bare = selectProviderBoolean(options.providerConfig, "bare");
+      const streamJson = options.streaming?.responseText === true;
 
       return {
-        args: buildClaudeArgs(options.repoRoot, model, bare),
+        args: buildClaudeArgs(options.repoRoot, model, bare, streamJson),
         context: {
           bare,
+          streamJson,
         },
         model,
+      };
+    },
+    createStreamObserver(_invocation, options) {
+      if (!options.streaming?.responseText) {
+        return undefined;
+      }
+
+      return {
+        onStdoutChunk: createJsonLineStreamObserver({
+          onJsonLine(event) {
+            emitHumanResponseText(
+              options.streaming,
+              readClaudeStreamResponseText(event),
+            );
+          },
+        }),
       };
     },
     missingBinaryMessage:
@@ -120,13 +148,15 @@ function buildClaudeArgs(
   repoRoot: string,
   model: string | undefined,
   bare: boolean,
+  streamJson: boolean,
 ): string[] {
   const reviewSchema = JSON.stringify(generateAiReviewOutputJsonSchema());
   const args = [
     "-p",
     "Review the provided Pushgate review input exactly as instructed.",
     "--output-format",
-    "json",
+    streamJson ? "stream-json" : "json",
+    ...(streamJson ? ["--verbose", "--include-partial-messages"] : []),
     "--json-schema",
     reviewSchema,
     bare ? "--bare" : "--safe-mode",
@@ -148,7 +178,6 @@ function buildClaudeArgs(
   return args;
 }
 
-type JsonObject = Record<string, unknown>;
 type ClaudeStructuredReviewExtraction =
   | {
       kind: "success";
@@ -183,6 +212,14 @@ function extractClaudeStructuredReviewObject(
   try {
     parsed = JSON.parse(rawOutput);
   } catch (error) {
+    const streamedReview = extractClaudeStreamedStructuredReviewObject(
+      rawOutput,
+    );
+
+    if (streamedReview !== null) {
+      return streamedReview;
+    }
+
     return {
       detail: `Claude structured output failed to parse JSON (${formatUnknownError(error)}).`,
       kind: "malformed-json",
@@ -190,6 +227,55 @@ function extractClaudeStructuredReviewObject(
   }
 
   return extractClaudeStructuredReviewEnvelope(parsed);
+}
+
+function extractClaudeStreamedStructuredReviewObject(
+  rawOutput: string,
+): Exclude<ClaudeStructuredReviewExtraction, { kind: "empty" }> | null {
+  const lines = rawOutput
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length <= 1) {
+    return null;
+  }
+
+  let resultEvent: JsonObject | null = null;
+
+  for (const [index, line] of lines.entries()) {
+    let event: unknown;
+
+    try {
+      event = JSON.parse(line);
+    } catch (error) {
+      return {
+        detail: `Claude stream-json line ${String(index + 1)} failed to parse JSON (${formatUnknownError(error)}).`,
+        kind: "malformed-json",
+      };
+    }
+
+    if (!isJsonObject(event)) {
+      return {
+        detail: `Claude stream-json line ${String(index + 1)} was ${typeof event}, not a JSON object.`,
+        kind: "malformed-json",
+      };
+    }
+
+    if (event.type === CLAUDE_STRUCTURED_OUTPUT_TYPE) {
+      resultEvent = event;
+    }
+  }
+
+  if (resultEvent === null) {
+    return {
+      detail: `Claude stream-json output parsed ${String(lines.length)} event(s), but did not include a final result event.`,
+      kind: "malformed-json",
+    };
+  }
+
+  return extractClaudeStructuredReviewEnvelope(resultEvent);
 }
 
 function extractClaudeStructuredReviewEnvelope(
@@ -330,10 +416,33 @@ async function isClaudeUnauthenticated(
   }
 }
 
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function formatUnknownError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function readClaudeStreamResponseText(event: JsonObject): string | null {
+  if (event.type !== "stream_event") {
+    return null;
+  }
+
+  const streamEvent = isJsonObject(event.event) ? event.event : event;
+  const delta = isJsonObject(streamEvent.delta) ? streamEvent.delta : undefined;
+
+  if (
+    streamEvent.type === "content_block_delta" &&
+    delta?.type === "text_delta" &&
+    typeof delta.text === "string"
+  ) {
+    return delta.text;
+  }
+
+  if (
+    delta?.type === "thinking_delta" ||
+    delta?.type === "signature_delta" ||
+    streamEvent.type === "thinking"
+  ) {
+    return null;
+  }
+
+  return typeof streamEvent.text === "string" ? streamEvent.text : null;
 }

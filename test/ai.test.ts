@@ -817,7 +817,9 @@ test("builds and renders local AI verdict output without provider execution", ()
 test("local AI provider runtime owns selection diagnostics and selected config", async () => {
   let selectedProviderConfig: unknown = null;
   const fakeProvider: LocalAiProviderAdapter = {
+    displayName: "Fake",
     id: "fake",
+    streamingCapability: "none",
     structuredOutputCapability: "text_fallback",
     async runReview(options) {
       selectedProviderConfig = options.providerConfig;
@@ -839,6 +841,7 @@ test("local AI provider runtime owns selection diagnostics and selected config",
   const runtime = resolveLocalAiProviderRuntime(
     {
       mode: "blocking",
+      verbose: true,
       max_changed_lines: 500,
       max_prompt_tokens: 12_000,
       timeout_seconds: 120,
@@ -877,6 +880,7 @@ test("local AI provider runtime owns selection diagnostics and selected config",
   const unsupported = resolveLocalAiProviderRuntime(
     {
       mode: "blocking",
+      verbose: true,
       max_changed_lines: 500,
       max_prompt_tokens: 12_000,
       timeout_seconds: 120,
@@ -902,6 +906,8 @@ test("local AI provider runtime owns selection diagnostics and selected config",
 test("command provider adapter maps shared command lifecycle outcomes", async () => {
   const successAdapter = createCommandProviderAdapter({
     id: "fake",
+    displayName: "Fake",
+    streamingCapability: "none",
     structuredOutputCapability: "text_fallback",
     command: "fake",
     buildInvocation() {
@@ -1031,6 +1037,7 @@ test("runs the Claude adapter through the provider interface with model selectio
     const result = await runLocalAiReview({
       aiConfig: {
         mode: "blocking",
+        verbose: true,
         max_changed_lines: 500,
         max_prompt_tokens: 12_000,
         timeout_seconds: 120,
@@ -1064,19 +1071,21 @@ test("runs the Claude adapter through the provider interface with model selectio
     assert.match(await readFile(promptPath, "utf8"), /"schema_version": 1/);
     const args = await readArgLines(argsPath);
 
-    assert.deepEqual(args.slice(0, 6), [
+    assert.deepEqual(args.slice(0, 8), [
       "-p",
       "Review the provided Pushgate review input exactly as instructed.",
       "--output-format",
-      "json",
+      "stream-json",
+      "--verbose",
+      "--include-partial-messages",
       "--json-schema",
-      args[5] ?? "",
+      args[7] ?? "",
     ]);
     assert.deepEqual(
-      JSON.parse(args[5] ?? ""),
+      JSON.parse(args[7] ?? ""),
       generateAiReviewOutputJsonSchema(),
     );
-    assert.deepEqual(args.slice(6), [
+    assert.deepEqual(args.slice(8), [
       "--safe-mode",
       "--tools",
       "Read",
@@ -1090,6 +1099,141 @@ test("runs the Claude adapter through the provider interface with model selectio
       "--model",
       "claude-sonnet-4-20250514",
     ]);
+  });
+});
+
+test("streams Claude response text before validated findings", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStreamJsonOutput({
+          deltas: [
+            "Reviewing ",
+            "\u001B[31mchanged files\u001B[0m...\n",
+          ],
+          structuredOutput: {
+            schema_version: 1,
+            findings: [],
+          },
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: true,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 0, text);
+    assert.match(text, /Claude response\n  Reviewing changed files\.\.\./);
+    assert.doesNotMatch(text, /\u001B\[/);
+    assert.ok(
+      text.indexOf("Claude response") < text.indexOf("Validated findings"),
+      text,
+    );
+    assert.match(text, /Validated findings\n  \[ok\] No findings/);
+  });
+});
+
+test("suppresses Claude response text when AI verbose mode is false", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStreamJsonOutput({
+          deltas: ["This should stay hidden."],
+          structuredOutput: {
+            schema_version: 1,
+            findings: [],
+          },
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: false,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 0, text);
+    assert.doesNotMatch(text, /Claude response/);
+    assert.doesNotMatch(text, /This should stay hidden/);
+    assert.match(text, /Validated findings\n  \[ok\] No findings/);
   });
 });
 
@@ -1842,6 +1986,7 @@ test("maps Copilot auth-like failures through advisory mode", async () => {
     const result = await runLocalAiReview({
       aiConfig: {
         mode: "advisory",
+        verbose: true,
         max_changed_lines: 500,
         max_prompt_tokens: 12_000,
         timeout_seconds: 120,
@@ -2070,6 +2215,7 @@ test("blocks local AI before provider invocation when changed-line guardrail is 
     const result = await runLocalAiReview({
       aiConfig: {
         mode: "blocking",
+        verbose: true,
         max_changed_lines: 1,
         max_prompt_tokens: 12_000,
         timeout_seconds: 120,
@@ -2100,6 +2246,7 @@ test("reports unsupported local AI providers through the public gate", async () 
   const result = await runLocalAiReview({
     aiConfig: {
       mode: "blocking",
+      verbose: true,
       max_changed_lines: 500,
       max_prompt_tokens: 12_000,
       timeout_seconds: 120,
@@ -2154,6 +2301,7 @@ test("skips local AI after prompt rendering when prompt token guardrail is excee
     const result = await runLocalAiReview({
       aiConfig: {
         mode: "blocking",
+        verbose: true,
         max_changed_lines: 500,
         max_prompt_tokens: 1,
         timeout_seconds: 120,
@@ -2203,6 +2351,7 @@ test("passes configured timeout seconds to the Claude adapter", async () => {
     const result = await runLocalAiReview({
       aiConfig: {
         mode: "blocking",
+        verbose: true,
         max_changed_lines: 500,
         max_prompt_tokens: 12_000,
         timeout_seconds: 1,
@@ -2462,6 +2611,27 @@ function claudeStructuredOutputJson(structuredOutput: unknown): string {
   });
 }
 
+function claudeStreamJsonOutput(options: {
+  deltas: readonly string[];
+  structuredOutput: unknown;
+}): string {
+  return [
+    ...options.deltas.map((text) =>
+      JSON.stringify({
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          delta: {
+            type: "text_delta",
+            text,
+          },
+        },
+      }),
+    ),
+    claudeStructuredOutputJson(options.structuredOutput),
+  ].join("\n");
+}
+
 function minimalReviewPayload(
   prompt: string = "Review this Pushgate payload.\n",
 ): LocalAiReviewPayload {
@@ -2479,6 +2649,8 @@ async function runFakeCommandProvider(
 ): Promise<Awaited<ReturnType<LocalAiProviderAdapter["runReview"]>>> {
   const adapter = createCommandProviderAdapter({
     id: "fake",
+    displayName: "Fake",
+    streamingCapability: "none",
     structuredOutputCapability: "text_fallback",
     command: "fake",
     buildInvocation() {

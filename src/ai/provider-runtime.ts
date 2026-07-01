@@ -11,10 +11,12 @@ import type {
 export type LocalAiProviderRuntime =
   | {
       kind: "ready";
+      providerDisplayName: string;
       providerId: string;
       runReview(
         options: Omit<LocalAiProviderRunOptions, "providerConfig">,
       ): Promise<LocalAiProviderResult>;
+      streamingCapability: LocalAiProviderAdapter["streamingCapability"];
     }
   | {
       kind: "provider-error";
@@ -55,6 +57,7 @@ export function resolveLocalAiProviderRuntime(
 
   return {
     kind: "ready",
+    providerDisplayName: provider.displayName,
     providerId: provider.id,
     runReview(options) {
       return provider.runReview({
@@ -62,5 +65,6 @@ export function resolveLocalAiProviderRuntime(
         providerConfig,
       });
     },
+    streamingCapability: provider.streamingCapability,
   };
 }

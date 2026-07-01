@@ -774,6 +774,7 @@ function configWithTools(tools: ToolConfig[]): PushgateConfig {
     plugins: {},
     ai: {
       mode: "off",
+      verbose: true,
       max_changed_lines: 500,
       max_prompt_tokens: 12_000,
       timeout_seconds: 120,

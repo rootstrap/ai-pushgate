@@ -40,7 +40,7 @@ function ucs2length(str) {
   return length;
 }
 
-const schema11 = {"$schema":"http://json-schema.org/draft-07/schema#","$id":"https://github.com/rootstrap/ai-pushgate/schemas/pushgate-config-v2.schema.json","title":"Pushgate v2 config","description":"Versioned project config for .pushgate.yml.","type":"object","additionalProperties":false,"required":["version"],"properties":{"version":{"description":"Pushgate config schema version.","const":2},"review":{"$ref":"#/definitions/review"},"tools":{"description":"Deterministic checks for the later command runner.","type":"array","default":[],"items":{"$ref":"#/definitions/tool"}},"policies":{"$ref":"#/definitions/policies"},"plugins":{"$ref":"#/definitions/plugins"},"ai":{"$ref":"#/definitions/ai"},"ignore_paths":{"description":"Gitignore-like repo-relative changed-file paths omitted by later Pushgate layers.","type":"array","default":[],"items":{"type":"string","minLength":1}}},"definitions":{"review":{"type":"object","additionalProperties":false,"properties":{"target_branch":{"type":"string","minLength":1,"default":"main"},"context_lines":{"type":"integer","minimum":0,"default":10},"max_lines_for_full_file":{"type":"integer","minimum":1,"default":300}}},"tool":{"type":"object","additionalProperties":false,"required":["name","command"],"properties":{"name":{"type":"string","minLength":1},"command":{"description":"Argv tokens for deterministic command execution.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"extensions":{"type":"array","items":{"type":"string","minLength":1}},"timeout_seconds":{"description":"Maximum runtime before the deterministic command is treated as timed out.","type":"integer","minimum":1,"default":60},"mode":{"description":"Whether command failures block the push or only warn locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"run":{"description":"Whether the command requires matching live changed files or always runs.","type":"string","enum":["changed_files","always"],"default":"changed_files"},"fail_fast":{"description":"Whether a blocking failure stops later deterministic command checks.","type":"boolean","default":true}}},"policies":{"description":"Optional built-in deterministic policy checks.","type":"object","additionalProperties":false,"default":{},"properties":{"diff_size":{"$ref":"#/definitions/diffSizePolicy"},"forbidden_paths":{"$ref":"#/definitions/forbiddenPathsPolicy"}}},"policyMode":{"description":"Whether a built-in policy violation blocks the push or only warns locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"diffSizePolicy":{"type":"object","additionalProperties":false,"required":["max_changed_lines"],"properties":{"max_changed_lines":{"description":"Maximum total added plus deleted text lines allowed in the changed diff.","type":"integer","minimum":1},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking diff-size violation stops later deterministic checks.","type":"boolean","default":true}}},"forbiddenPathsPolicy":{"type":"object","additionalProperties":false,"required":["patterns"],"properties":{"patterns":{"description":"Gitignore-like repo-relative path patterns that must not be pushed.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking forbidden-path violation stops later deterministic checks.","type":"boolean","default":true}}},"plugins":{"description":"Optional external plugin adapters managed by Pushgate.","type":"object","additionalProperties":false,"default":{},"properties":{"gitleaks":{"$ref":"#/definitions/gitleaksPlugin"}}},"gitleaksPlugin":{"description":"Gitleaks secret-scanner plugin adapter.","type":"object","additionalProperties":false,"properties":{"enabled":{"description":"Whether the configured plugin should run.","type":"boolean","default":true},"command":{"description":"Executable name or path used to invoke Gitleaks.","type":"string","minLength":1,"default":"gitleaks"},"timeout_seconds":{"description":"Maximum plugin runtime before Pushgate treats the scan as timed out.","type":"integer","minimum":1,"default":60},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking Gitleaks failure stops later deterministic checks.","type":"boolean","default":true},"config_path":{"description":"Optional path to a Gitleaks TOML config file.","type":"string","minLength":1},"baseline_path":{"description":"Optional path to a Gitleaks JSON baseline report.","type":"string","minLength":1},"gitleaks_ignore_path":{"description":"Optional path to a .gitleaksignore file or containing folder.","type":"string","minLength":1},"redact":{"description":"Redact detected secret values in Gitleaks output and reports.","type":"boolean","default":true},"max_decode_depth":{"description":"Optional Gitleaks decode recursion depth.","type":"integer","minimum":0},"max_archive_depth":{"description":"Optional Gitleaks archive recursion depth.","type":"integer","minimum":0},"max_target_megabytes":{"description":"Optional file-size cap forwarded to Gitleaks.","type":"integer","minimum":1},"enable_rules":{"description":"Optional rule IDs to enable exclusively.","type":"array","items":{"type":"string","minLength":1}}}},"ai":{"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review blocks the push.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}},"providerConfig":{"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true}}};
+const schema11 = {"$schema":"http://json-schema.org/draft-07/schema#","$id":"https://github.com/rootstrap/ai-pushgate/schemas/pushgate-config-v2.schema.json","title":"Pushgate v2 config","description":"Versioned project config for .pushgate.yml.","type":"object","additionalProperties":false,"required":["version"],"properties":{"version":{"description":"Pushgate config schema version.","const":2},"review":{"$ref":"#/definitions/review"},"tools":{"description":"Deterministic checks for the later command runner.","type":"array","default":[],"items":{"$ref":"#/definitions/tool"}},"policies":{"$ref":"#/definitions/policies"},"plugins":{"$ref":"#/definitions/plugins"},"ai":{"$ref":"#/definitions/ai"},"ignore_paths":{"description":"Gitignore-like repo-relative changed-file paths omitted by later Pushgate layers.","type":"array","default":[],"items":{"type":"string","minLength":1}}},"definitions":{"review":{"type":"object","additionalProperties":false,"properties":{"target_branch":{"type":"string","minLength":1,"default":"main"},"context_lines":{"type":"integer","minimum":0,"default":10},"max_lines_for_full_file":{"type":"integer","minimum":1,"default":300}}},"tool":{"type":"object","additionalProperties":false,"required":["name","command"],"properties":{"name":{"type":"string","minLength":1},"command":{"description":"Argv tokens for deterministic command execution.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"extensions":{"type":"array","items":{"type":"string","minLength":1}},"timeout_seconds":{"description":"Maximum runtime before the deterministic command is treated as timed out.","type":"integer","minimum":1,"default":60},"mode":{"description":"Whether command failures block the push or only warn locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"run":{"description":"Whether the command requires matching live changed files or always runs.","type":"string","enum":["changed_files","always"],"default":"changed_files"},"fail_fast":{"description":"Whether a blocking failure stops later deterministic command checks.","type":"boolean","default":true}}},"policies":{"description":"Optional built-in deterministic policy checks.","type":"object","additionalProperties":false,"default":{},"properties":{"diff_size":{"$ref":"#/definitions/diffSizePolicy"},"forbidden_paths":{"$ref":"#/definitions/forbiddenPathsPolicy"}}},"policyMode":{"description":"Whether a built-in policy violation blocks the push or only warns locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"diffSizePolicy":{"type":"object","additionalProperties":false,"required":["max_changed_lines"],"properties":{"max_changed_lines":{"description":"Maximum total added plus deleted text lines allowed in the changed diff.","type":"integer","minimum":1},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking diff-size violation stops later deterministic checks.","type":"boolean","default":true}}},"forbiddenPathsPolicy":{"type":"object","additionalProperties":false,"required":["patterns"],"properties":{"patterns":{"description":"Gitignore-like repo-relative path patterns that must not be pushed.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking forbidden-path violation stops later deterministic checks.","type":"boolean","default":true}}},"plugins":{"description":"Optional external plugin adapters managed by Pushgate.","type":"object","additionalProperties":false,"default":{},"properties":{"gitleaks":{"$ref":"#/definitions/gitleaksPlugin"}}},"gitleaksPlugin":{"description":"Gitleaks secret-scanner plugin adapter.","type":"object","additionalProperties":false,"properties":{"enabled":{"description":"Whether the configured plugin should run.","type":"boolean","default":true},"command":{"description":"Executable name or path used to invoke Gitleaks.","type":"string","minLength":1,"default":"gitleaks"},"timeout_seconds":{"description":"Maximum plugin runtime before Pushgate treats the scan as timed out.","type":"integer","minimum":1,"default":60},"mode":{"$ref":"#/definitions/policyMode"},"fail_fast":{"description":"Whether a blocking Gitleaks failure stops later deterministic checks.","type":"boolean","default":true},"config_path":{"description":"Optional path to a Gitleaks TOML config file.","type":"string","minLength":1},"baseline_path":{"description":"Optional path to a Gitleaks JSON baseline report.","type":"string","minLength":1},"gitleaks_ignore_path":{"description":"Optional path to a .gitleaksignore file or containing folder.","type":"string","minLength":1},"redact":{"description":"Redact detected secret values in Gitleaks output and reports.","type":"boolean","default":true},"max_decode_depth":{"description":"Optional Gitleaks decode recursion depth.","type":"integer","minimum":0},"max_archive_depth":{"description":"Optional Gitleaks archive recursion depth.","type":"integer","minimum":0},"max_target_megabytes":{"description":"Optional file-size cap forwarded to Gitleaks.","type":"integer","minimum":1},"enable_rules":{"description":"Optional rule IDs to enable exclusively.","type":"array","items":{"type":"string","minLength":1}}}},"ai":{"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"verbose":{"description":"Whether local AI review streams human-readable provider response text while it runs.","type":"boolean","default":true},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review blocks the push.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}},"providerConfig":{"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true}}};
 const schema12 = {"type":"object","additionalProperties":false,"properties":{"target_branch":{"type":"string","minLength":1,"default":"main"},"context_lines":{"type":"integer","minimum":0,"default":10},"max_lines_for_full_file":{"type":"integer","minimum":1,"default":300}}};
 const schema13 = {"type":"object","additionalProperties":false,"required":["name","command"],"properties":{"name":{"type":"string","minLength":1},"command":{"description":"Argv tokens for deterministic command execution.","type":"array","minItems":1,"items":{"type":"string","minLength":1}},"extensions":{"type":"array","items":{"type":"string","minLength":1}},"timeout_seconds":{"description":"Maximum runtime before the deterministic command is treated as timed out.","type":"integer","minimum":1,"default":60},"mode":{"description":"Whether command failures block the push or only warn locally.","type":"string","enum":["blocking","warning"],"default":"blocking"},"run":{"description":"Whether the command requires matching live changed files or always runs.","type":"string","enum":["changed_files","always"],"default":"changed_files"},"fail_fast":{"description":"Whether a blocking failure stops later deterministic command checks.","type":"boolean","default":true}}};
 const func2 = ucs2length;
@@ -695,7 +695,7 @@ validate17.errors = vErrors;
 return errors === 0;
 }
 
-const schema22 = {"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review blocks the push.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}};
+const schema22 = {"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["blocking","advisory","off"],"default":"blocking"},"verbose":{"description":"Whether local AI review streams human-readable provider response text while it runs.","type":"boolean","default":true},"max_changed_lines":{"description":"Maximum total added plus deleted text lines before local AI review blocks the push.","type":"integer","minimum":1,"default":500},"max_prompt_tokens":{"description":"Approximate rendered prompt token budget before local AI review is skipped.","type":"integer","minimum":1,"default":12000},"timeout_seconds":{"description":"Maximum local AI provider runtime before the provider is treated as timed out.","type":"integer","minimum":1,"default":120},"provider":{"type":"string","minLength":1},"providers":{"type":"object","default":{},"propertyNames":{"minLength":1},"additionalProperties":{"$ref":"#/definitions/providerConfig"}}}};
 const schema23 = {"description":"Provider-specific settings are the v2 extension boundary.","type":"object","additionalProperties":true};
 
 function validate21(data, {instancePath="", parentData, parentDataProperty, rootData=data}={}){
@@ -703,7 +703,7 @@ let vErrors = null;
 let errors = 0;
 if(data && typeof data == "object" && !Array.isArray(data)){
 for(const key0 in data){
-if(!((((((key0 === "mode") || (key0 === "max_changed_lines")) || (key0 === "max_prompt_tokens")) || (key0 === "timeout_seconds")) || (key0 === "provider")) || (key0 === "providers"))){
+if(!(((((((key0 === "mode") || (key0 === "verbose")) || (key0 === "max_changed_lines")) || (key0 === "max_prompt_tokens")) || (key0 === "timeout_seconds")) || (key0 === "provider")) || (key0 === "providers"))){
 const err0 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err0];
@@ -737,10 +737,9 @@ vErrors.push(err2);
 errors++;
 }
 }
-if(data.max_changed_lines !== undefined){
-let data1 = data.max_changed_lines;
-if(!(((typeof data1 == "number") && (!(data1 % 1) && !isNaN(data1))) && (isFinite(data1)))){
-const err3 = {instancePath:instancePath+"/max_changed_lines",schemaPath:"#/properties/max_changed_lines/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(data.verbose !== undefined){
+if(typeof data.verbose !== "boolean"){
+const err3 = {instancePath:instancePath+"/verbose",schemaPath:"#/properties/verbose/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
 if(vErrors === null){
 vErrors = [err3];
 }
@@ -749,9 +748,11 @@ vErrors.push(err3);
 }
 errors++;
 }
-if((typeof data1 == "number") && (isFinite(data1))){
-if(data1 < 1 || isNaN(data1)){
-const err4 = {instancePath:instancePath+"/max_changed_lines",schemaPath:"#/properties/max_changed_lines/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+}
+if(data.max_changed_lines !== undefined){
+let data2 = data.max_changed_lines;
+if(!(((typeof data2 == "number") && (!(data2 % 1) && !isNaN(data2))) && (isFinite(data2)))){
+const err4 = {instancePath:instancePath+"/max_changed_lines",schemaPath:"#/properties/max_changed_lines/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err4];
 }
@@ -760,12 +761,9 @@ vErrors.push(err4);
 }
 errors++;
 }
-}
-}
-if(data.max_prompt_tokens !== undefined){
-let data2 = data.max_prompt_tokens;
-if(!(((typeof data2 == "number") && (!(data2 % 1) && !isNaN(data2))) && (isFinite(data2)))){
-const err5 = {instancePath:instancePath+"/max_prompt_tokens",schemaPath:"#/properties/max_prompt_tokens/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if((typeof data2 == "number") && (isFinite(data2))){
+if(data2 < 1 || isNaN(data2)){
+const err5 = {instancePath:instancePath+"/max_changed_lines",schemaPath:"#/properties/max_changed_lines/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
 if(vErrors === null){
 vErrors = [err5];
 }
@@ -774,9 +772,12 @@ vErrors.push(err5);
 }
 errors++;
 }
-if((typeof data2 == "number") && (isFinite(data2))){
-if(data2 < 1 || isNaN(data2)){
-const err6 = {instancePath:instancePath+"/max_prompt_tokens",schemaPath:"#/properties/max_prompt_tokens/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+}
+}
+if(data.max_prompt_tokens !== undefined){
+let data3 = data.max_prompt_tokens;
+if(!(((typeof data3 == "number") && (!(data3 % 1) && !isNaN(data3))) && (isFinite(data3)))){
+const err6 = {instancePath:instancePath+"/max_prompt_tokens",schemaPath:"#/properties/max_prompt_tokens/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err6];
 }
@@ -785,12 +786,9 @@ vErrors.push(err6);
 }
 errors++;
 }
-}
-}
-if(data.timeout_seconds !== undefined){
-let data3 = data.timeout_seconds;
-if(!(((typeof data3 == "number") && (!(data3 % 1) && !isNaN(data3))) && (isFinite(data3)))){
-const err7 = {instancePath:instancePath+"/timeout_seconds",schemaPath:"#/properties/timeout_seconds/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if((typeof data3 == "number") && (isFinite(data3))){
+if(data3 < 1 || isNaN(data3)){
+const err7 = {instancePath:instancePath+"/max_prompt_tokens",schemaPath:"#/properties/max_prompt_tokens/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
 if(vErrors === null){
 vErrors = [err7];
 }
@@ -799,9 +797,12 @@ vErrors.push(err7);
 }
 errors++;
 }
-if((typeof data3 == "number") && (isFinite(data3))){
-if(data3 < 1 || isNaN(data3)){
-const err8 = {instancePath:instancePath+"/timeout_seconds",schemaPath:"#/properties/timeout_seconds/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+}
+}
+if(data.timeout_seconds !== undefined){
+let data4 = data.timeout_seconds;
+if(!(((typeof data4 == "number") && (!(data4 % 1) && !isNaN(data4))) && (isFinite(data4)))){
+const err8 = {instancePath:instancePath+"/timeout_seconds",schemaPath:"#/properties/timeout_seconds/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err8];
 }
@@ -810,13 +811,9 @@ vErrors.push(err8);
 }
 errors++;
 }
-}
-}
-if(data.provider !== undefined){
-let data4 = data.provider;
-if(typeof data4 === "string"){
-if(func2(data4) < 1){
-const err9 = {instancePath:instancePath+"/provider",schemaPath:"#/properties/provider/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
+if((typeof data4 == "number") && (isFinite(data4))){
+if(data4 < 1 || isNaN(data4)){
+const err9 = {instancePath:instancePath+"/timeout_seconds",schemaPath:"#/properties/timeout_seconds/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
 if(vErrors === null){
 vErrors = [err9];
 }
@@ -826,8 +823,12 @@ vErrors.push(err9);
 errors++;
 }
 }
-else {
-const err10 = {instancePath:instancePath+"/provider",schemaPath:"#/properties/provider/type",keyword:"type",params:{type: "string"},message:"must be string"};
+}
+if(data.provider !== undefined){
+let data5 = data.provider;
+if(typeof data5 === "string"){
+if(func2(data5) < 1){
+const err10 = {instancePath:instancePath+"/provider",schemaPath:"#/properties/provider/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -837,14 +838,8 @@ vErrors.push(err10);
 errors++;
 }
 }
-if(data.providers !== undefined){
-let data5 = data.providers;
-if(data5 && typeof data5 == "object" && !Array.isArray(data5)){
-for(const key1 in data5){
-const _errs14 = errors;
-if(typeof key1 === "string"){
-if(func2(key1) < 1){
-const err11 = {instancePath:instancePath+"/providers",schemaPath:"#/properties/providers/propertyNames/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters",propertyName:key1};
+else {
+const err11 = {instancePath:instancePath+"/provider",schemaPath:"#/properties/provider/type",keyword:"type",params:{type: "string"},message:"must be string"};
 if(vErrors === null){
 vErrors = [err11];
 }
@@ -854,9 +849,14 @@ vErrors.push(err11);
 errors++;
 }
 }
-var valid1 = _errs14 === errors;
-if(!valid1){
-const err12 = {instancePath:instancePath+"/providers",schemaPath:"#/properties/providers/propertyNames",keyword:"propertyNames",params:{propertyName: key1},message:"property name must be valid"};
+if(data.providers !== undefined){
+let data6 = data.providers;
+if(data6 && typeof data6 == "object" && !Array.isArray(data6)){
+for(const key1 in data6){
+const _errs16 = errors;
+if(typeof key1 === "string"){
+if(func2(key1) < 1){
+const err12 = {instancePath:instancePath+"/providers",schemaPath:"#/properties/providers/propertyNames/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters",propertyName:key1};
 if(vErrors === null){
 vErrors = [err12];
 }
@@ -866,12 +866,9 @@ vErrors.push(err12);
 errors++;
 }
 }
-for(const key2 in data5){
-let data6 = data5[key2];
-if(data6 && typeof data6 == "object" && !Array.isArray(data6)){
-}
-else {
-const err13 = {instancePath:instancePath+"/providers/" + key2.replace(/~/g, "~0").replace(/\//g, "~1"),schemaPath:"#/definitions/providerConfig/type",keyword:"type",params:{type: "object"},message:"must be object"};
+var valid1 = _errs16 === errors;
+if(!valid1){
+const err13 = {instancePath:instancePath+"/providers",schemaPath:"#/properties/providers/propertyNames",keyword:"propertyNames",params:{propertyName: key1},message:"property name must be valid"};
 if(vErrors === null){
 vErrors = [err13];
 }
@@ -881,9 +878,12 @@ vErrors.push(err13);
 errors++;
 }
 }
+for(const key2 in data6){
+let data7 = data6[key2];
+if(data7 && typeof data7 == "object" && !Array.isArray(data7)){
 }
 else {
-const err14 = {instancePath:instancePath+"/providers",schemaPath:"#/properties/providers/type",keyword:"type",params:{type: "object"},message:"must be object"};
+const err14 = {instancePath:instancePath+"/providers/" + key2.replace(/~/g, "~0").replace(/\//g, "~1"),schemaPath:"#/definitions/providerConfig/type",keyword:"type",params:{type: "object"},message:"must be object"};
 if(vErrors === null){
 vErrors = [err14];
 }
@@ -895,12 +895,24 @@ errors++;
 }
 }
 else {
-const err15 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+const err15 = {instancePath:instancePath+"/providers",schemaPath:"#/properties/providers/type",keyword:"type",params:{type: "object"},message:"must be object"};
 if(vErrors === null){
 vErrors = [err15];
 }
 else {
 vErrors.push(err15);
+}
+errors++;
+}
+}
+}
+else {
+const err16 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err16];
+}
+else {
+vErrors.push(err16);
 }
 errors++;
 }

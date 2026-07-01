@@ -20,6 +20,9 @@ version: 2
 ai:
   # Supported modes: blocking, advisory, off.
   mode: blocking
+  # Streams provider response text during local AI review. Final push decisions
+  # still use the Validated findings section rendered after completion.
+  verbose: true
 
   # Changed-line overages block the push; prompt-token overages skip local AI.
   max_changed_lines: 500

@@ -250,10 +250,18 @@ export function createDeterministicTranscript(
 export function createLocalAiTranscript(
   stdout: NodeJS.WritableStream,
 ): LocalAiTranscript {
+  const streamingState: LocalAiStreamingTranscriptState = {
+    responseEmptyRendered: false,
+    responseLineStart: true,
+    responseStarted: false,
+    responseWroteText: false,
+    validatedFindingsStarted: false,
+  };
+
   return {
     writeEvents(events) {
       for (const event of events) {
-        renderLocalAiTranscriptEvent(event, stdout);
+        renderLocalAiTranscriptEvent(event, stdout, streamingState);
       }
     },
 
@@ -275,6 +283,14 @@ export function createLocalAiTranscript(
       );
     },
   };
+}
+
+interface LocalAiStreamingTranscriptState {
+  responseEmptyRendered: boolean;
+  responseLineStart: boolean;
+  responseStarted: boolean;
+  responseWroteText: boolean;
+  validatedFindingsStarted: boolean;
 }
 
 function createWarningConfirmationTranscript(
@@ -319,6 +335,7 @@ function createPushTranscript(
 function renderLocalAiTranscriptEvent(
   event: LocalAiTranscriptEvent,
   stdout: NodeJS.WritableStream,
+  streamingState: LocalAiStreamingTranscriptState,
 ): void {
   switch (event.kind) {
     case "skip-no-files":
@@ -341,7 +358,7 @@ function renderLocalAiTranscriptEvent(
       );
       return;
     case "review-start":
-      writeDetail(stdout, `Provider: ${capitalize(event.providerId)}`);
+      writeDetail(stdout, `Provider: ${event.providerLabel}`);
       writeDetail(stdout, `Files reviewed: ${String(event.changedFileCount)}`);
       return;
     case "full-file-context":
@@ -349,6 +366,21 @@ function renderLocalAiTranscriptEvent(
         stdout,
         `Context: ${formatCount(event.diffLineCount, "diff line")} plus ${formatCount(event.fullFileCount, "full file")} for extra context`,
       );
+      return;
+    case "provider-progress":
+      writeDetail(stdout, event.message);
+      return;
+    case "provider-response-start":
+      startProviderResponse(stdout, streamingState, event.providerLabel);
+      return;
+    case "provider-response-delta":
+      writeProviderResponseDelta(stdout, streamingState, event.text);
+      return;
+    case "provider-response-empty":
+      writeEmptyProviderResponse(stdout, streamingState);
+      return;
+    case "validated-findings-start":
+      startValidatedFindings(stdout, streamingState);
       return;
     case "provider-failure": {
       const status = event.aiMode === "advisory" ? "warning" : "blocked";
@@ -427,6 +459,102 @@ function renderLocalAiTranscriptEvent(
       );
       return;
   }
+}
+
+function startProviderResponse(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+  providerLabel: string,
+): void {
+  if (state.responseStarted) {
+    return;
+  }
+
+  writeLine(stdout);
+  writeSection(stdout, `${providerLabel} response`);
+  state.responseStarted = true;
+  state.responseLineStart = true;
+}
+
+function writeProviderResponseDelta(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+  text: string,
+): void {
+  if (!state.responseStarted) {
+    startProviderResponse(stdout, state, "Provider");
+  }
+
+  const sanitized = sanitizeProviderResponseText(text);
+
+  if (sanitized.length === 0) {
+    return;
+  }
+
+  state.responseWroteText = true;
+
+  for (const char of sanitized) {
+    if (state.responseLineStart) {
+      stdout.write("  ");
+      state.responseLineStart = false;
+    }
+
+    stdout.write(char);
+
+    if (char === "\n") {
+      state.responseLineStart = true;
+    }
+  }
+}
+
+function writeEmptyProviderResponse(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+): void {
+  if (
+    !state.responseStarted ||
+    state.responseWroteText ||
+    state.responseEmptyRendered
+  ) {
+    return;
+  }
+
+  writeDetail(stdout, "No streamable response text was produced by this provider.");
+  state.responseEmptyRendered = true;
+  state.responseLineStart = true;
+}
+
+function startValidatedFindings(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+): void {
+  if (state.validatedFindingsStarted) {
+    return;
+  }
+
+  if (state.responseStarted) {
+    if (!state.responseLineStart) {
+      writeLine(stdout);
+    }
+
+    writeEmptyProviderResponse(stdout, state);
+  }
+
+  writeLine(stdout);
+  writeSection(stdout, "Validated findings");
+  state.validatedFindingsStarted = true;
+}
+
+const ANSI_ESCAPE_PATTERN =
+  /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;
+const UNSAFE_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001A\u001C-\u001F\u007F]/g;
+
+function sanitizeProviderResponseText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(ANSI_ESCAPE_PATTERN, "")
+    .replace(UNSAFE_CONTROL_PATTERN, "");
 }
 
 function mapDeterministicStatus(

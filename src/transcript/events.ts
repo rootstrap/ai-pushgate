@@ -48,12 +48,31 @@ export type LocalAiTranscriptEvent =
   | {
       kind: "review-start";
       providerId: string;
+      providerLabel: string;
       changedFileCount: number;
     }
   | {
       kind: "full-file-context";
       diffLineCount: number;
       fullFileCount: number;
+    }
+  | {
+      kind: "provider-progress";
+      message: string;
+    }
+  | {
+      kind: "provider-response-start";
+      providerLabel: string;
+    }
+  | {
+      kind: "provider-response-delta";
+      text: string;
+    }
+  | {
+      kind: "provider-response-empty";
+    }
+  | {
+      kind: "validated-findings-start";
     }
   | {
       kind: "provider-failure";

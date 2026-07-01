@@ -71,6 +71,7 @@ test("normalizes defaults before later Pushgate layers consume config", async ()
     plugins: {},
     ai: {
       mode: "blocking",
+      verbose: true,
       max_changed_lines: 500,
       max_prompt_tokens: 12_000,
       timeout_seconds: 120,
@@ -395,6 +396,7 @@ test("allows AI mode off without provider config", () => {
 
   assert.deepEqual(config.ai, {
     mode: "off",
+    verbose: true,
     max_changed_lines: 500,
     max_prompt_tokens: 12_000,
     timeout_seconds: 120,
