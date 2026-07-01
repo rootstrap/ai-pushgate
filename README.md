@@ -199,7 +199,7 @@ commands are argv arrays rather than shell strings. See
 full schema boundary, defaults, changed-file policy, and migration behavior for
 `.push-review.yml`.
 
-AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. When available, provider response text streams in the transcript while the provider runs; only the final `Validated findings` section controls whether the push passes, warns, or blocks.
+AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. When available, provider response text streams in the transcript while the provider runs; only the final `Review findings` section controls whether the push passes, warns, or blocks.
 
 ## Available templates
 

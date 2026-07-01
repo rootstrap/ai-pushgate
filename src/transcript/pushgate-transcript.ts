@@ -626,7 +626,7 @@ function startValidatedFindings(
   }
 
   writeLine(stdout);
-  writeSection(stdout, "Validated findings");
+  writeSection(stdout, "Review findings");
   state.validatedFindingsStarted = true;
 }
 

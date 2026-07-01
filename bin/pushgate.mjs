@@ -10661,7 +10661,7 @@ function startValidatedFindings(stdout, state) {
     writeEmptyProviderResponse(stdout, state);
   }
   writeLine(stdout);
-  writeSection(stdout, "Validated findings");
+  writeSection(stdout, "Review findings");
   state.validatedFindingsStarted = true;
 }
 var ANSI_ESCAPE_PATTERN = /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;

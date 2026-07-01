@@ -175,7 +175,7 @@ test("renders and clears a TTY local AI provider wait spinner", () => {
   }
 
   assert.match(output.text(), /Waiting for GitHub Copilot\.\.\./);
-  assert.match(output.text(), /\r\u001B\[2K\nValidated findings/);
+  assert.match(output.text(), /\r\u001B\[2K\nReview findings/);
 });
 
 test("writes provider response deltas without per-character writes", () => {

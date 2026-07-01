@@ -1208,10 +1208,10 @@ test("streams Claude response text before validated findings", async () => {
     assert.match(text, /Claude response\n  Reviewing changed files\.\.\./);
     assert.doesNotMatch(text, /\u001B\[/);
     assert.ok(
-      text.indexOf("Claude response") < text.indexOf("Validated findings"),
+      text.indexOf("Claude response") < text.indexOf("Review findings"),
       text,
     );
-    assert.match(text, /Validated findings\n  \[ok\] No findings/);
+    assert.match(text, /Review findings\n  \[ok\] No findings/);
   });
 });
 
@@ -1331,7 +1331,7 @@ test("suppresses Claude response text when AI verbose mode is false", async () =
     assert.equal(result.exitCode, 0, text);
     assert.doesNotMatch(text, /Claude response/);
     assert.doesNotMatch(text, /This should stay hidden/);
-    assert.match(text, /Validated findings\n  \[ok\] No findings/);
+    assert.match(text, /Review findings\n  \[ok\] No findings/);
   });
 });
 
@@ -1958,7 +1958,7 @@ test("streams Copilot assistant messages on separate response lines", async () =
     assert.equal(result.exitCode, 0, text);
     assert.match(
       text,
-      /GitHub Copilot response\n  Reviewing changed files\.\n  Checking stream parser behavior\.\n\nValidated findings/,
+      /GitHub Copilot response\n  Reviewing changed files\.\n  Checking stream parser behavior\.\n\nReview findings/,
     );
     assert.doesNotMatch(text, /schema_version/);
   });
@@ -2034,7 +2034,7 @@ test("streams Copilot assistant delta events as chunks", async () => {
     assert.equal(result.exitCode, 0, output.text());
     assert.match(
       output.text(),
-      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nValidated findings/,
+      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nReview findings/,
     );
   });
 });
@@ -2238,7 +2238,7 @@ test("streams Copilot reasoning delta chunks before a timeout", async () => {
     assert.equal(result.exitCode, 1, text);
     assert.match(
       text,
-      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nValidated findings/,
+      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nReview findings/,
     );
     assert.match(text, /GitHub Copilot CLI timed out after 1s/);
     assert.doesNotMatch(text, /Provider output:/);
@@ -2310,7 +2310,7 @@ test("streams only new suffixes from cumulative Copilot assistant messages", asy
     assert.equal(result.exitCode, 0, text);
     assert.match(
       text,
-      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nValidated findings/,
+      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nReview findings/,
     );
     assert.doesNotMatch(text, /I’ll quickly inspect I’ll quickly inspect/);
   });

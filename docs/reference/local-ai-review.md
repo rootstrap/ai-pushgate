@@ -24,7 +24,7 @@ Pushgate streams that text under a provider-labeled section such as
 
 Set `ai.verbose: false` to hide streamed provider response text. Compact
 progress and final output still render. Push decisions always come from the
-final `Validated findings` section, never from streamed response text.
+final `Review findings` section, never from streamed response text.
 
 Current deliberate limits:
 
