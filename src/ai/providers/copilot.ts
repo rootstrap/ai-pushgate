@@ -45,6 +45,7 @@ export const copilotProvider = createCommandProviderAdapter({
   formatTimeoutMessage(timeoutSeconds) {
     return `GitHub Copilot CLI timed out after ${String(timeoutSeconds)}s.`;
   },
+  includeTimeoutOutput: false,
   formatCommandFailedMessage(code) {
     return `GitHub Copilot CLI exited with code ${String(code)}.`;
   },
@@ -310,7 +311,9 @@ function readAssistantMessageDelta(event: JsonObject): string | null {
     readDeltaText(event.text_delta) ??
     readDeltaText(data?.text_delta) ??
     readDeltaText(event.content_delta) ??
-    readDeltaText(data?.content_delta)
+    readDeltaText(data?.content_delta) ??
+    readDeltaText(event.deltaContent) ??
+    readDeltaText(data?.deltaContent)
   );
 }
 
@@ -324,7 +327,11 @@ function isAssistantDeltaEvent(event: JsonObject): boolean {
         ? data.role
         : undefined;
 
-  if (type === "assistant.message.delta" || type === "assistant.delta") {
+  if (
+    type === "assistant.message.delta" ||
+    type === "assistant.delta" ||
+    type === "assistant.reasoning_delta"
+  ) {
     return true;
   }
 
@@ -354,6 +361,10 @@ function readDeltaText(value: unknown): string | null {
 
   if (typeof value.value === "string") {
     return value.value;
+  }
+
+  if (typeof value.deltaContent === "string") {
+    return value.deltaContent;
   }
 
   return null;

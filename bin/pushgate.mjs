@@ -26361,7 +26361,7 @@ function createCommandProviderAdapter(spec, dependencies = {}) {
         return providerFailure({
           code: "timed_out",
           message: spec.formatTimeoutMessage(options.timeoutSeconds),
-          output: commandResult.output,
+          output: spec.includeTimeoutOutput === false ? void 0 : commandResult.output,
           provider: spec.id
         });
       }
@@ -26860,6 +26860,7 @@ var copilotProvider = createCommandProviderAdapter({
   formatTimeoutMessage(timeoutSeconds) {
     return `GitHub Copilot CLI timed out after ${String(timeoutSeconds)}s.`;
   },
+  includeTimeoutOutput: false,
   formatCommandFailedMessage(code) {
     return `GitHub Copilot CLI exited with code ${String(code)}.`;
   },
@@ -27041,13 +27042,13 @@ function readAssistantMessageDelta(event) {
     return null;
   }
   const data = isJsonObject(event.data) ? event.data : void 0;
-  return readDeltaText(event.delta) ?? readDeltaText(data?.delta) ?? readDeltaText(event.text_delta) ?? readDeltaText(data?.text_delta) ?? readDeltaText(event.content_delta) ?? readDeltaText(data?.content_delta);
+  return readDeltaText(event.delta) ?? readDeltaText(data?.delta) ?? readDeltaText(event.text_delta) ?? readDeltaText(data?.text_delta) ?? readDeltaText(event.content_delta) ?? readDeltaText(data?.content_delta) ?? readDeltaText(event.deltaContent) ?? readDeltaText(data?.deltaContent);
 }
 function isAssistantDeltaEvent(event) {
   const type = typeof event.type === "string" ? event.type : void 0;
   const data = isJsonObject(event.data) ? event.data : void 0;
   const role = typeof event.role === "string" ? event.role : typeof data?.role === "string" ? data.role : void 0;
-  if (type === "assistant.message.delta" || type === "assistant.delta") {
+  if (type === "assistant.message.delta" || type === "assistant.delta" || type === "assistant.reasoning_delta") {
     return true;
   }
   if (type === "message.delta" || type === "delta" || type === void 0) {
@@ -27070,6 +27071,9 @@ function readDeltaText(value) {
   }
   if (typeof value.value === "string") {
     return value.value;
+  }
+  if (typeof value.deltaContent === "string") {
+    return value.deltaContent;
   }
   return null;
 }

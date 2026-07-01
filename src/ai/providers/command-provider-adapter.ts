@@ -65,6 +65,7 @@ export interface CommandProviderAdapterSpec<TContext> {
   ): CommandProviderReviewExtraction;
   formatCommandFailedMessage(code: number | null): string;
   formatTimeoutMessage(timeoutSeconds: number): string;
+  includeTimeoutOutput?: boolean;
   id: string;
   invalidOutputMessage: string;
   mapCommandFailure?(
@@ -128,7 +129,10 @@ export function createCommandProviderAdapter<TContext = undefined>(
         return providerFailure({
           code: "timed_out",
           message: spec.formatTimeoutMessage(options.timeoutSeconds),
-          output: commandResult.output,
+          output:
+            spec.includeTimeoutOutput === false
+              ? undefined
+              : commandResult.output,
           provider: spec.id,
         });
       }

@@ -2015,6 +2015,69 @@ test("does not stream non-assistant Copilot delta events", async () => {
   });
 });
 
+test("streams Copilot reasoning delta chunks before a timeout", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "printf '%s\\n' '{\"type\":\"assistant.reasoning_delta\",\"data\":{\"deltaContent\":\"I’ll quickly inspect \"}}'",
+        "printf '%s\\n' '{\"type\":\"assistant.reasoning_delta\",\"data\":{\"deltaContent\":\"the updated provider parsing.\"}}'",
+        "sleep 2",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: true,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 1,
+        provider: "copilot",
+        providers: {
+          copilot: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 1, text);
+    assert.match(
+      text,
+      /GitHub Copilot response\n  I’ll quickly inspect the updated provider parsing\.\n\nValidated findings/,
+    );
+    assert.match(text, /GitHub Copilot CLI timed out after 1s/);
+    assert.doesNotMatch(text, /Provider output:/);
+    assert.doesNotMatch(text, /assistant\.reasoning_delta/);
+    assert.doesNotMatch(text, /deltaContent/);
+  });
+});
+
 test("streams only new suffixes from cumulative Copilot assistant messages", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");
