@@ -13,7 +13,7 @@ know.
 | CLI | `main(argv, io)` and `pushgate` subcommands | `src/cli.ts` | Public command surface for hook use. |
 | Pre-push workflow | `runPrePushWorkflow(io)` | `src/workflows/pre-push.ts`, `src/workflows/local-push-gate-run.ts`, `src/workflows/pre-push-hook-context.ts` | Owns pre-push context, phase order, and warning confirmation. |
 | Config | `loadConfig`, `parseConfigYaml`, `PushgateConfig` | `src/config/*`, `schemas/pushgate-config-v2.schema.json` | Converts user YAML into one normalized internal shape. |
-| Path policy | `resolveChangedFiles`, `selectToolChangedFilePaths` | `src/path-policy/*`, `src/git/*` | Owns Git range, diff parsing, ignore, and live-path semantics. |
+| Path policy | `resolveChangedFiles`, changed-file projections | `src/path-policy/*`, `src/git/*` | Owns Git range, diff parsing, ignore, live-path semantics, and changed-line metrics. |
 | Process execution | `runCommand`, `runTimedCommand`, `runProcessOutcome`, `runInheritedCommand` | `src/process/*` | Shared child-process mechanics and outcome formatting. |
 | Deterministic runner | `runDeterministicChecks` | `src/runner/*` | Runs built-in policies, plugin checks, configured tools, transcript, and summary. |
 | Local AI review | `runLocalAiReview` | `src/ai/*` | Applies guardrails, builds payload, calls provider runtime, builds verdict. |
@@ -26,7 +26,7 @@ know.
 |---|---|---|---|
 | `PushgateConfig` | Config module | Workflow, runner, AI, path policy | Defaults are normalized; active AI modes require a selected provider block. |
 | `ChangedFileResolution` | Path policy | Deterministic runner, local AI | Contains target ref, target commit, merge base, filtered files, review range, and scan range. |
-| `ChangedFile` | Path policy | Policies, tools, AI payload builder | Includes status, optional previous path, binary marker, additions, and deletions. |
+| `ChangedFile` and projections | Path policy | Policies, tools, AI payload builder | Includes status, optional previous path, binary marker, additions, deletions, live-path selection, and changed text-line counts. |
 | `ToolResult` | Deterministic runner | Transcript and summary | Status is `passed`, `skipped`, `warning`, or `blocked`. |
 | `LocalAiReviewPayload` | AI review context | Provider adapters | Contains changed files, rendered diff, optional full-file context, and final prompt. |
 | `RawAiReviewOutput` | Provider output parser | AI verdict and transcript | Must match schema version `1` and strict finding fields. |
@@ -53,7 +53,7 @@ helper.
 | Behavior | Primary tests |
 |---|---|
 | Config schema, defaults, provider selection, legacy config errors | `test/config.test.ts` |
-| Changed-file parsing, ignored paths, target-ref errors, deleted files | `test/path-policy.test.ts` |
+| Changed-file parsing, ignored paths, projections, target-ref errors, deleted files | `test/path-policy.test.ts` |
 | Deterministic policies, plugin checks, tool commands, fail-fast behavior | `test/deterministic-runner.test.ts`, `test/runner.test.ts` |
 | Hook protocol, pre-push runner behavior, skip controls, provider stubs | `test/runner.test.ts`, `test/hook.test.ts` |
 | Installer behavior and installed hook assets | `test/install.test.ts` |

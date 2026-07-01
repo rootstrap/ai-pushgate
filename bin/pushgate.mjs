@@ -9495,8 +9495,25 @@ function filterIgnoredChangedFiles(files, ignorePaths) {
   const ignorePathsMatcher = (0, import_ignore.default)().add(ignorePaths);
   return files.filter((file2) => !ignorePathsMatcher.ignores(file2.path));
 }
+function countChangedTextLines(files) {
+  return files.reduce((total, file2) => {
+    if (file2.binary) {
+      return total;
+    }
+    return total + (file2.additions ?? 0) + (file2.deletions ?? 0);
+  }, 0);
+}
+function isLiveChangedFile(file2) {
+  return file2.status !== "deleted";
+}
+function selectLiveChangedFiles(files) {
+  return files.filter(isLiveChangedFile);
+}
+function selectLiveChangedFilePaths(files, options = {}) {
+  return selectLiveChangedFiles(files).filter((file2) => matchesExtension(file2.path, options.extensions)).map((file2) => file2.path);
+}
 function selectToolChangedFilePaths(files, extensions) {
-  return files.filter((file2) => file2.status !== "deleted").filter((file2) => matchesExtension(file2.path, extensions)).map((file2) => file2.path);
+  return selectLiveChangedFilePaths(files, { extensions });
 }
 function matchesExtension(path, extensions) {
   if (extensions === void 0) {
@@ -10193,7 +10210,7 @@ function evaluateChangedFileGuardrails(options) {
   if (options.changedFiles.length === 0) {
     return { kind: "skip-no-files" };
   }
-  const changedLineCount = countChangedLines(options.changedFiles);
+  const changedLineCount = countChangedTextLines(options.changedFiles);
   if (changedLineCount > options.maxChangedLines) {
     return {
       kind: "block-changed-lines",
@@ -10219,14 +10236,6 @@ function evaluatePromptGuardrail(options) {
     kind: "run",
     estimatedPromptTokens
   };
-}
-function countChangedLines(changedFiles) {
-  return changedFiles.reduce((total, file2) => {
-    if (file2.binary) {
-      return total;
-    }
-    return total + (file2.additions ?? 0) + (file2.deletions ?? 0);
-  }, 0);
 }
 function estimatePromptTokens(prompt) {
   if (prompt.length === 0) {
@@ -26539,7 +26548,10 @@ async function collectLocalAiReviewContext(options) {
     repoRoot: options.repoRoot
   });
   const diffLineCount = countTextLines(diff);
-  const fullFiles = diffLineCount < options.reviewConfig.max_lines_for_full_file ? await collectFullFiles(options.repoRoot, changedFiles) : [];
+  const fullFiles = diffLineCount < options.reviewConfig.max_lines_for_full_file ? await collectFullFiles(
+    options.repoRoot,
+    selectLiveChangedFiles(changedFiles)
+  ) : [];
   return {
     changedFiles,
     diff,
@@ -26579,9 +26591,6 @@ async function collectReviewDiff(options) {
 async function collectFullFiles(repoRoot, changedFiles) {
   const fullFiles = [];
   for (const file2 of changedFiles) {
-    if (file2.status === "deleted") {
-      continue;
-    }
     if (file2.binary) {
       fullFiles.push({
         path: file2.path,
@@ -27074,9 +27083,7 @@ function runBuiltInPolicies(policies, changedFiles) {
   return results;
 }
 function runDiffSizePolicy(policy, changedFiles) {
-  const changedLines = changedFiles.reduce((total, file2) => {
-    return total + (file2.additions ?? 0) + (file2.deletions ?? 0);
-  }, 0);
+  const changedLines = countChangedTextLines(changedFiles);
   if (changedLines <= policy.max_changed_lines) {
     return {
       name: "policy:diff_size",
@@ -27095,7 +27102,7 @@ function runDiffSizePolicy(policy, changedFiles) {
   );
 }
 function runForbiddenPathsPolicy(policy, changedFiles) {
-  const matches = changedFiles.filter((file2) => file2.status !== "deleted").flatMap((file2) => {
+  const matches = selectLiveChangedFiles(changedFiles).flatMap((file2) => {
     const pattern = firstMatchingPattern(policy.patterns, file2.path);
     return pattern ? [{ path: file2.path, pattern }] : [];
   });

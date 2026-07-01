@@ -12,10 +12,13 @@ import test from "node:test";
 
 import { sanitizeGitLocalEnv } from "../src/git/environment.js";
 import {
+  countChangedTextLines,
   GitChangedFilesError,
   MissingDiffBaseError,
   MissingTargetRefError,
   resolveChangedFiles,
+  selectLiveChangedFilePaths,
+  selectLiveChangedFiles,
   selectToolChangedFilePaths,
 } from "../src/path-policy/index.js";
 
@@ -75,6 +78,29 @@ test("resolves filtered changed paths and preserves Git path metadata", async ()
     assert.equal(filesByPath.has("packages/app/dependency.lock"), false);
     assert.equal(filesByPath.has("dist/generated.ts"), false);
 
+    assert.deepEqual(
+      selectLiveChangedFiles(resolution.files)
+        .map((file) => file.path)
+        .sort(),
+      [
+        "assets/logo.bin",
+        "src/file with spaces.ts",
+        "src/modified.ts",
+        "src/note.md",
+        "src/rename-after.ts",
+      ],
+    );
+    assert.equal(countChangedTextLines(resolution.files), 5);
+    assert.deepEqual(
+      selectLiveChangedFilePaths(resolution.files, {
+        extensions: [".ts"],
+      }).sort(),
+      [
+        "src/file with spaces.ts",
+        "src/modified.ts",
+        "src/rename-after.ts",
+      ],
+    );
     assert.deepEqual(
       selectToolChangedFilePaths(resolution.files, [".ts"]).sort(),
       [

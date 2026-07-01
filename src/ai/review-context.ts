@@ -3,9 +3,10 @@ import { join } from "node:path";
 
 import type { ReviewConfig } from "../config/index.js";
 import { GitCommandError, runGitChecked } from "../git/command.js";
-import type {
-  ChangedFile,
-  ChangedFileResolution,
+import {
+  selectLiveChangedFiles,
+  type ChangedFile,
+  type ChangedFileResolution,
 } from "../path-policy/index.js";
 import { renderLocalAiPrompt } from "./review-prompt.js";
 import type {
@@ -56,7 +57,10 @@ export async function collectLocalAiReviewContext(options: {
   const diffLineCount = countTextLines(diff);
   const fullFiles =
     diffLineCount < options.reviewConfig.max_lines_for_full_file
-      ? await collectFullFiles(options.repoRoot, changedFiles)
+      ? await collectFullFiles(
+          options.repoRoot,
+          selectLiveChangedFiles(changedFiles),
+        )
       : [];
 
   return {
@@ -114,10 +118,6 @@ async function collectFullFiles(
   const fullFiles: LocalAiFullFileContext[] = [];
 
   for (const file of changedFiles) {
-    if (file.status === "deleted") {
-      continue;
-    }
-
     if (file.binary) {
       fullFiles.push({
         path: file.path,
