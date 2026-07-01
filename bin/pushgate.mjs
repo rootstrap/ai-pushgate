@@ -12567,13 +12567,13 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
         canary.aborted = true;
         return canary;
       }
-      const checkResult = runChecks(payload, checks, ctx);
-      if (checkResult instanceof Promise) {
+      const checkResult2 = runChecks(payload, checks, ctx);
+      if (checkResult2 instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError();
-        return checkResult.then((checkResult2) => inst._zod.parse(checkResult2, ctx));
+        return checkResult2.then((checkResult3) => inst._zod.parse(checkResult3, ctx));
       }
-      return inst._zod.parse(checkResult, ctx);
+      return inst._zod.parse(checkResult2, ctx);
     };
     inst._zod.run = (payload, ctx) => {
       if (ctx.skipChecks) {
@@ -26896,86 +26896,6 @@ function transcriptEventsForChangedFileGuardrail(decision) {
   ];
 }
 
-// src/runner/policies.ts
-var import_ignore2 = __toESM(require_ignore(), 1);
-var FORBIDDEN_PATH_DETAIL_LIMIT = 5;
-function countBuiltInPolicies(policies) {
-  return Number(Boolean(policies.diff_size)) + Number(Boolean(policies.forbidden_paths));
-}
-function runBuiltInPolicies(policies, changedFiles) {
-  const results = [];
-  if (policies.diff_size) {
-    results.push(runDiffSizePolicy(policies.diff_size, changedFiles));
-  }
-  if (policies.forbidden_paths) {
-    results.push(
-      runForbiddenPathsPolicy(policies.forbidden_paths, changedFiles)
-    );
-  }
-  return results;
-}
-function runDiffSizePolicy(policy, changedFiles) {
-  const changedLines = changedFiles.reduce((total, file2) => {
-    return total + (file2.additions ?? 0) + (file2.deletions ?? 0);
-  }, 0);
-  if (changedLines <= policy.max_changed_lines) {
-    return {
-      name: "policy:diff_size",
-      status: "passed",
-      detail: `${String(changedLines)} changed line(s) within max_changed_lines ${String(policy.max_changed_lines)}`
-    };
-  }
-  return violationResult(
-    policy.mode,
-    "policy:diff_size",
-    [
-      `${String(changedLines)} changed line(s) exceed max_changed_lines`,
-      `${String(policy.max_changed_lines)}; split the push or raise`,
-      "policies.diff_size.max_changed_lines if this is intentional"
-    ].join(" ")
-  );
-}
-function runForbiddenPathsPolicy(policy, changedFiles) {
-  const matches = changedFiles.filter((file2) => file2.status !== "deleted").flatMap((file2) => {
-    const pattern = firstMatchingPattern(policy.patterns, file2.path);
-    return pattern ? [{ path: file2.path, pattern }] : [];
-  });
-  if (matches.length === 0) {
-    return {
-      name: "policy:forbidden_paths",
-      status: "passed",
-      detail: "no changed live paths match forbidden patterns"
-    };
-  }
-  return violationResult(
-    policy.mode,
-    "policy:forbidden_paths",
-    [
-      `${String(matches.length)} changed path(s) match forbidden patterns:`,
-      `${formatForbiddenPathMatches(matches)}; remove them from the push`,
-      "or update policies.forbidden_paths.patterns if this is intentional"
-    ].join(" ")
-  );
-}
-function firstMatchingPattern(patterns, path) {
-  return patterns.find((pattern) => (0, import_ignore2.default)().add(pattern).ignores(path));
-}
-function formatForbiddenPathMatches(matches) {
-  const formatted = matches.slice(0, FORBIDDEN_PATH_DETAIL_LIMIT).map((match) => `${match.path} (${match.pattern})`);
-  const remaining = matches.length - formatted.length;
-  if (remaining > 0) {
-    formatted.push(`${String(remaining)} more`);
-  }
-  return formatted.join(", ");
-}
-function violationResult(mode, name, detail) {
-  return {
-    detail,
-    name,
-    status: mode === "warning" ? "warning" : "blocked"
-  };
-}
-
 // src/runner/plugins/gitleaks.ts
 import { mkdtemp, readFile as readFile3, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27129,6 +27049,272 @@ function numberValue(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : void 0;
 }
 
+// src/runner/policies.ts
+var import_ignore2 = __toESM(require_ignore(), 1);
+var FORBIDDEN_PATH_DETAIL_LIMIT = 5;
+function runBuiltInPolicies(policies, changedFiles) {
+  const results = [];
+  if (policies.diff_size) {
+    results.push(runDiffSizePolicy(policies.diff_size, changedFiles));
+  }
+  if (policies.forbidden_paths) {
+    results.push(
+      runForbiddenPathsPolicy(policies.forbidden_paths, changedFiles)
+    );
+  }
+  return results;
+}
+function runDiffSizePolicy(policy, changedFiles) {
+  const changedLines = changedFiles.reduce((total, file2) => {
+    return total + (file2.additions ?? 0) + (file2.deletions ?? 0);
+  }, 0);
+  if (changedLines <= policy.max_changed_lines) {
+    return {
+      name: "policy:diff_size",
+      status: "passed",
+      detail: `${String(changedLines)} changed line(s) within max_changed_lines ${String(policy.max_changed_lines)}`
+    };
+  }
+  return violationResult(
+    policy.mode,
+    "policy:diff_size",
+    [
+      `${String(changedLines)} changed line(s) exceed max_changed_lines`,
+      `${String(policy.max_changed_lines)}; split the push or raise`,
+      "policies.diff_size.max_changed_lines if this is intentional"
+    ].join(" ")
+  );
+}
+function runForbiddenPathsPolicy(policy, changedFiles) {
+  const matches = changedFiles.filter((file2) => file2.status !== "deleted").flatMap((file2) => {
+    const pattern = firstMatchingPattern(policy.patterns, file2.path);
+    return pattern ? [{ path: file2.path, pattern }] : [];
+  });
+  if (matches.length === 0) {
+    return {
+      name: "policy:forbidden_paths",
+      status: "passed",
+      detail: "no changed live paths match forbidden patterns"
+    };
+  }
+  return violationResult(
+    policy.mode,
+    "policy:forbidden_paths",
+    [
+      `${String(matches.length)} changed path(s) match forbidden patterns:`,
+      `${formatForbiddenPathMatches(matches)}; remove them from the push`,
+      "or update policies.forbidden_paths.patterns if this is intentional"
+    ].join(" ")
+  );
+}
+function firstMatchingPattern(patterns, path) {
+  return patterns.find((pattern) => (0, import_ignore2.default)().add(pattern).ignores(path));
+}
+function formatForbiddenPathMatches(matches) {
+  const formatted = matches.slice(0, FORBIDDEN_PATH_DETAIL_LIMIT).map((match) => `${match.path} (${match.pattern})`);
+  const remaining = matches.length - formatted.length;
+  if (remaining > 0) {
+    formatted.push(`${String(remaining)} more`);
+  }
+  return formatted.join(", ");
+}
+function violationResult(mode, name, detail) {
+  return {
+    detail,
+    name,
+    status: mode === "warning" ? "warning" : "blocked"
+  };
+}
+
+// src/runner/tool-command.ts
+var CHANGED_FILES_TOKEN = "{changed_files}";
+async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
+  const command = expandChangedFilesToken(tool.command, changedFilePaths);
+  const [executable, ...args] = command;
+  if (!executable) {
+    return {
+      passed: false,
+      detail: "command was empty"
+    };
+  }
+  const commandResult = await runProcessOutcome({
+    args,
+    command: executable,
+    cwd: repoRoot,
+    env: sanitizeGitLocalEnv(env),
+    timeoutSeconds: tool.timeout_seconds
+  });
+  if (commandResult.kind === "passed") {
+    return { passed: true };
+  }
+  return {
+    passed: false,
+    detail: formatProcessFailure(commandResult.failure),
+    outputTail: commandResult.outputTail
+  };
+}
+function expandChangedFilesToken(command, changedFilePaths) {
+  return command.flatMap(
+    (token) => token === CHANGED_FILES_TOKEN ? [...changedFilePaths] : [token]
+  );
+}
+
+// src/runner/deterministic-plan.ts
+function buildDeterministicCheckRunPlan(config2) {
+  return [
+    ...buildBuiltInPolicyEntries(config2.policies),
+    ...buildPluginEntries(config2),
+    ...config2.tools.map(buildConfiguredToolEntry)
+  ];
+}
+function buildBuiltInPolicyEntries(policies) {
+  const entries = [];
+  if (policies.diff_size) {
+    entries.push(
+      buildBuiltInPolicyEntry({
+        label: "Diff size",
+        policies: {
+          diff_size: policies.diff_size
+        },
+        resultName: "policy:diff_size",
+        transformDetail: formatDiffSizeDisplayDetail
+      })
+    );
+  }
+  if (policies.forbidden_paths) {
+    entries.push(
+      buildBuiltInPolicyEntry({
+        label: "Forbidden paths",
+        policies: {
+          forbidden_paths: policies.forbidden_paths
+        },
+        resultName: "policy:forbidden_paths"
+      })
+    );
+  }
+  return entries;
+}
+function buildBuiltInPolicyEntry(options) {
+  return {
+    failFast: false,
+    async run(context) {
+      const result = runBuiltInPolicies(
+        options.policies,
+        context.changedFileResolution.files
+      )[0];
+      if (!result) {
+        throw new Error(
+          `Built-In Policy ${options.resultName} did not produce a result.`
+        );
+      }
+      return {
+        result,
+        transcriptResult: {
+          detail: options.transformDetail ? options.transformDetail(result.detail) : result.detail,
+          label: options.label,
+          status: result.status
+        }
+      };
+    }
+  };
+}
+function buildPluginEntries(config2) {
+  const entries = [];
+  if (config2.plugins.gitleaks?.enabled) {
+    entries.push(buildGitleaksPluginEntry(config2.plugins.gitleaks));
+  }
+  return entries;
+}
+function buildGitleaksPluginEntry(plugin) {
+  return {
+    failFast: plugin.fail_fast,
+    async run(context) {
+      const name = "plugin:gitleaks";
+      const commandResult = await runGitleaksPlugin(
+        plugin,
+        context.changedFileResolution,
+        context.repoRoot,
+        context.env
+      );
+      const result = commandResult.passed ? { name, status: "passed" } : {
+        name,
+        status: modeToStatus(plugin.mode),
+        detail: commandResult.detail,
+        outputTail: commandResult.outputTail
+      };
+      return {
+        result,
+        transcriptResult: {
+          detail: result.detail ? result.detail : "gitleaks",
+          label: "Secrets scan",
+          outputTail: result.outputTail,
+          status: result.status
+        }
+      };
+    }
+  };
+}
+function buildConfiguredToolEntry(tool) {
+  return {
+    failFast: tool.fail_fast,
+    async run(context) {
+      const selectedPaths = selectToolChangedFilePaths(
+        context.changedFileResolution.files,
+        tool.extensions
+      );
+      if (tool.run === "changed_files" && selectedPaths.length === 0) {
+        return checkResult({
+          label: humanizeIdentifier(tool.name),
+          result: {
+            name: tool.name,
+            status: "skipped",
+            detail: "no matching changed files"
+          }
+        });
+      }
+      const commandResult = await runToolCommand(
+        tool,
+        selectedPaths,
+        context.repoRoot,
+        context.env
+      );
+      const result = commandResult.passed ? { name: tool.name, status: "passed" } : {
+        name: tool.name,
+        status: modeToStatus(tool.mode),
+        detail: commandResult.detail,
+        outputTail: commandResult.outputTail
+      };
+      return checkResult({
+        label: humanizeIdentifier(tool.name),
+        result
+      });
+    }
+  };
+}
+function checkResult(options) {
+  return {
+    result: options.result,
+    transcriptResult: {
+      detail: options.result.detail,
+      label: options.label,
+      outputTail: options.result.outputTail,
+      status: options.result.status
+    }
+  };
+}
+function modeToStatus(mode) {
+  return mode === "warning" ? "warning" : "blocked";
+}
+function formatDiffSizeDisplayDetail(detail) {
+  if (!detail) {
+    return void 0;
+  }
+  const passed = detail.match(
+    /^(\d+) changed line\(s\) within max_changed_lines (\d+)$/
+  );
+  return passed ? `${passed[1]} / ${passed[2]} changed lines` : detail;
+}
+
 // src/runner/summary.ts
 function summarizeDeterministicResults(results) {
   const blockedCount = results.filter((result) => result.status === "blocked").length;
@@ -27153,11 +27339,8 @@ function createDeterministicTranscript(stdout) {
       writeResultRow(stdout, "skipped", "No checks configured");
       writeLine(stdout);
     },
-    writePolicyResult(result) {
-      writeCheckResult(result.name, result);
-    },
-    writePluginResult(name, result) {
-      writeCheckResult(name, result);
+    writeCheckResult(result) {
+      writeRenderedCheckResult(result);
     },
     writeStart(checkCount) {
       writeSection(stdout, "Checks");
@@ -27197,53 +27380,22 @@ function createDeterministicTranscript(stdout) {
       }
       writeLine(stdout, "Checks passed.");
       writeLine(stdout);
-    },
-    writeToolResult(tool, result) {
-      writeCheckResult(tool.name, result);
     }
   };
-  function writeCheckResult(name, result) {
-    const display = displayCheck(name);
-    const detail = formatDetail(name, result.detail);
+  function writeRenderedCheckResult(result) {
     const status = mapStatus(result.status);
-    writeResultRow(stdout, status, display.label, detail ?? display.detail);
+    writeResultRow(stdout, status, result.label, result.detail);
     if (result.outputTail) {
       writeDetail(stdout, "Command output:");
       writeIndentedBlock(stdout, result.outputTail.split("\n"));
     }
     if (result.status === "warning") {
-      warnings.push(display.label);
+      warnings.push(result.label);
     }
     if (result.status === "blocked") {
-      blockers.push(display.label);
+      blockers.push(result.label);
     }
   }
-}
-function displayCheck(name) {
-  if (name === "policy:diff_size") {
-    return { label: "Diff size" };
-  }
-  if (name === "policy:forbidden_paths") {
-    return { label: "Forbidden paths" };
-  }
-  if (name === "plugin:gitleaks") {
-    return { detail: "gitleaks", label: "Secrets scan" };
-  }
-  return { label: humanizeIdentifier(name) };
-}
-function formatDetail(name, detail) {
-  if (!detail) {
-    return void 0;
-  }
-  if (name === "policy:diff_size") {
-    const passed = detail.match(
-      /^(\d+) changed line\(s\) within max_changed_lines (\d+)$/
-    );
-    if (passed) {
-      return `${passed[1]} / ${passed[2]} changed lines`;
-    }
-  }
-  return detail;
 }
 function mapStatus(status) {
   const statusByResult = {
@@ -27255,42 +27407,9 @@ function mapStatus(status) {
   return statusByResult[status];
 }
 
-// src/runner/tool-command.ts
-var CHANGED_FILES_TOKEN = "{changed_files}";
-async function runToolCommand(tool, changedFilePaths, repoRoot, env) {
-  const command = expandChangedFilesToken(tool.command, changedFilePaths);
-  const [executable, ...args] = command;
-  if (!executable) {
-    return {
-      passed: false,
-      detail: "command was empty"
-    };
-  }
-  const commandResult = await runProcessOutcome({
-    args,
-    command: executable,
-    cwd: repoRoot,
-    env: sanitizeGitLocalEnv(env),
-    timeoutSeconds: tool.timeout_seconds
-  });
-  if (commandResult.kind === "passed") {
-    return { passed: true };
-  }
-  return {
-    passed: false,
-    detail: formatProcessFailure(commandResult.failure),
-    outputTail: commandResult.outputTail
-  };
-}
-function expandChangedFilesToken(command, changedFilePaths) {
-  return command.flatMap(
-    (token) => token === CHANGED_FILES_TOKEN ? [...changedFilePaths] : [token]
-  );
-}
-
 // src/runner/deterministic.ts
 function buildDeterministicCheckPlan(config2) {
-  const checkCount = countBuiltInPolicies(config2.policies) + countPluginChecks(config2) + config2.tools.length;
+  const checkCount = buildDeterministicCheckRunPlan(config2).length;
   return {
     checkCount,
     needsChangedFileResolution: checkCount > 0,
@@ -27304,95 +27423,24 @@ async function runDeterministicChecks(request) {
   const env = request.env ?? process.env;
   const results = [];
   const transcript = createDeterministicTranscript(stdout);
-  const plan = buildDeterministicCheckPlan(config2);
-  let stopAfterBlockingPlugin = false;
-  if (!plan.runChecks) {
+  const runPlan = buildDeterministicCheckRunPlan(config2);
+  if (runPlan.length === 0) {
     transcript.writeNoChecks();
     return { exitCode: 0, results };
   }
   const changedFileResolution = requireChangedFileResolution(
     request.changedFileResolution
   );
-  const changedFiles = changedFileResolution.files;
-  transcript.writeStart(plan.checkCount);
-  for (const policyResult of runBuiltInPolicies(
-    config2.policies,
-    changedFiles
-  )) {
-    results.push(policyResult);
-    transcript.writePolicyResult(policyResult);
-  }
-  if (config2.plugins.gitleaks?.enabled) {
-    const plugin = config2.plugins.gitleaks;
-    const name = "plugin:gitleaks";
-    const commandResult = await runGitleaksPlugin(
-      plugin,
+  transcript.writeStart(runPlan.length);
+  for (const entry of runPlan) {
+    const entryResult = await entry.run({
       changedFileResolution,
-      repoRoot,
-      env
-    );
-    if (commandResult.passed) {
-      const result = { name, status: "passed" };
-      results.push(result);
-      transcript.writePluginResult(name, result);
-    } else {
-      const status = plugin.mode === "warning" ? "warning" : "blocked";
-      const result = {
-        name,
-        status,
-        detail: commandResult.detail,
-        outputTail: commandResult.outputTail
-      };
-      results.push(result);
-      transcript.writePluginResult(name, result);
-      if (status === "blocked" && plugin.fail_fast) {
-        transcript.writeFailFast();
-        stopAfterBlockingPlugin = true;
-      }
-    }
-  }
-  if (stopAfterBlockingPlugin) {
-    const resultSummary2 = summarizeDeterministicResults(results);
-    transcript.writeSummary(resultSummary2);
-    return { exitCode: resultSummary2.exitCode, results };
-  }
-  for (const tool of config2.tools) {
-    const selectedPaths = selectToolChangedFilePaths(
-      changedFiles,
-      tool.extensions
-    );
-    if (tool.run === "changed_files" && selectedPaths.length === 0) {
-      const result2 = {
-        name: tool.name,
-        status: "skipped",
-        detail: "no matching changed files"
-      };
-      results.push(result2);
-      transcript.writeToolResult(tool, result2);
-      continue;
-    }
-    const commandResult = await runToolCommand(
-      tool,
-      selectedPaths,
-      repoRoot,
-      env
-    );
-    if (commandResult.passed) {
-      const result2 = { name: tool.name, status: "passed" };
-      results.push(result2);
-      transcript.writeToolResult(tool, result2);
-      continue;
-    }
-    const status = tool.mode === "warning" ? "warning" : "blocked";
-    const result = {
-      name: tool.name,
-      status,
-      detail: commandResult.detail,
-      outputTail: commandResult.outputTail
-    };
-    results.push(result);
-    transcript.writeToolResult(tool, result);
-    if (status === "blocked" && tool.fail_fast) {
+      env,
+      repoRoot
+    });
+    results.push(entryResult.result);
+    transcript.writeCheckResult(entryResult.transcriptResult);
+    if (entryResult.result.status === "blocked" && entry.failFast) {
       transcript.writeFailFast();
       break;
     }
@@ -27400,9 +27448,6 @@ async function runDeterministicChecks(request) {
   const resultSummary = summarizeDeterministicResults(results);
   transcript.writeSummary(resultSummary);
   return { exitCode: resultSummary.exitCode, results };
-}
-function countPluginChecks(config2) {
-  return Number(Boolean(config2.plugins.gitleaks?.enabled));
 }
 function requireChangedFileResolution(changedFileResolution) {
   if (changedFileResolution) {

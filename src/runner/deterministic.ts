@@ -1,16 +1,8 @@
 import type { PushgateConfig } from "../config/index.js";
-import {
-  selectToolChangedFilePaths,
-  type ChangedFileResolution,
-} from "../path-policy/index.js";
-import {
-  countBuiltInPolicies,
-  runBuiltInPolicies,
-} from "./policies.js";
-import { runGitleaksPlugin } from "./plugins/gitleaks.js";
+import type { ChangedFileResolution } from "../path-policy/index.js";
+import { buildDeterministicCheckRunPlan } from "./deterministic-plan.js";
 import { summarizeDeterministicResults } from "./summary.js";
 import { createDeterministicTranscript } from "./transcript.js";
-import { runToolCommand } from "./tool-command.js";
 
 export {
   CHANGED_FILES_TOKEN,
@@ -48,10 +40,7 @@ export interface DeterministicCheckRequest {
 export function buildDeterministicCheckPlan(
   config: PushgateConfig,
 ): DeterministicCheckPlan {
-  const checkCount =
-    countBuiltInPolicies(config.policies) +
-    countPluginChecks(config) +
-    config.tools.length;
+  const checkCount = buildDeterministicCheckRunPlan(config).length;
 
   return {
     checkCount,
@@ -69,10 +58,9 @@ export async function runDeterministicChecks(
   const env = request.env ?? process.env;
   const results: ToolResult[] = [];
   const transcript = createDeterministicTranscript(stdout);
-  const plan = buildDeterministicCheckPlan(config);
-  let stopAfterBlockingPlugin = false;
+  const runPlan = buildDeterministicCheckRunPlan(config);
 
-  if (!plan.runChecks) {
+  if (runPlan.length === 0) {
     transcript.writeNoChecks();
     return { exitCode: 0, results };
   }
@@ -80,106 +68,20 @@ export async function runDeterministicChecks(
   const changedFileResolution = requireChangedFileResolution(
     request.changedFileResolution,
   );
-  const changedFiles = changedFileResolution.files;
 
-  transcript.writeStart(plan.checkCount);
+  transcript.writeStart(runPlan.length);
 
-  for (const policyResult of runBuiltInPolicies(
-    config.policies,
-    changedFiles,
-  )) {
-    results.push(policyResult);
-    transcript.writePolicyResult(policyResult);
-  }
-
-  if (config.plugins.gitleaks?.enabled) {
-    const plugin = config.plugins.gitleaks;
-    const name = "plugin:gitleaks";
-    const commandResult = await runGitleaksPlugin(
-      plugin,
+  for (const entry of runPlan) {
+    const entryResult = await entry.run({
       changedFileResolution,
-      repoRoot,
       env,
-    );
-
-    if (commandResult.passed) {
-      const result: ToolResult = { name, status: "passed" };
-
-      results.push(result);
-      transcript.writePluginResult(name, result);
-    } else {
-      const status: ToolResultStatus =
-        plugin.mode === "warning" ? "warning" : "blocked";
-      const result: ToolResult = {
-        name,
-        status,
-        detail: commandResult.detail,
-        outputTail: commandResult.outputTail,
-      };
-
-      results.push(result);
-      transcript.writePluginResult(name, result);
-
-      if (status === "blocked" && plugin.fail_fast) {
-        transcript.writeFailFast();
-        stopAfterBlockingPlugin = true;
-      }
-    }
-  }
-
-  if (stopAfterBlockingPlugin) {
-    const resultSummary = summarizeDeterministicResults(results);
-
-    transcript.writeSummary(resultSummary);
-    return { exitCode: resultSummary.exitCode, results };
-  }
-
-  for (const tool of config.tools) {
-    const selectedPaths = selectToolChangedFilePaths(
-      changedFiles,
-      tool.extensions,
-    );
-
-    if (tool.run === "changed_files" && selectedPaths.length === 0) {
-      const result: ToolResult = {
-        name: tool.name,
-        status: "skipped",
-        detail: "no matching changed files",
-      };
-
-      results.push(result);
-      transcript.writeToolResult(tool, result);
-      continue;
-    }
-
-    const commandResult = await runToolCommand(
-      tool,
-      selectedPaths,
       repoRoot,
-      env,
-    );
+    });
 
-    if (commandResult.passed) {
-      const result: ToolResult = { name: tool.name, status: "passed" };
+    results.push(entryResult.result);
+    transcript.writeCheckResult(entryResult.transcriptResult);
 
-      results.push(result);
-      transcript.writeToolResult(tool, result);
-      continue;
-    }
-
-    const status: ToolResultStatus =
-      tool.mode === "warning" ? "warning" : "blocked";
-    const result: ToolResult = {
-      name: tool.name,
-      status,
-      detail: commandResult.detail,
-      outputTail: commandResult.outputTail,
-    };
-
-    results.push(result);
-    transcript.writeToolResult(tool, result);
-
-    if (status === "blocked" && tool.fail_fast) {
+    if (entryResult.result.status === "blocked" && entry.failFast) {
       transcript.writeFailFast();
       break;
     }
@@ -189,10 +91,6 @@ export async function runDeterministicChecks(
 
   transcript.writeSummary(resultSummary);
   return { exitCode: resultSummary.exitCode, results };
-}
-
-function countPluginChecks(config: PushgateConfig): number {
-  return Number(Boolean(config.plugins.gitleaks?.enabled));
 }
 
 function requireChangedFileResolution(

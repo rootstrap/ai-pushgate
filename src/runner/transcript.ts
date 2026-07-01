@@ -1,7 +1,5 @@
-import type { ToolConfig } from "../config/index.js";
 import {
   formatCount,
-  humanizeIdentifier,
   writeDetail,
   writeIndentedBlock,
   writeLine,
@@ -10,17 +8,21 @@ import {
   type TerminalStatus,
 } from "../terminal/format.js";
 import type { ToolResult } from "./deterministic.js";
-import type { BuiltInPolicyResult } from "./policies.js";
 import type { DeterministicResultSummary } from "./summary.js";
+
+export interface DeterministicTranscriptCheckResult {
+  label: string;
+  status: ToolResult["status"];
+  detail?: string;
+  outputTail?: string;
+}
 
 export interface DeterministicTranscript {
   writeFailFast(): void;
+  writeCheckResult(result: DeterministicTranscriptCheckResult): void;
   writeNoChecks(): void;
-  writePluginResult(name: string, result: ToolResult): void;
-  writePolicyResult(result: BuiltInPolicyResult): void;
   writeStart(checkCount: number): void;
   writeSummary(summary: DeterministicResultSummary): void;
-  writeToolResult(tool: ToolConfig, result: ToolResult): void;
 }
 
 export function createDeterministicTranscript(
@@ -40,12 +42,8 @@ export function createDeterministicTranscript(
       writeLine(stdout);
     },
 
-    writePolicyResult(result) {
-      writeCheckResult(result.name, result);
-    },
-
-    writePluginResult(name, result) {
-      writeCheckResult(name, result);
+    writeCheckResult(result) {
+      writeRenderedCheckResult(result);
     },
 
     writeStart(checkCount) {
@@ -94,21 +92,14 @@ export function createDeterministicTranscript(
       writeLine(stdout, "Checks passed.");
       writeLine(stdout);
     },
-
-    writeToolResult(tool, result) {
-      writeCheckResult(tool.name, result);
-    },
   };
 
-  function writeCheckResult(
-    name: string,
-    result: Pick<ToolResult, "detail" | "status" | "outputTail">,
+  function writeRenderedCheckResult(
+    result: DeterministicTranscriptCheckResult,
   ): void {
-    const display = displayCheck(name);
-    const detail = formatDetail(name, result.detail);
     const status = mapStatus(result.status);
 
-    writeResultRow(stdout, status, display.label, detail ?? display.detail);
+    writeResultRow(stdout, status, result.label, result.detail);
 
     if (result.outputTail) {
       writeDetail(stdout, "Command output:");
@@ -116,47 +107,13 @@ export function createDeterministicTranscript(
     }
 
     if (result.status === "warning") {
-      warnings.push(display.label);
+      warnings.push(result.label);
     }
 
     if (result.status === "blocked") {
-      blockers.push(display.label);
+      blockers.push(result.label);
     }
   }
-}
-
-function displayCheck(name: string): { detail?: string; label: string } {
-  if (name === "policy:diff_size") {
-    return { label: "Diff size" };
-  }
-
-  if (name === "policy:forbidden_paths") {
-    return { label: "Forbidden paths" };
-  }
-
-  if (name === "plugin:gitleaks") {
-    return { detail: "gitleaks", label: "Secrets scan" };
-  }
-
-  return { label: humanizeIdentifier(name) };
-}
-
-function formatDetail(name: string, detail: string | undefined): string | undefined {
-  if (!detail) {
-    return undefined;
-  }
-
-  if (name === "policy:diff_size") {
-    const passed = detail.match(
-      /^(\d+) changed line\(s\) within max_changed_lines (\d+)$/,
-    );
-
-    if (passed) {
-      return `${passed[1]} / ${passed[2]} changed lines`;
-    }
-  }
-
-  return detail;
 }
 
 function mapStatus(status: ToolResult["status"]): TerminalStatus {
