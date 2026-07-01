@@ -256,6 +256,8 @@ export function createLocalAiTranscript(
     responseStarted: false,
     responseWroteText: false,
     validatedFindingsStarted: false,
+    waitSpinnerActive: false,
+    waitSpinnerFrame: 0,
   };
 
   return {
@@ -291,6 +293,10 @@ interface LocalAiStreamingTranscriptState {
   responseStarted: boolean;
   responseWroteText: boolean;
   validatedFindingsStarted: boolean;
+  waitSpinnerActive: boolean;
+  waitSpinnerFrame: number;
+  waitSpinnerLabel?: string;
+  waitSpinnerTimer?: NodeJS.Timeout;
 }
 
 function createWarningConfirmationTranscript(
@@ -368,9 +374,17 @@ function renderLocalAiTranscriptEvent(
       );
       return;
     case "provider-progress":
+      stopProviderWait(stdout, streamingState);
       writeDetail(stdout, event.message);
       return;
+    case "provider-wait-start":
+      startProviderWait(stdout, streamingState, event.providerLabel);
+      return;
+    case "provider-wait-stop":
+      stopProviderWait(stdout, streamingState);
+      return;
     case "provider-response-start":
+      stopProviderWait(stdout, streamingState);
       startProviderResponse(stdout, streamingState, event.providerLabel);
       return;
     case "provider-response-delta":
@@ -476,6 +490,59 @@ function startProviderResponse(
   state.responseLineStart = true;
 }
 
+const WAIT_SPINNER_FRAMES = ["-", "\\", "|", "/"] as const;
+
+function startProviderWait(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+  providerLabel: string,
+): void {
+  if (!supportsLiveUpdates(stdout) || state.waitSpinnerTimer) {
+    return;
+  }
+
+  state.waitSpinnerActive = true;
+  state.waitSpinnerFrame = 0;
+  state.waitSpinnerLabel = `Waiting for ${providerLabel}...`;
+  renderProviderWait(stdout, state);
+  state.waitSpinnerTimer = setInterval(() => {
+    state.waitSpinnerFrame =
+      (state.waitSpinnerFrame + 1) % WAIT_SPINNER_FRAMES.length;
+    renderProviderWait(stdout, state);
+  }, 120);
+  state.waitSpinnerTimer.unref?.();
+}
+
+function stopProviderWait(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+): void {
+  if (state.waitSpinnerTimer) {
+    clearInterval(state.waitSpinnerTimer);
+    state.waitSpinnerTimer = undefined;
+  }
+
+  if (state.waitSpinnerActive) {
+    stdout.write("\r\u001B[2K");
+  }
+
+  state.waitSpinnerActive = false;
+  state.waitSpinnerLabel = undefined;
+}
+
+function renderProviderWait(
+  stdout: NodeJS.WritableStream,
+  state: LocalAiStreamingTranscriptState,
+): void {
+  if (!state.waitSpinnerActive || !state.waitSpinnerLabel) {
+    return;
+  }
+
+  const frame = WAIT_SPINNER_FRAMES[state.waitSpinnerFrame] ?? "-";
+
+  stdout.write(`\r  ${frame} ${state.waitSpinnerLabel}`);
+}
+
 function writeProviderResponseDelta(
   stdout: NodeJS.WritableStream,
   state: LocalAiStreamingTranscriptState,
@@ -528,6 +595,8 @@ function startValidatedFindings(
   stdout: NodeJS.WritableStream,
   state: LocalAiStreamingTranscriptState,
 ): void {
+  stopProviderWait(stdout, state);
+
   if (state.validatedFindingsStarted) {
     return;
   }

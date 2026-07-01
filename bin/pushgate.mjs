@@ -10391,7 +10391,9 @@ function createLocalAiTranscript(stdout) {
     responseLineStart: true,
     responseStarted: false,
     responseWroteText: false,
-    validatedFindingsStarted: false
+    validatedFindingsStarted: false,
+    waitSpinnerActive: false,
+    waitSpinnerFrame: 0
   };
   return {
     writeEvents(events) {
@@ -10479,9 +10481,17 @@ function renderLocalAiTranscriptEvent(event, stdout, streamingState) {
       );
       return;
     case "provider-progress":
+      stopProviderWait(stdout, streamingState);
       writeDetail(stdout, event.message);
       return;
+    case "provider-wait-start":
+      startProviderWait(stdout, streamingState, event.providerLabel);
+      return;
+    case "provider-wait-stop":
+      stopProviderWait(stdout, streamingState);
+      return;
     case "provider-response-start":
+      stopProviderWait(stdout, streamingState);
       startProviderResponse(stdout, streamingState, event.providerLabel);
       return;
     case "provider-response-delta":
@@ -10568,6 +10578,39 @@ function startProviderResponse(stdout, state, providerLabel) {
   state.responseStarted = true;
   state.responseLineStart = true;
 }
+var WAIT_SPINNER_FRAMES = ["-", "\\", "|", "/"];
+function startProviderWait(stdout, state, providerLabel) {
+  if (!supportsLiveUpdates(stdout) || state.waitSpinnerTimer) {
+    return;
+  }
+  state.waitSpinnerActive = true;
+  state.waitSpinnerFrame = 0;
+  state.waitSpinnerLabel = `Waiting for ${providerLabel}...`;
+  renderProviderWait(stdout, state);
+  state.waitSpinnerTimer = setInterval(() => {
+    state.waitSpinnerFrame = (state.waitSpinnerFrame + 1) % WAIT_SPINNER_FRAMES.length;
+    renderProviderWait(stdout, state);
+  }, 120);
+  state.waitSpinnerTimer.unref?.();
+}
+function stopProviderWait(stdout, state) {
+  if (state.waitSpinnerTimer) {
+    clearInterval(state.waitSpinnerTimer);
+    state.waitSpinnerTimer = void 0;
+  }
+  if (state.waitSpinnerActive) {
+    stdout.write("\r\x1B[2K");
+  }
+  state.waitSpinnerActive = false;
+  state.waitSpinnerLabel = void 0;
+}
+function renderProviderWait(stdout, state) {
+  if (!state.waitSpinnerActive || !state.waitSpinnerLabel) {
+    return;
+  }
+  const frame = WAIT_SPINNER_FRAMES[state.waitSpinnerFrame] ?? "-";
+  stdout.write(`\r  ${frame} ${state.waitSpinnerLabel}`);
+}
 function writeProviderResponseDelta(stdout, state, text) {
   if (!state.responseStarted) {
     startProviderResponse(stdout, state, "Provider");
@@ -10597,6 +10640,7 @@ function writeEmptyProviderResponse(stdout, state) {
   state.responseLineStart = true;
 }
 function startValidatedFindings(stdout, state) {
+  stopProviderWait(stdout, state);
   if (state.validatedFindingsStarted) {
     return;
   }
@@ -26453,12 +26497,13 @@ function createJsonLineStreamObserver(options) {
 }
 function emitHumanResponseText(streaming, text) {
   if (!streaming?.responseText || !streaming.onEvent || text === null || text.length === 0 || looksLikePushgateReviewContractText(text)) {
-    return;
+    return false;
   }
   streaming.onEvent({
     kind: "response-text-delta",
     text
   });
+  return true;
 }
 function looksLikePushgateReviewContractText(text) {
   const trimmed = text.trimStart();
@@ -26805,10 +26850,13 @@ var copilotProvider = createCommandProviderAdapter({
     return {
       onStdoutChunk: createJsonLineStreamObserver({
         onJsonLine(event) {
-          emitHumanResponseText(
-            options.streaming,
-            readAssistantMessageContent(event)
-          );
+          const content = readAssistantMessageContent(event);
+          if (content === null) {
+            return;
+          }
+          const message = content.endsWith("\n") ? content : `${content}
+`;
+          emitHumanResponseText(options.streaming, message);
         }
       })
     };
@@ -27354,6 +27402,12 @@ async function runLocalAiReview(options) {
   }
   let providerResponseStarted = false;
   const responseTextRequested = options.aiConfig.verbose && providerRuntime.streamingCapability === "human_response_and_final_result";
+  transcript.writeEvents([
+    {
+      kind: "provider-wait-start",
+      providerLabel: providerRuntime.providerDisplayName
+    }
+  ]);
   return renderVerdict(
     options.aiConfig.mode,
     await providerRuntime.runReview({
@@ -27383,6 +27437,9 @@ function renderProviderStreamEvent(options) {
     if (options.event.message.trim().length > 0) {
       options.transcript.writeEvents([
         {
+          kind: "provider-wait-stop"
+        },
+        {
           kind: "provider-progress",
           message: options.event.message
         }
@@ -27395,6 +27452,9 @@ function renderProviderStreamEvent(options) {
   }
   if (!options.responseStarted) {
     options.transcript.writeEvents([
+      {
+        kind: "provider-wait-stop"
+      },
       {
         kind: "provider-response-start",
         providerLabel: options.providerLabel
@@ -27411,7 +27471,10 @@ function renderProviderStreamEvent(options) {
 }
 function renderVerdict(aiMode, result, transcript) {
   const verdict = buildLocalAiVerdict(aiMode, result);
-  transcript.writeEvents([{ kind: "validated-findings-start" }]);
+  transcript.writeEvents([
+    { kind: "provider-wait-stop" },
+    { kind: "validated-findings-start" }
+  ]);
   transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,

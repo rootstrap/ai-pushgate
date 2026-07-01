@@ -1799,6 +1799,73 @@ test("runs the Copilot adapter with non-interactive stdin prompt and model selec
   });
 });
 
+test("streams Copilot assistant messages on separate response lines", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "copilot"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        copilotAssistantMessageJsonl("Reviewing changed files."),
+        copilotAssistantMessageJsonl("Checking stream parser behavior."),
+        copilotAssistantMessageJsonl(
+          JSON.stringify({
+            schema_version: 1,
+            findings: [],
+          }),
+        ),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "copilot"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: true,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "copilot",
+        providers: {
+          copilot: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 0, text);
+    assert.match(
+      text,
+      /GitHub Copilot response\n  Reviewing changed files\.\n  Checking stream parser behavior\.\n\nValidated findings/,
+    );
+    assert.doesNotMatch(text, /schema_version/);
+  });
+});
+
 test("parses Copilot JSONL output larger than the provider transcript tail", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");

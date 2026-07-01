@@ -136,19 +136,61 @@ test("renders Deterministic Check blocking copy with Local Push Gate guidance", 
   assert.match(output.text(), /bypass the Local Push Gate/);
 });
 
-function captureOutput(): {
+test("renders and clears a TTY local AI provider wait spinner", () => {
+  const output = captureOutput({ isTTY: true });
+  const transcript = createPushgateTranscript(output.stream);
+  const previousTerm = process.env.TERM;
+
+  try {
+    process.env.TERM = "xterm-256color";
+    transcript.localAi.writeEvents([
+      {
+        kind: "provider-wait-start",
+        providerLabel: "GitHub Copilot",
+      },
+      {
+        kind: "provider-wait-stop",
+      },
+      {
+        kind: "validated-findings-start",
+      },
+      {
+        kind: "review-passed",
+      },
+    ]);
+  } finally {
+    if (previousTerm === undefined) {
+      delete process.env.TERM;
+    } else {
+      process.env.TERM = previousTerm;
+    }
+  }
+
+  assert.match(output.text(), /Waiting for GitHub Copilot\.\.\./);
+  assert.match(output.text(), /\r\u001B\[2K\nValidated findings/);
+});
+
+function captureOutput(options: { isTTY?: boolean } = {}): {
   stream: Writable;
   text(): string;
 } {
   let output = "";
+  const stream = new Writable({
+    write(chunk, _encoding, callback) {
+      output += String(chunk);
+      callback();
+    },
+  });
+
+  if (options.isTTY !== undefined) {
+    Object.defineProperty(stream, "isTTY", {
+      configurable: true,
+      value: options.isTTY,
+    });
+  }
 
   return {
-    stream: new Writable({
-      write(chunk, _encoding, callback) {
-        output += String(chunk);
-        callback();
-      },
-    }),
+    stream,
     text() {
       return output;
     },

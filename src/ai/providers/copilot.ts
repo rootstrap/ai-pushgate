@@ -33,10 +33,15 @@ export const copilotProvider = createCommandProviderAdapter({
     return {
       onStdoutChunk: createJsonLineStreamObserver({
         onJsonLine(event) {
-          emitHumanResponseText(
-            options.streaming,
-            readAssistantMessageContent(event),
-          );
+          const content = readAssistantMessageContent(event);
+
+          if (content === null) {
+            return;
+          }
+
+          const message = content.endsWith("\n") ? content : `${content}\n`;
+
+          emitHumanResponseText(options.streaming, message);
         },
       }),
     };

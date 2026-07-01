@@ -39,7 +39,7 @@ export function createJsonLineStreamObserver(options: {
 export function emitHumanResponseText(
   streaming: LocalAiProviderStreamingOptions | undefined,
   text: string | null,
-): void {
+): boolean {
   if (
     !streaming?.responseText ||
     !streaming.onEvent ||
@@ -47,13 +47,14 @@ export function emitHumanResponseText(
     text.length === 0 ||
     looksLikePushgateReviewContractText(text)
   ) {
-    return;
+    return false;
   }
 
   streaming.onEvent({
     kind: "response-text-delta",
     text,
   });
+  return true;
 }
 
 export function looksLikePushgateReviewContractText(text: string): boolean {

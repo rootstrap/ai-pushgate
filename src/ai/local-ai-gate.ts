@@ -109,6 +109,13 @@ export async function runLocalAiReview(options: {
     options.aiConfig.verbose &&
     providerRuntime.streamingCapability === "human_response_and_final_result";
 
+  transcript.writeEvents([
+    {
+      kind: "provider-wait-start",
+      providerLabel: providerRuntime.providerDisplayName,
+    },
+  ]);
+
   return renderVerdict(
     options.aiConfig.mode,
     await providerRuntime.runReview({
@@ -145,6 +152,9 @@ function renderProviderStreamEvent(options: {
     if (options.event.message.trim().length > 0) {
       options.transcript.writeEvents([
         {
+          kind: "provider-wait-stop",
+        },
+        {
           kind: "provider-progress",
           message: options.event.message,
         },
@@ -160,6 +170,9 @@ function renderProviderStreamEvent(options: {
 
   if (!options.responseStarted) {
     options.transcript.writeEvents([
+      {
+        kind: "provider-wait-stop",
+      },
       {
         kind: "provider-response-start",
         providerLabel: options.providerLabel,
@@ -183,7 +196,10 @@ function renderVerdict(
   transcript: LocalAiTranscript,
 ): LocalAiRunSummary {
   const verdict = buildLocalAiVerdict(aiMode, result);
-  transcript.writeEvents([{ kind: "validated-findings-start" }]);
+  transcript.writeEvents([
+    { kind: "provider-wait-stop" },
+    { kind: "validated-findings-start" },
+  ]);
   transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,

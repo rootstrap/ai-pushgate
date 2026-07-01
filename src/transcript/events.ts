@@ -61,6 +61,13 @@ export type LocalAiTranscriptEvent =
       message: string;
     }
   | {
+      kind: "provider-wait-start";
+      providerLabel: string;
+    }
+  | {
+      kind: "provider-wait-stop";
+    }
+  | {
       kind: "provider-response-start";
       providerLabel: string;
     }
