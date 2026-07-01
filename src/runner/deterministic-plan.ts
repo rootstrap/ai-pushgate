@@ -26,7 +26,13 @@ export interface DeterministicCheckRunResult {
   transcriptResult: DeterministicTranscriptCheckResult;
 }
 
+export interface DeterministicCheckDisplay {
+  label: string;
+  detail?: string;
+}
+
 export interface DeterministicCheckPlanEntry {
+  display: DeterministicCheckDisplay;
   failFast: boolean;
   run(
     context: DeterministicCheckExecutionContext,
@@ -83,6 +89,9 @@ function buildBuiltInPolicyEntry(options: {
   transformDetail?: (detail: string | undefined) => string | undefined;
 }): DeterministicCheckPlanEntry {
   return {
+    display: {
+      label: options.label,
+    },
     failFast: false,
     async run(context) {
       const result = runBuiltInPolicies(
@@ -124,6 +133,10 @@ function buildGitleaksPluginEntry(
   plugin: GitleaksPluginConfig,
 ): DeterministicCheckPlanEntry {
   return {
+    display: {
+      detail: "gitleaks",
+      label: "Secrets scan",
+    },
     failFast: plugin.fail_fast,
     async run(context) {
       const name = "plugin:gitleaks";
@@ -156,7 +169,12 @@ function buildGitleaksPluginEntry(
 }
 
 function buildConfiguredToolEntry(tool: ToolConfig): DeterministicCheckPlanEntry {
+  const label = humanizeIdentifier(tool.name);
+
   return {
+    display: {
+      label,
+    },
     failFast: tool.fail_fast,
     async run(context) {
       const selectedPaths = selectToolChangedFilePaths(
@@ -166,7 +184,7 @@ function buildConfiguredToolEntry(tool: ToolConfig): DeterministicCheckPlanEntry
 
       if (tool.run === "changed_files" && selectedPaths.length === 0) {
         return checkResult({
-          label: humanizeIdentifier(tool.name),
+          label,
           result: {
             name: tool.name,
             status: "skipped",
@@ -191,7 +209,7 @@ function buildConfiguredToolEntry(tool: ToolConfig): DeterministicCheckPlanEntry
           };
 
       return checkResult({
-        label: humanizeIdentifier(tool.name),
+        label,
         result,
       });
     },

@@ -1,4 +1,10 @@
-export type TerminalStatus = "blocked" | "info" | "passed" | "skipped" | "warning";
+export type TerminalStatus =
+  | "blocked"
+  | "info"
+  | "passed"
+  | "running"
+  | "skipped"
+  | "warning";
 
 interface TerminalStyleOptions {
   env?: NodeJS.ProcessEnv;
@@ -18,6 +24,7 @@ const ASCII_STATUS_SYMBOLS = {
   blocked: "[block]",
   info: "[info]",
   passed: "[ok]",
+  running: "[run]",
   skipped: "[skip]",
   warning: "[warn]",
 } as const satisfies Record<TerminalStatus, string>;
@@ -26,6 +33,7 @@ const UNICODE_STATUS_SYMBOLS = {
   blocked: "x",
   info: "i",
   passed: "\u2713",
+  running: "\u2026",
   skipped: "-",
   warning: "!",
 } as const satisfies Record<TerminalStatus, string>;
@@ -34,6 +42,7 @@ const STATUS_COLORS = {
   blocked: "red",
   info: "blue",
   passed: "green",
+  running: "blue",
   skipped: "dim",
   warning: "yellow",
 } as const satisfies Record<TerminalStatus, keyof typeof ANSI>;
@@ -68,13 +77,25 @@ export function writeResultRow(
   detail?: string,
   options: TerminalStyleOptions = {},
 ): void {
-  const styleOptions = withStream(stream, options);
+  writeLine(
+    stream,
+    formatResultRow(status, label, detail, withStream(stream, options)),
+  );
+}
+
+export function formatResultRow(
+  status: TerminalStatus,
+  label: string,
+  detail?: string,
+  options: TerminalStyleOptions = {},
+): string {
+  const styleOptions = options;
   const symbol = statusSymbol(status, styleOptions);
   const styledSymbol = styleStatus(symbol, status, styleOptions);
   const paddedLabel = label.padEnd(LABEL_WIDTH, " ");
   const suffix = detail ? ` ${detail}` : "";
 
-  writeLine(stream, `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd());
+  return `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd();
 }
 
 export function writeDetail(

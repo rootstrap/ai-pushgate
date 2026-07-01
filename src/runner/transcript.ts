@@ -1,4 +1,5 @@
 import {
+  formatResultRow,
   formatCount,
   writeDetail,
   writeIndentedBlock,
@@ -17,11 +18,16 @@ export interface DeterministicTranscriptCheckResult {
   outputTail?: string;
 }
 
+export interface DeterministicTranscriptPlannedCheck {
+  label: string;
+  detail?: string;
+}
+
 export interface DeterministicTranscript {
   writeFailFast(): void;
   writeCheckResult(result: DeterministicTranscriptCheckResult): void;
   writeNoChecks(): void;
-  writeStart(checkCount: number): void;
+  writeStart(checks: readonly DeterministicTranscriptPlannedCheck[]): void;
   writeSummary(summary: DeterministicResultSummary): void;
 }
 
@@ -30,9 +36,14 @@ export function createDeterministicTranscript(
 ): DeterministicTranscript {
   const warnings: string[] = [];
   const blockers: string[] = [];
+  const plannedChecks: DeterministicTranscriptPlannedCheck[] = [];
+  const liveUpdates = supportsLiveUpdates(stdout);
+  let completedCheckCount = 0;
+  let linesBelowCheckRows = 0;
 
   return {
     writeFailFast() {
+      writeSkippedRemainingChecks("not run after fail_fast");
       writeDetail(stdout, "Stopped after a blocking failure because fail_fast is true.");
     },
 
@@ -46,9 +57,15 @@ export function createDeterministicTranscript(
       writeRenderedCheckResult(result);
     },
 
-    writeStart(checkCount) {
+    writeStart(checks) {
+      plannedChecks.push(...checks);
+
       writeSection(stdout, "Checks");
-      writeDetail(stdout, `Running ${formatCount(checkCount, "check")}.`);
+      writeDetail(stdout, `Running ${formatCount(checks.length, "check")}.`);
+
+      for (const check of checks) {
+        writeResultRow(stdout, "running", check.label, check.detail);
+      }
     },
 
     writeSummary(summary) {
@@ -99,11 +116,10 @@ export function createDeterministicTranscript(
   ): void {
     const status = mapStatus(result.status);
 
-    writeResultRow(stdout, status, result.label, result.detail);
+    writeCompletedCheckResult(status, result);
 
     if (result.outputTail) {
-      writeDetail(stdout, "Command output:");
-      writeIndentedBlock(stdout, result.outputTail.split("\n"));
+      writeCommandOutputTail(result.outputTail);
     }
 
     if (result.status === "warning") {
@@ -113,6 +129,69 @@ export function createDeterministicTranscript(
     if (result.status === "blocked") {
       blockers.push(result.label);
     }
+  }
+
+  function writeCompletedCheckResult(
+    status: TerminalStatus,
+    result: DeterministicTranscriptCheckResult,
+  ): void {
+    const plannedCheck = plannedChecks[completedCheckCount];
+    const detail = result.detail ?? plannedCheck?.detail;
+
+    writeCompletedCheckRow(status, result.label, detail);
+  }
+
+  function writeSkippedRemainingChecks(detail: string): void {
+    while (completedCheckCount < plannedChecks.length) {
+      const plannedCheck = plannedChecks[completedCheckCount];
+
+      if (!plannedCheck) {
+        return;
+      }
+
+      writeCompletedCheckRow("skipped", plannedCheck.label, detail);
+    }
+  }
+
+  function writeCompletedCheckRow(
+    status: TerminalStatus,
+    label: string,
+    detail: string | undefined,
+  ): void {
+    if (liveUpdates && plannedChecks[completedCheckCount]) {
+      replacePlannedCheckRow(completedCheckCount, status, label, detail);
+    } else {
+      writeResultRow(stdout, status, label, detail);
+    }
+
+    completedCheckCount += 1;
+  }
+
+  function replacePlannedCheckRow(
+    index: number,
+    status: TerminalStatus,
+    label: string,
+    detail: string | undefined,
+  ): void {
+    const distanceFromCursor =
+      linesBelowCheckRows + plannedChecks.length - index;
+
+    stdout.write(
+      `\u001B[${distanceFromCursor}A\r\u001B[2K${formatResultRow(
+        status,
+        label,
+        detail,
+        { stream: stdout },
+      )}\u001B[${distanceFromCursor}B\r`,
+    );
+  }
+
+  function writeCommandOutputTail(outputTail: string): void {
+    const lines = outputTail.split("\n");
+
+    writeDetail(stdout, "Command output:");
+    writeIndentedBlock(stdout, lines);
+    linesBelowCheckRows += 1 + lines.length;
   }
 }
 
@@ -125,4 +204,12 @@ function mapStatus(status: ToolResult["status"]): TerminalStatus {
   } as const satisfies Record<ToolResult["status"], TerminalStatus>;
 
   return statusByResult[status];
+}
+
+function supportsLiveUpdates(stream: NodeJS.WritableStream): boolean {
+  const output = stream as NodeJS.WritableStream & {
+    isTTY?: boolean;
+  };
+
+  return output.isTTY === true && process.env.TERM !== "dumb";
 }
