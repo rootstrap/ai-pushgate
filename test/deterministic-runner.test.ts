@@ -567,7 +567,11 @@ test("renders deterministic transcript without running commands", () => {
   const output = captureOutput();
   const transcript = createDeterministicTranscript(output.stream);
 
-  transcript.writeStart(3);
+  transcript.writeStart([
+    { label: "Diff size" },
+    { label: "Diff size" },
+    { label: "Check" },
+  ]);
   transcript.writeCheckResult({
     label: "Diff size",
     status: "passed",
@@ -595,6 +599,9 @@ test("renders deterministic transcript without running commands", () => {
     [
       "Checks",
       "  Running 3 checks.",
+      "  [run] Diff size",
+      "  [run] Diff size",
+      "  [run] Check",
       "  [ok] Diff size          5 / 10 changed lines",
       "  [ok] Diff size",
       "  [block] Check              exited with code 2",
@@ -611,6 +618,63 @@ test("renders deterministic transcript without running commands", () => {
       "Fix the blocking failures above, or use `git push --no-verify` only when you intend to bypass local hooks.",
       "",
     ].join("\n"),
+  );
+});
+
+test("updates planned check rows on TTY streams", () => {
+  const output = captureOutput({ isTTY: true });
+
+  withEnv(
+    {
+      NO_COLOR: "1",
+      PUSHGATE_ASCII: "1",
+      TERM: "xterm-256color",
+    },
+    () => {
+      const transcript = createDeterministicTranscript(output.stream);
+
+      transcript.writeStart([{ label: "First" }, { label: "Second" }]);
+      transcript.writeCheckResult({
+        label: "First",
+        status: "passed",
+        detail: "done",
+      });
+      transcript.writeCheckResult({
+        label: "Second",
+        status: "warning",
+        detail: "exited with code 7",
+      });
+    },
+  );
+
+  assert.equal(
+    output.text(),
+    `${[
+      "Checks",
+      "  Running 2 checks.",
+      "  [run] First",
+      "  [run] Second",
+    ].join("\n")}\n` +
+      "\u001B[2A\r\u001B[2K  [ok] First              done\u001B[2B\r" +
+      "\u001B[1A\r\u001B[2K  [warn] Second             exited with code 7\u001B[1B\r",
+  );
+});
+
+test("marks remaining planned checks as skipped when fail_fast stops the run", () => {
+  const output = captureOutput();
+  const transcript = createDeterministicTranscript(output.stream);
+
+  transcript.writeStart([{ label: "First" }, { label: "Second" }]);
+  transcript.writeCheckResult({
+    label: "First",
+    status: "blocked",
+    detail: "exited with code 2",
+  });
+  transcript.writeFailFast();
+
+  assert.match(
+    output.text(),
+    /\[skip\] Second\s+not run after fail_fast/,
   );
 });
 
@@ -787,7 +851,7 @@ function leakedGitLocalVars(env: Record<string, string>): string[] {
   return Object.keys(env).filter(isGitLocalEnvVar).sort();
 }
 
-function captureOutput(): {
+function captureOutput(options: { isTTY?: boolean } = {}): {
   stream: Writable;
   text(): string;
 } {
@@ -799,10 +863,46 @@ function captureOutput(): {
     },
   });
 
+  if (options.isTTY) {
+    Object.defineProperty(stream, "isTTY", {
+      configurable: true,
+      value: true,
+    });
+  }
+
   return {
     stream,
     text() {
       return output;
     },
   };
+}
+
+function withEnv(
+  overrides: Record<string, string | undefined>,
+  callback: () => void,
+): void {
+  const previous = Object.fromEntries(
+    Object.keys(overrides).map((key) => [key, process.env[key]]),
+  );
+
+  try {
+    for (const [key, value] of Object.entries(overrides)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
+    callback();
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
 }

@@ -69,7 +69,7 @@ export async function runDeterministicChecks(
     request.changedFileResolution,
   );
 
-  transcript.writeStart(runPlan.length);
+  transcript.writeStart(runPlan.map((entry) => entry.display));
 
   for (const entry of runPlan) {
     const entryResult = await entry.run({

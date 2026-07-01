@@ -10065,6 +10065,7 @@ var ASCII_STATUS_SYMBOLS = {
   blocked: "[block]",
   info: "[info]",
   passed: "[ok]",
+  running: "[run]",
   skipped: "[skip]",
   warning: "[warn]"
 };
@@ -10072,6 +10073,7 @@ var UNICODE_STATUS_SYMBOLS = {
   blocked: "x",
   info: "i",
   passed: "\u2713",
+  running: "\u2026",
   skipped: "-",
   warning: "!"
 };
@@ -10079,6 +10081,7 @@ var STATUS_COLORS = {
   blocked: "red",
   info: "blue",
   passed: "green",
+  running: "blue",
   skipped: "dim",
   warning: "yellow"
 };
@@ -10095,12 +10098,18 @@ function writeSection(stream, title, options = {}) {
   writeLine(stream, style(title, "bold", withStream(stream, options)));
 }
 function writeResultRow(stream, status, label, detail, options = {}) {
-  const styleOptions = withStream(stream, options);
+  writeLine(
+    stream,
+    formatResultRow(status, label, detail, withStream(stream, options))
+  );
+}
+function formatResultRow(status, label, detail, options = {}) {
+  const styleOptions = options;
   const symbol2 = statusSymbol(status, styleOptions);
   const styledSymbol = styleStatus(symbol2, status, styleOptions);
   const paddedLabel = label.padEnd(LABEL_WIDTH, " ");
   const suffix = detail ? ` ${detail}` : "";
-  writeLine(stream, `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd());
+  return `  ${styledSymbol} ${paddedLabel}${suffix}`.trimEnd();
 }
 function writeDetail(stream, detail) {
   writeLine(stream, `  ${detail}`);
@@ -27196,6 +27205,9 @@ function buildBuiltInPolicyEntries(policies) {
 }
 function buildBuiltInPolicyEntry(options) {
   return {
+    display: {
+      label: options.label
+    },
     failFast: false,
     async run(context) {
       const result = runBuiltInPolicies(
@@ -27227,6 +27239,10 @@ function buildPluginEntries(config2) {
 }
 function buildGitleaksPluginEntry(plugin) {
   return {
+    display: {
+      detail: "gitleaks",
+      label: "Secrets scan"
+    },
     failFast: plugin.fail_fast,
     async run(context) {
       const name = "plugin:gitleaks";
@@ -27255,7 +27271,11 @@ function buildGitleaksPluginEntry(plugin) {
   };
 }
 function buildConfiguredToolEntry(tool) {
+  const label = humanizeIdentifier(tool.name);
   return {
+    display: {
+      label
+    },
     failFast: tool.fail_fast,
     async run(context) {
       const selectedPaths = selectToolChangedFilePaths(
@@ -27264,7 +27284,7 @@ function buildConfiguredToolEntry(tool) {
       );
       if (tool.run === "changed_files" && selectedPaths.length === 0) {
         return checkResult({
-          label: humanizeIdentifier(tool.name),
+          label,
           result: {
             name: tool.name,
             status: "skipped",
@@ -27285,7 +27305,7 @@ function buildConfiguredToolEntry(tool) {
         outputTail: commandResult.outputTail
       };
       return checkResult({
-        label: humanizeIdentifier(tool.name),
+        label,
         result
       });
     }
@@ -27330,8 +27350,13 @@ function summarizeDeterministicResults(results) {
 function createDeterministicTranscript(stdout) {
   const warnings = [];
   const blockers = [];
+  const plannedChecks = [];
+  const liveUpdates = supportsLiveUpdates(stdout);
+  let completedCheckCount = 0;
+  let linesBelowCheckRows = 0;
   return {
     writeFailFast() {
+      writeSkippedRemainingChecks("not run after fail_fast");
       writeDetail(stdout, "Stopped after a blocking failure because fail_fast is true.");
     },
     writeNoChecks() {
@@ -27342,9 +27367,13 @@ function createDeterministicTranscript(stdout) {
     writeCheckResult(result) {
       writeRenderedCheckResult(result);
     },
-    writeStart(checkCount) {
+    writeStart(checks) {
+      plannedChecks.push(...checks);
       writeSection(stdout, "Checks");
-      writeDetail(stdout, `Running ${formatCount(checkCount, "check")}.`);
+      writeDetail(stdout, `Running ${formatCount(checks.length, "check")}.`);
+      for (const check2 of checks) {
+        writeResultRow(stdout, "running", check2.label, check2.detail);
+      }
     },
     writeSummary(summary) {
       writeLine(stdout);
@@ -27384,10 +27413,9 @@ function createDeterministicTranscript(stdout) {
   };
   function writeRenderedCheckResult(result) {
     const status = mapStatus(result.status);
-    writeResultRow(stdout, status, result.label, result.detail);
+    writeCompletedCheckResult(status, result);
     if (result.outputTail) {
-      writeDetail(stdout, "Command output:");
-      writeIndentedBlock(stdout, result.outputTail.split("\n"));
+      writeCommandOutputTail(result.outputTail);
     }
     if (result.status === "warning") {
       warnings.push(result.label);
@@ -27395,6 +27423,45 @@ function createDeterministicTranscript(stdout) {
     if (result.status === "blocked") {
       blockers.push(result.label);
     }
+  }
+  function writeCompletedCheckResult(status, result) {
+    const plannedCheck = plannedChecks[completedCheckCount];
+    const detail = result.detail ?? plannedCheck?.detail;
+    writeCompletedCheckRow(status, result.label, detail);
+  }
+  function writeSkippedRemainingChecks(detail) {
+    while (completedCheckCount < plannedChecks.length) {
+      const plannedCheck = plannedChecks[completedCheckCount];
+      if (!plannedCheck) {
+        return;
+      }
+      writeCompletedCheckRow("skipped", plannedCheck.label, detail);
+    }
+  }
+  function writeCompletedCheckRow(status, label, detail) {
+    if (liveUpdates && plannedChecks[completedCheckCount]) {
+      replacePlannedCheckRow(completedCheckCount, status, label, detail);
+    } else {
+      writeResultRow(stdout, status, label, detail);
+    }
+    completedCheckCount += 1;
+  }
+  function replacePlannedCheckRow(index, status, label, detail) {
+    const distanceFromCursor = linesBelowCheckRows + plannedChecks.length - index;
+    stdout.write(
+      `\x1B[${distanceFromCursor}A\r\x1B[2K${formatResultRow(
+        status,
+        label,
+        detail,
+        { stream: stdout }
+      )}\x1B[${distanceFromCursor}B\r`
+    );
+  }
+  function writeCommandOutputTail(outputTail) {
+    const lines = outputTail.split("\n");
+    writeDetail(stdout, "Command output:");
+    writeIndentedBlock(stdout, lines);
+    linesBelowCheckRows += 1 + lines.length;
   }
 }
 function mapStatus(status) {
@@ -27405,6 +27472,10 @@ function mapStatus(status) {
     warning: "warning"
   };
   return statusByResult[status];
+}
+function supportsLiveUpdates(stream) {
+  const output = stream;
+  return output.isTTY === true && process.env.TERM !== "dumb";
 }
 
 // src/runner/deterministic.ts
@@ -27431,7 +27502,7 @@ async function runDeterministicChecks(request) {
   const changedFileResolution = requireChangedFileResolution(
     request.changedFileResolution
   );
-  transcript.writeStart(runPlan.length);
+  transcript.writeStart(runPlan.map((entry) => entry.display));
   for (const entry of runPlan) {
     const entryResult = await entry.run({
       changedFileResolution,
