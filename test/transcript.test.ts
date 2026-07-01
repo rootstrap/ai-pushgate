@@ -140,9 +140,11 @@ test("renders and clears a TTY local AI provider wait spinner", () => {
   const output = captureOutput({ isTTY: true });
   const transcript = createPushgateTranscript(output.stream);
   const previousTerm = process.env.TERM;
+  const previousNoColor = process.env.NO_COLOR;
 
   try {
     process.env.TERM = "xterm-256color";
+    process.env.NO_COLOR = "1";
     transcript.localAi.writeEvents([
       {
         kind: "provider-wait-start",
@@ -163,6 +165,12 @@ test("renders and clears a TTY local AI provider wait spinner", () => {
       delete process.env.TERM;
     } else {
       process.env.TERM = previousTerm;
+    }
+
+    if (previousNoColor === undefined) {
+      delete process.env.NO_COLOR;
+    } else {
+      process.env.NO_COLOR = previousNoColor;
     }
   }
 
