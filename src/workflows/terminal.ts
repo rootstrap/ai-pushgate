@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { closeSync, openSync, readSync, writeSync } from "node:fs";
 
 export interface InteractiveTerminal {
@@ -18,6 +19,10 @@ interface TerminalFileDescriptors {
   close(): void;
   inputFd: number;
   outputFd: number;
+}
+
+interface TerminalRawMode {
+  restore(): void;
 }
 
 interface TerminalDevicePath {
@@ -60,33 +65,12 @@ function chooseWithInteractiveTerminal(
 
   try {
     terminal = openInteractiveTerminal();
+    const rawMode = enableRawMode(terminal.inputFd);
 
-    for (;;) {
-      writeSync(terminal.outputFd, `${question}\n`);
-
-      for (const [index, choice] of choices.entries()) {
-        const detail = choice.detail ? ` - ${choice.detail}` : "";
-        writeSync(
-          terminal.outputFd,
-          `  ${String(index + 1)}. ${choice.label}${detail}\n`,
-        );
-      }
-
-      writeSync(terminal.outputFd, `Select 1-${String(choices.length)}: `);
-
-      const answer = readLineSync(terminal.inputFd).trim();
-      const selected = Number.parseInt(answer, 10);
-
-      if (
-        Number.isInteger(selected) &&
-        String(selected) === answer &&
-        selected >= 1 &&
-        selected <= choices.length
-      ) {
-        return selected - 1;
-      }
-
-      writeSync(terminal.outputFd, "Please enter one of the listed numbers.\n");
+    try {
+      return chooseWithKeyNavigation(terminal, question, choices);
+    } finally {
+      rawMode.restore();
     }
   } catch (error) {
     if (error instanceof InteractiveTerminalError) {
@@ -97,6 +81,257 @@ function chooseWithInteractiveTerminal(
   } finally {
     terminal?.close();
   }
+}
+
+function chooseWithKeyNavigation(
+  terminal: TerminalFileDescriptors,
+  question: string,
+  choices: readonly InteractiveTerminalChoice[],
+): number {
+  let selectedIndex = 0;
+  let renderedLineCount = 0;
+  let numericInput = "";
+  let message: string | undefined;
+
+  const render = () => {
+    renderedLineCount = renderChoicePrompt({
+      choices,
+      message,
+      numericInput,
+      outputFd: terminal.outputFd,
+      previousLineCount: renderedLineCount,
+      question,
+      selectedIndex,
+    });
+  };
+
+  render();
+
+  for (;;) {
+    const key = readChoiceKey(terminal.inputFd);
+
+    switch (key.kind) {
+      case "up":
+        selectedIndex = (selectedIndex - 1 + choices.length) % choices.length;
+        numericInput = "";
+        message = undefined;
+        render();
+        break;
+      case "down":
+        selectedIndex = (selectedIndex + 1) % choices.length;
+        numericInput = "";
+        message = undefined;
+        render();
+        break;
+      case "digit":
+        numericInput += key.value;
+        message = undefined;
+        render();
+        break;
+      case "backspace":
+        numericInput = numericInput.slice(0, -1);
+        message = undefined;
+        render();
+        break;
+      case "enter": {
+        if (!numericInput) {
+          clearChoicePrompt(terminal.outputFd, renderedLineCount);
+          return selectedIndex;
+        }
+
+        const selected = Number.parseInt(numericInput, 10);
+
+        if (selected >= 1 && selected <= choices.length) {
+          clearChoicePrompt(terminal.outputFd, renderedLineCount);
+          return selected - 1;
+        }
+
+        message = `Please enter a number from 1 to ${String(choices.length)}.`;
+        numericInput = "";
+        render();
+        break;
+      }
+      case "interrupt":
+        throw new InteractiveTerminalError("Terminal input was interrupted.");
+      case "ignored":
+        break;
+    }
+  }
+}
+
+function renderChoicePrompt(options: {
+  choices: readonly InteractiveTerminalChoice[];
+  message: string | undefined;
+  numericInput: string;
+  outputFd: number;
+  previousLineCount: number;
+  question: string;
+  selectedIndex: number;
+}): number {
+  const lines = [
+    options.question,
+    ...options.choices.map((choice, index) => {
+      const detail = choice.detail ? ` - ${choice.detail}` : "";
+      const marker = index === options.selectedIndex ? ">" : " ";
+      return `${marker} ${String(index + 1)}. ${choice.label}${detail}`;
+    }),
+    "Use Up/Down arrows, Enter to select, or type a number.",
+  ];
+
+  if (options.numericInput) {
+    lines.push(`Selection: ${options.numericInput}`);
+  }
+
+  if (options.message) {
+    lines.push(options.message);
+  }
+
+  rewriteTerminalBlock(options.outputFd, options.previousLineCount, lines);
+  return lines.length;
+}
+
+function rewriteTerminalBlock(
+  outputFd: number,
+  previousLineCount: number,
+  lines: readonly string[],
+): void {
+  if (previousLineCount > 0) {
+    writeSync(outputFd, `\u001B[${String(previousLineCount)}A`);
+  }
+
+  for (const line of lines) {
+    writeSync(outputFd, `\r\u001B[2K${line}\n`);
+  }
+
+  for (let index = lines.length; index < previousLineCount; index += 1) {
+    writeSync(outputFd, "\r\u001B[2K\n");
+  }
+
+  if (previousLineCount > lines.length) {
+    writeSync(outputFd, `\u001B[${String(previousLineCount - lines.length)}A`);
+  }
+}
+
+function clearChoicePrompt(outputFd: number, lineCount: number): void {
+  if (lineCount === 0) {
+    return;
+  }
+
+  writeSync(outputFd, `\u001B[${String(lineCount)}A`);
+
+  for (let index = 0; index < lineCount; index += 1) {
+    writeSync(outputFd, "\r\u001B[2K\n");
+  }
+
+  writeSync(outputFd, `\u001B[${String(lineCount)}A`);
+}
+
+type ChoiceKey =
+  | { kind: "backspace" }
+  | { kind: "digit"; value: string }
+  | { kind: "down" }
+  | { kind: "enter" }
+  | { kind: "ignored" }
+  | { kind: "interrupt" }
+  | { kind: "up" };
+
+function readChoiceKey(fd: number): ChoiceKey {
+  const char = readCharSync(fd);
+
+  if (char === null) {
+    throw new InteractiveTerminalError("No terminal input was available.");
+  }
+
+  if (char === "\u0003") {
+    return { kind: "interrupt" };
+  }
+
+  if (char === "\n") {
+    return { kind: "enter" };
+  }
+
+  if (char === "\r") {
+    consumeOptionalLfAfterCarriageReturn(fd);
+    return { kind: "enter" };
+  }
+
+  if (char === "\u007F" || char === "\b") {
+    return { kind: "backspace" };
+  }
+
+  if (/^\d$/.test(char)) {
+    return { kind: "digit", value: char };
+  }
+
+  if (char === "\u001B") {
+    const second = readCharSync(fd);
+
+    if (second === "[") {
+      const third = readCharSync(fd);
+
+      if (third === "A") {
+        return { kind: "up" };
+      }
+
+      if (third === "B") {
+        return { kind: "down" };
+      }
+    }
+
+    if (second === "O") {
+      const third = readCharSync(fd);
+
+      if (third === "A") {
+        return { kind: "up" };
+      }
+
+      if (third === "B") {
+        return { kind: "down" };
+      }
+    }
+  }
+
+  return { kind: "ignored" };
+}
+
+function enableRawMode(fd: number): TerminalRawMode {
+  if (process.platform === "win32") {
+    return noopRawMode();
+  }
+
+  const state = spawnSync("stty", ["-g"], {
+    encoding: "utf8",
+    stdio: [fd, "pipe", "ignore"],
+  });
+
+  if (state.status !== 0 || state.error || !state.stdout.trim()) {
+    return noopRawMode();
+  }
+
+  const savedState = state.stdout.trim();
+  const raw = spawnSync("stty", ["raw", "-echo"], {
+    stdio: [fd, "ignore", "ignore"],
+  });
+
+  if (raw.status !== 0 || raw.error) {
+    return noopRawMode();
+  }
+
+  return {
+    restore() {
+      spawnSync("stty", [savedState], {
+        stdio: [fd, "ignore", "ignore"],
+      });
+    },
+  };
+}
+
+function noopRawMode(): TerminalRawMode {
+  return {
+    restore() {
+      // Nothing to restore.
+    },
+  };
 }
 
 function confirmWithInteractiveTerminal(question: string): boolean {
