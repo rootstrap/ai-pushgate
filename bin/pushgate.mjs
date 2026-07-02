@@ -28567,6 +28567,7 @@ function closeFd(fd) {
 // src/workflows/review-target-selection.ts
 var REVIEW_TARGET_CONFIG_KEY = "pushgate.review-target";
 var MAX_STACKED_CANDIDATES = 3;
+var MAX_STACKED_DISTANCE_CANDIDATES = 25;
 var ZERO_OBJECT = /^0+$/;
 var ReviewTargetSelectionError = class extends Error {
   constructor(message) {
@@ -28575,6 +28576,11 @@ var ReviewTargetSelectionError = class extends Error {
   }
 };
 async function selectReviewTarget(options) {
+  if (options.hookContext.branchUpdates.length > 1) {
+    throw new ReviewTargetSelectionError(
+      "Pushgate cannot choose one review target for a push that updates multiple branches. Push one branch at a time."
+    );
+  }
   const overrideRef = await readGitStringConfig(
     options.repoRoot,
     REVIEW_TARGET_CONFIG_KEY,
@@ -28591,11 +28597,6 @@ async function selectReviewTarget(options) {
       ref: overrideRef,
       source: "override"
     };
-  }
-  if (options.hookContext.branchUpdates.length > 1) {
-    throw new ReviewTargetSelectionError(
-      "Pushgate cannot choose one review target for a push that updates multiple branches. Push one branch at a time."
-    );
   }
   if (!discovery.promptRequired) {
     const configured = discovery.candidates.find(
@@ -28868,13 +28869,15 @@ async function incrementalCandidateFromRemoteTrackingRef(options) {
 async function findStackedCandidates(options) {
   const result = await runGit(options.repoRoot, [
     "for-each-ref",
+    "--merged=HEAD",
+    "--sort=-committerdate",
     "--format=%(refname:short)%00%(objectname)",
     "refs/remotes"
   ]);
   if (result.code !== 0) {
     return [];
   }
-  const candidates = [];
+  const ancestorCandidates = [];
   for (const line of result.stdout.split("\n")) {
     if (!line.trim()) {
       continue;
@@ -28883,23 +28886,36 @@ async function findStackedCandidates(options) {
     if (!ref || !commit || ref.endsWith("/HEAD") || ref === options.currentRemoteRef || ref === options.targetRemoteRef || isZeroObjectName(commit)) {
       continue;
     }
-    if (!await isAncestor(options.repoRoot, commit, "HEAD")) {
-      continue;
-    }
-    const distance = await commitDistance(options.repoRoot, commit, "HEAD");
-    if (distance === null || distance === 0) {
-      continue;
-    }
-    candidates.push({
+    ancestorCandidates.push({
       commit,
-      detail: `${String(distance)} commit(s) behind HEAD`,
-      distance,
       label: ref,
       ref,
       source: "stacked"
     });
+    if (ancestorCandidates.length >= MAX_STACKED_DISTANCE_CANDIDATES) {
+      break;
+    }
   }
-  return candidates.sort((left, right) => left.distance - right.distance).slice(0, MAX_STACKED_CANDIDATES).map(({ distance: _distance, ...candidate }) => candidate);
+  const candidatesWithDistance = await Promise.all(
+    ancestorCandidates.map(async (candidate) => {
+      const distance = await commitDistance(
+        options.repoRoot,
+        candidate.commit ?? candidate.ref,
+        "HEAD"
+      );
+      if (distance === null || distance === 0) {
+        return null;
+      }
+      return {
+        ...candidate,
+        detail: `${String(distance)} commit(s) behind HEAD`,
+        distance
+      };
+    })
+  );
+  return candidatesWithDistance.filter(
+    (candidate) => candidate !== null
+  ).sort((left, right) => left.distance - right.distance).slice(0, MAX_STACKED_CANDIDATES).map(({ distance: _distance, ...candidate }) => candidate);
 }
 function recommendedCandidate(options) {
   const candidates = options.candidates.filter(

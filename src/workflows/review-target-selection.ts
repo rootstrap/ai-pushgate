@@ -64,9 +64,15 @@ interface CandidateWithCommit extends ReviewTargetCandidate {
   commit?: string;
 }
 
+interface StackedCandidateWithDistance extends CandidateWithCommit {
+  detail: string;
+  distance: number;
+}
+
 type TargetFreshness = "ahead" | "behind" | "diverged" | "missing" | "same";
 
 const MAX_STACKED_CANDIDATES = 3;
+const MAX_STACKED_DISTANCE_CANDIDATES = 25;
 const ZERO_OBJECT = /^0+$/;
 
 export class ReviewTargetSelectionError extends Error {
@@ -79,6 +85,12 @@ export class ReviewTargetSelectionError extends Error {
 export async function selectReviewTarget(
   options: SelectReviewTargetOptions,
 ): Promise<SelectedReviewTarget> {
+  if (options.hookContext.branchUpdates.length > 1) {
+    throw new ReviewTargetSelectionError(
+      "Pushgate cannot choose one review target for a push that updates multiple branches. Push one branch at a time.",
+    );
+  }
+
   const overrideRef = await readGitStringConfig(
     options.repoRoot,
     REVIEW_TARGET_CONFIG_KEY,
@@ -97,12 +109,6 @@ export async function selectReviewTarget(
       ref: overrideRef,
       source: "override",
     };
-  }
-
-  if (options.hookContext.branchUpdates.length > 1) {
-    throw new ReviewTargetSelectionError(
-      "Pushgate cannot choose one review target for a push that updates multiple branches. Push one branch at a time.",
-    );
   }
 
   if (!discovery.promptRequired) {
@@ -491,6 +497,8 @@ async function findStackedCandidates(options: {
 }): Promise<CandidateWithCommit[]> {
   const result = await runGit(options.repoRoot, [
     "for-each-ref",
+    "--merged=HEAD",
+    "--sort=-committerdate",
     "--format=%(refname:short)%00%(objectname)",
     "refs/remotes",
   ]);
@@ -499,7 +507,7 @@ async function findStackedCandidates(options: {
     return [];
   }
 
-  const candidates: Array<CandidateWithCommit & { distance: number }> = [];
+  const ancestorCandidates: CandidateWithCommit[] = [];
 
   for (const line of result.stdout.split("\n")) {
     if (!line.trim()) {
@@ -519,27 +527,44 @@ async function findStackedCandidates(options: {
       continue;
     }
 
-    if (!(await isAncestor(options.repoRoot, commit, "HEAD"))) {
-      continue;
-    }
-
-    const distance = await commitDistance(options.repoRoot, commit, "HEAD");
-
-    if (distance === null || distance === 0) {
-      continue;
-    }
-
-    candidates.push({
+    ancestorCandidates.push({
       commit,
-      detail: `${String(distance)} commit(s) behind HEAD`,
-      distance,
       label: ref,
       ref,
       source: "stacked",
     });
+
+    if (ancestorCandidates.length >= MAX_STACKED_DISTANCE_CANDIDATES) {
+      break;
+    }
   }
 
-  return candidates
+  const candidatesWithDistance: Array<StackedCandidateWithDistance | null> =
+    await Promise.all(
+      ancestorCandidates.map(async (candidate) => {
+        const distance = await commitDistance(
+          options.repoRoot,
+          candidate.commit ?? candidate.ref,
+          "HEAD",
+        );
+
+        if (distance === null || distance === 0) {
+          return null;
+        }
+
+        return {
+          ...candidate,
+          detail: `${String(distance)} commit(s) behind HEAD`,
+          distance,
+        };
+      }),
+    );
+
+  return candidatesWithDistance
+    .filter(
+      (candidate): candidate is StackedCandidateWithDistance =>
+        candidate !== null,
+    )
     .sort((left, right) => left.distance - right.distance)
     .slice(0, MAX_STACKED_CANDIDATES)
     .map(({ distance: _distance, ...candidate }) => candidate);

@@ -306,6 +306,32 @@ test("multi-branch pushes fail before choosing one review target", async () => {
   });
 });
 
+test("multi-branch pushes fail even when review target override is set", async () => {
+  await withIncrementalPushRepo(async (repoRoot, commits) => {
+    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    await checkedRun("git", ["config", "pushgate.review-target", "main"], {
+      cwd: repoRoot,
+    });
+
+    const result = await runWorkflowInRepo(repoRoot, {
+      hookArgs: ["origin", "git@example.test:repo.git"],
+      stdin: Readable.from(
+        [
+          `refs/heads/feature ${commits.head} refs/heads/feature ${commits.remoteFeature}`,
+          `refs/heads/other ${commits.head} refs/heads/other ${ZERO_OBJECT}`,
+          "",
+        ].join("\n"),
+      ),
+    });
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /updates multiple branches/);
+    assert.match(result.stdout, /Push one branch at a time/);
+    assert.doesNotMatch(result.stdout, /Review target:\s+main/);
+    assert.equal(result.stderr, "");
+  });
+});
+
 interface WorkflowResult {
   code: number;
   stderr: string;
