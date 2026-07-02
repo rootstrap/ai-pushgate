@@ -15,6 +15,28 @@ payload and return one normalized review result or provider failure.
 `blocking` is the default. Active modes require `ai.provider` and a matching
 `ai.providers.<provider>` block.
 
+## Streaming Output
+
+`ai.verbose` defaults to `true`. When the selected provider can produce
+human-readable response text while preserving the final structured result,
+Pushgate streams that text under a provider-labeled section such as
+`Claude response`.
+
+Set `ai.verbose: false` to hide streamed provider response text. Compact
+progress and final output still render. Push decisions always come from the
+final `Review findings` section, never from streamed response text.
+
+Current deliberate limits:
+
+- `ai.verbose` controls only streamed provider response text.
+- Streamed provider response text is terminal-only and is not persisted.
+- Provider response text is terminal-sanitized, but not length-truncated.
+- Provider adapters may differ in streaming capability; unsupported providers
+  fall back to progress and final review findings.
+- TTY output includes a provider wait spinner before response text starts; idle
+  heartbeats are future transcript polish, not part of the first streaming
+  contract.
+
 ## Guardrails
 
 | Guardrail | Behavior |

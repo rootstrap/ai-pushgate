@@ -7916,6 +7916,7 @@ function normalizeConfig(rawConfig) {
     plugins: normalizePlugins(rawConfig),
     ai: {
       mode: ai.mode ?? "blocking",
+      verbose: ai.verbose ?? true,
       max_changed_lines: ai.max_changed_lines ?? 500,
       max_prompt_tokens: ai.max_prompt_tokens ?? 12e3,
       timeout_seconds: ai.timeout_seconds ?? 120,
@@ -8574,13 +8575,13 @@ function validate17(data, { instancePath = "", parentData, parentDataProperty, r
   validate17.errors = vErrors;
   return errors === 0;
 }
-var schema22 = { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string", "enum": ["blocking", "advisory", "off"], "default": "blocking" }, "max_changed_lines": { "description": "Maximum total added plus deleted text lines before local AI review blocks the push.", "type": "integer", "minimum": 1, "default": 500 }, "max_prompt_tokens": { "description": "Approximate rendered prompt token budget before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 12e3 }, "timeout_seconds": { "description": "Maximum local AI provider runtime before the provider is treated as timed out.", "type": "integer", "minimum": 1, "default": 120 }, "provider": { "type": "string", "minLength": 1 }, "providers": { "type": "object", "default": {}, "propertyNames": { "minLength": 1 }, "additionalProperties": { "$ref": "#/definitions/providerConfig" } } } };
+var schema22 = { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string", "enum": ["blocking", "advisory", "off"], "default": "blocking" }, "verbose": { "description": "Whether local AI review streams human-readable provider response text while it runs.", "type": "boolean", "default": true }, "max_changed_lines": { "description": "Maximum total added plus deleted text lines before local AI review blocks the push.", "type": "integer", "minimum": 1, "default": 500 }, "max_prompt_tokens": { "description": "Approximate rendered prompt token budget before local AI review is skipped.", "type": "integer", "minimum": 1, "default": 12e3 }, "timeout_seconds": { "description": "Maximum local AI provider runtime before the provider is treated as timed out.", "type": "integer", "minimum": 1, "default": 120 }, "provider": { "type": "string", "minLength": 1 }, "providers": { "type": "object", "default": {}, "propertyNames": { "minLength": 1 }, "additionalProperties": { "$ref": "#/definitions/providerConfig" } } } };
 function validate21(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
   let vErrors = null;
   let errors = 0;
   if (data && typeof data == "object" && !Array.isArray(data)) {
     for (const key0 in data) {
-      if (!(key0 === "mode" || key0 === "max_changed_lines" || key0 === "max_prompt_tokens" || key0 === "timeout_seconds" || key0 === "provider" || key0 === "providers")) {
+      if (!(key0 === "mode" || key0 === "verbose" || key0 === "max_changed_lines" || key0 === "max_prompt_tokens" || key0 === "timeout_seconds" || key0 === "provider" || key0 === "providers")) {
         const err0 = { instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" };
         if (vErrors === null) {
           vErrors = [err0];
@@ -8611,10 +8612,9 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
         errors++;
       }
     }
-    if (data.max_changed_lines !== void 0) {
-      let data1 = data.max_changed_lines;
-      if (!(typeof data1 == "number" && (!(data1 % 1) && !isNaN(data1)) && isFinite(data1))) {
-        const err3 = { instancePath: instancePath + "/max_changed_lines", schemaPath: "#/properties/max_changed_lines/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+    if (data.verbose !== void 0) {
+      if (typeof data.verbose !== "boolean") {
+        const err3 = { instancePath: instancePath + "/verbose", schemaPath: "#/properties/verbose/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" };
         if (vErrors === null) {
           vErrors = [err3];
         } else {
@@ -8622,69 +8622,67 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
         }
         errors++;
       }
-      if (typeof data1 == "number" && isFinite(data1)) {
-        if (data1 < 1 || isNaN(data1)) {
-          const err4 = { instancePath: instancePath + "/max_changed_lines", schemaPath: "#/properties/max_changed_lines/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
+    }
+    if (data.max_changed_lines !== void 0) {
+      let data2 = data.max_changed_lines;
+      if (!(typeof data2 == "number" && (!(data2 % 1) && !isNaN(data2)) && isFinite(data2))) {
+        const err4 = { instancePath: instancePath + "/max_changed_lines", schemaPath: "#/properties/max_changed_lines/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+        if (vErrors === null) {
+          vErrors = [err4];
+        } else {
+          vErrors.push(err4);
+        }
+        errors++;
+      }
+      if (typeof data2 == "number" && isFinite(data2)) {
+        if (data2 < 1 || isNaN(data2)) {
+          const err5 = { instancePath: instancePath + "/max_changed_lines", schemaPath: "#/properties/max_changed_lines/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
           if (vErrors === null) {
-            vErrors = [err4];
+            vErrors = [err5];
           } else {
-            vErrors.push(err4);
+            vErrors.push(err5);
           }
           errors++;
         }
       }
     }
     if (data.max_prompt_tokens !== void 0) {
-      let data2 = data.max_prompt_tokens;
-      if (!(typeof data2 == "number" && (!(data2 % 1) && !isNaN(data2)) && isFinite(data2))) {
-        const err5 = { instancePath: instancePath + "/max_prompt_tokens", schemaPath: "#/properties/max_prompt_tokens/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+      let data3 = data.max_prompt_tokens;
+      if (!(typeof data3 == "number" && (!(data3 % 1) && !isNaN(data3)) && isFinite(data3))) {
+        const err6 = { instancePath: instancePath + "/max_prompt_tokens", schemaPath: "#/properties/max_prompt_tokens/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
         if (vErrors === null) {
-          vErrors = [err5];
+          vErrors = [err6];
         } else {
-          vErrors.push(err5);
+          vErrors.push(err6);
         }
         errors++;
       }
-      if (typeof data2 == "number" && isFinite(data2)) {
-        if (data2 < 1 || isNaN(data2)) {
-          const err6 = { instancePath: instancePath + "/max_prompt_tokens", schemaPath: "#/properties/max_prompt_tokens/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
+      if (typeof data3 == "number" && isFinite(data3)) {
+        if (data3 < 1 || isNaN(data3)) {
+          const err7 = { instancePath: instancePath + "/max_prompt_tokens", schemaPath: "#/properties/max_prompt_tokens/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
           if (vErrors === null) {
-            vErrors = [err6];
+            vErrors = [err7];
           } else {
-            vErrors.push(err6);
+            vErrors.push(err7);
           }
           errors++;
         }
       }
     }
     if (data.timeout_seconds !== void 0) {
-      let data3 = data.timeout_seconds;
-      if (!(typeof data3 == "number" && (!(data3 % 1) && !isNaN(data3)) && isFinite(data3))) {
-        const err7 = { instancePath: instancePath + "/timeout_seconds", schemaPath: "#/properties/timeout_seconds/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
+      let data4 = data.timeout_seconds;
+      if (!(typeof data4 == "number" && (!(data4 % 1) && !isNaN(data4)) && isFinite(data4))) {
+        const err8 = { instancePath: instancePath + "/timeout_seconds", schemaPath: "#/properties/timeout_seconds/type", keyword: "type", params: { type: "integer" }, message: "must be integer" };
         if (vErrors === null) {
-          vErrors = [err7];
+          vErrors = [err8];
         } else {
-          vErrors.push(err7);
+          vErrors.push(err8);
         }
         errors++;
       }
-      if (typeof data3 == "number" && isFinite(data3)) {
-        if (data3 < 1 || isNaN(data3)) {
-          const err8 = { instancePath: instancePath + "/timeout_seconds", schemaPath: "#/properties/timeout_seconds/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
-          if (vErrors === null) {
-            vErrors = [err8];
-          } else {
-            vErrors.push(err8);
-          }
-          errors++;
-        }
-      }
-    }
-    if (data.provider !== void 0) {
-      let data4 = data.provider;
-      if (typeof data4 === "string") {
-        if (func2(data4) < 1) {
-          const err9 = { instancePath: instancePath + "/provider", schemaPath: "#/properties/provider/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+      if (typeof data4 == "number" && isFinite(data4)) {
+        if (data4 < 1 || isNaN(data4)) {
+          const err9 = { instancePath: instancePath + "/timeout_seconds", schemaPath: "#/properties/timeout_seconds/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" };
           if (vErrors === null) {
             vErrors = [err9];
           } else {
@@ -8692,48 +8690,49 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
           }
           errors++;
         }
+      }
+    }
+    if (data.provider !== void 0) {
+      let data5 = data.provider;
+      if (typeof data5 === "string") {
+        if (func2(data5) < 1) {
+          const err10 = { instancePath: instancePath + "/provider", schemaPath: "#/properties/provider/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+          if (vErrors === null) {
+            vErrors = [err10];
+          } else {
+            vErrors.push(err10);
+          }
+          errors++;
+        }
       } else {
-        const err10 = { instancePath: instancePath + "/provider", schemaPath: "#/properties/provider/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+        const err11 = { instancePath: instancePath + "/provider", schemaPath: "#/properties/provider/type", keyword: "type", params: { type: "string" }, message: "must be string" };
         if (vErrors === null) {
-          vErrors = [err10];
+          vErrors = [err11];
         } else {
-          vErrors.push(err10);
+          vErrors.push(err11);
         }
         errors++;
       }
     }
     if (data.providers !== void 0) {
-      let data5 = data.providers;
-      if (data5 && typeof data5 == "object" && !Array.isArray(data5)) {
-        for (const key1 in data5) {
-          const _errs14 = errors;
+      let data6 = data.providers;
+      if (data6 && typeof data6 == "object" && !Array.isArray(data6)) {
+        for (const key1 in data6) {
+          const _errs16 = errors;
           if (typeof key1 === "string") {
             if (func2(key1) < 1) {
-              const err11 = { instancePath: instancePath + "/providers", schemaPath: "#/properties/providers/propertyNames/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters", propertyName: key1 };
+              const err12 = { instancePath: instancePath + "/providers", schemaPath: "#/properties/providers/propertyNames/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters", propertyName: key1 };
               if (vErrors === null) {
-                vErrors = [err11];
+                vErrors = [err12];
               } else {
-                vErrors.push(err11);
+                vErrors.push(err12);
               }
               errors++;
             }
           }
-          var valid1 = _errs14 === errors;
+          var valid1 = _errs16 === errors;
           if (!valid1) {
-            const err12 = { instancePath: instancePath + "/providers", schemaPath: "#/properties/providers/propertyNames", keyword: "propertyNames", params: { propertyName: key1 }, message: "property name must be valid" };
-            if (vErrors === null) {
-              vErrors = [err12];
-            } else {
-              vErrors.push(err12);
-            }
-            errors++;
-          }
-        }
-        for (const key2 in data5) {
-          let data6 = data5[key2];
-          if (data6 && typeof data6 == "object" && !Array.isArray(data6)) {
-          } else {
-            const err13 = { instancePath: instancePath + "/providers/" + key2.replace(/~/g, "~0").replace(/\//g, "~1"), schemaPath: "#/definitions/providerConfig/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+            const err13 = { instancePath: instancePath + "/providers", schemaPath: "#/properties/providers/propertyNames", keyword: "propertyNames", params: { propertyName: key1 }, message: "property name must be valid" };
             if (vErrors === null) {
               vErrors = [err13];
             } else {
@@ -8742,22 +8741,35 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
             errors++;
           }
         }
+        for (const key2 in data6) {
+          let data7 = data6[key2];
+          if (data7 && typeof data7 == "object" && !Array.isArray(data7)) {
+          } else {
+            const err14 = { instancePath: instancePath + "/providers/" + key2.replace(/~/g, "~0").replace(/\//g, "~1"), schemaPath: "#/definitions/providerConfig/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+            if (vErrors === null) {
+              vErrors = [err14];
+            } else {
+              vErrors.push(err14);
+            }
+            errors++;
+          }
+        }
       } else {
-        const err14 = { instancePath: instancePath + "/providers", schemaPath: "#/properties/providers/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+        const err15 = { instancePath: instancePath + "/providers", schemaPath: "#/properties/providers/type", keyword: "type", params: { type: "object" }, message: "must be object" };
         if (vErrors === null) {
-          vErrors = [err14];
+          vErrors = [err15];
         } else {
-          vErrors.push(err14);
+          vErrors.push(err15);
         }
         errors++;
       }
     }
   } else {
-    const err15 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+    const err16 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
     if (vErrors === null) {
-      vErrors = [err15];
+      vErrors = [err16];
     } else {
-      vErrors.push(err15);
+      vErrors.push(err16);
     }
     errors++;
   }
@@ -9632,16 +9644,19 @@ function runCapturedCommand(options) {
     }
     if (outputEncoding === "buffer") {
       child.stdout.on("data", (data) => {
+        options.onStdoutChunk?.(data);
         stdoutBuffers.push(data);
       });
     } else {
       child.stdout.setEncoding("utf8");
       child.stdout.on("data", (data) => {
+        options.onStdoutChunk?.(data);
         stdout = appendCaptured(stdout, data, options.outputCaptureLimit);
       });
     }
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (data) => {
+      options.onStderrChunk?.(data);
       stderr = appendCaptured(stderr, data, options.outputCaptureLimit);
     });
     child.on("error", (error51) => {
@@ -10371,10 +10386,19 @@ function createDeterministicTranscript(stdout) {
   }
 }
 function createLocalAiTranscript(stdout) {
+  const streamingState = {
+    responseEmptyRendered: false,
+    responseLineStart: true,
+    responseStarted: false,
+    responseWroteText: false,
+    validatedFindingsStarted: false,
+    waitSpinnerActive: false,
+    waitSpinnerFrame: 0
+  };
   return {
     writeEvents(events) {
       for (const event of events) {
-        renderLocalAiTranscriptEvent(event, stdout);
+        renderLocalAiTranscriptEvent(event, stdout, streamingState);
       }
     },
     writeSection() {
@@ -10425,7 +10449,7 @@ function createPushTranscript(stdout) {
     }
   };
 }
-function renderLocalAiTranscriptEvent(event, stdout) {
+function renderLocalAiTranscriptEvent(event, stdout, streamingState) {
   switch (event.kind) {
     case "skip-no-files":
       writeResultRow(stdout, "skipped", "No changed files to review");
@@ -10447,7 +10471,7 @@ function renderLocalAiTranscriptEvent(event, stdout) {
       );
       return;
     case "review-start":
-      writeDetail(stdout, `Provider: ${capitalize(event.providerId)}`);
+      writeDetail(stdout, `Provider: ${event.providerLabel}`);
       writeDetail(stdout, `Files reviewed: ${String(event.changedFileCount)}`);
       return;
     case "full-file-context":
@@ -10455,6 +10479,29 @@ function renderLocalAiTranscriptEvent(event, stdout) {
         stdout,
         `Context: ${formatCount(event.diffLineCount, "diff line")} plus ${formatCount(event.fullFileCount, "full file")} for extra context`
       );
+      return;
+    case "provider-progress":
+      stopProviderWait(stdout, streamingState);
+      writeDetail(stdout, event.message);
+      return;
+    case "provider-wait-start":
+      startProviderWait(stdout, streamingState, event.providerLabel);
+      return;
+    case "provider-wait-stop":
+      stopProviderWait(stdout, streamingState);
+      return;
+    case "provider-response-start":
+      stopProviderWait(stdout, streamingState);
+      startProviderResponse(stdout, streamingState, event.providerLabel);
+      return;
+    case "provider-response-delta":
+      writeProviderResponseDelta(stdout, streamingState, event.text);
+      return;
+    case "provider-response-empty":
+      writeEmptyProviderResponse(stdout, streamingState);
+      return;
+    case "validated-findings-start":
+      startValidatedFindings(stdout, streamingState);
       return;
     case "provider-failure": {
       const status = event.aiMode === "advisory" ? "warning" : "blocked";
@@ -10521,6 +10568,106 @@ function renderLocalAiTranscriptEvent(event, stdout) {
       );
       return;
   }
+}
+function startProviderResponse(stdout, state, providerLabel) {
+  if (state.responseStarted) {
+    return;
+  }
+  writeLine(stdout);
+  writeSection(stdout, `${providerLabel} response`);
+  state.responseStarted = true;
+  state.responseLineStart = true;
+}
+var WAIT_SPINNER_FRAMES = ["-", "\\", "|", "/"];
+function startProviderWait(stdout, state, providerLabel) {
+  if (!supportsLiveUpdates(stdout) || state.waitSpinnerTimer) {
+    return;
+  }
+  state.waitSpinnerActive = true;
+  state.waitSpinnerFrame = 0;
+  state.waitSpinnerLabel = `Waiting for ${providerLabel}...`;
+  renderProviderWait(stdout, state);
+  state.waitSpinnerTimer = setInterval(() => {
+    state.waitSpinnerFrame = (state.waitSpinnerFrame + 1) % WAIT_SPINNER_FRAMES.length;
+    renderProviderWait(stdout, state);
+  }, 120);
+  state.waitSpinnerTimer.unref?.();
+}
+function stopProviderWait(stdout, state) {
+  if (state.waitSpinnerTimer) {
+    clearInterval(state.waitSpinnerTimer);
+    state.waitSpinnerTimer = void 0;
+  }
+  if (state.waitSpinnerActive) {
+    stdout.write("\r\x1B[2K");
+  }
+  state.waitSpinnerActive = false;
+  state.waitSpinnerLabel = void 0;
+}
+function renderProviderWait(stdout, state) {
+  if (!state.waitSpinnerActive || !state.waitSpinnerLabel) {
+    return;
+  }
+  const frame = WAIT_SPINNER_FRAMES[state.waitSpinnerFrame] ?? "-";
+  stdout.write(`\r  ${frame} ${state.waitSpinnerLabel}`);
+}
+function writeProviderResponseDelta(stdout, state, text) {
+  if (!state.responseStarted) {
+    startProviderResponse(stdout, state, "Provider");
+  }
+  const sanitized = sanitizeProviderResponseText(text);
+  if (sanitized.length === 0) {
+    return;
+  }
+  state.responseWroteText = true;
+  stdout.write(renderProviderResponseDelta(state, sanitized));
+}
+function renderProviderResponseDelta(state, sanitized) {
+  let rendered = "";
+  let index = 0;
+  while (index < sanitized.length) {
+    if (state.responseLineStart) {
+      rendered += "  ";
+      state.responseLineStart = false;
+    }
+    const newlineIndex = sanitized.indexOf("\n", index);
+    if (newlineIndex === -1) {
+      rendered += sanitized.slice(index);
+      break;
+    }
+    rendered += sanitized.slice(index, newlineIndex + 1);
+    state.responseLineStart = true;
+    index = newlineIndex + 1;
+  }
+  return rendered;
+}
+function writeEmptyProviderResponse(stdout, state) {
+  if (!state.responseStarted || state.responseWroteText || state.responseEmptyRendered) {
+    return;
+  }
+  writeDetail(stdout, "No streamable response text was produced by this provider.");
+  state.responseEmptyRendered = true;
+  state.responseLineStart = true;
+}
+function startValidatedFindings(stdout, state) {
+  stopProviderWait(stdout, state);
+  if (state.validatedFindingsStarted) {
+    return;
+  }
+  if (state.responseStarted) {
+    if (!state.responseLineStart) {
+      writeLine(stdout);
+    }
+    writeEmptyProviderResponse(stdout, state);
+  }
+  writeLine(stdout);
+  writeSection(stdout, "Review findings");
+  state.validatedFindingsStarted = true;
+}
+var ANSI_ESCAPE_PATTERN = /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;
+var UNSAFE_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001A\u001C-\u001F\u007F]/g;
+function sanitizeProviderResponseText(text) {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(ANSI_ESCAPE_PATTERN, "").replace(UNSAFE_CONTROL_PATTERN, "");
 }
 function mapDeterministicStatus(status) {
   const statusByResult = {
@@ -26036,6 +26183,12 @@ async function runTimedCommand(options) {
     env: options.env,
     ignoreStdinErrors: true,
     killGraceMs: options.killGraceMs ?? DEFAULT_TIMED_COMMAND_KILL_GRACE_MS,
+    onStderrChunk: options.onStderrChunk,
+    onStdoutChunk: options.onStdoutChunk ? (chunk) => {
+      if (typeof chunk === "string") {
+        options.onStdoutChunk?.(chunk);
+      }
+    } : void 0,
     outputCaptureLimit: options.outputCaptureLimit === null ? void 0 : options.outputCaptureLimit ?? DEFAULT_TIMED_COMMAND_OUTPUT_CAPTURE_LIMIT,
     outputEncoding: "utf8",
     outputTailLimit: options.outputTailLimit ?? DEFAULT_TIMED_COMMAND_OUTPUT_TAIL_LIMIT,
@@ -26149,6 +26302,8 @@ async function runProviderCommand(options) {
     command: options.command,
     cwd: options.cwd,
     env: sanitizeGitLocalEnv(options.env),
+    onStderrChunk: options.onStderrChunk,
+    onStdoutChunk: options.onStdoutChunk,
     outputCaptureLimit: options.outputCaptureLimit ?? null,
     outputTailLimit: options.outputTailLimit ?? DEFAULT_OUTPUT_TAIL_LIMIT,
     // Provider CLIs may exit before stdin fully drains; the process runner still
@@ -26188,18 +26343,24 @@ async function runProviderCommand(options) {
 function createCommandProviderAdapter(spec, dependencies = {}) {
   const runCommand2 = dependencies.runCommand ?? runProviderCommand;
   return {
+    displayName: spec.displayName,
     id: spec.id,
+    streamingCapability: spec.streamingCapability,
     structuredOutputCapability: spec.structuredOutputCapability,
     async runReview(options) {
       const invocation = spec.buildInvocation(options);
+      const streamObserver = spec.createStreamObserver?.(invocation, options);
       const commandResult = await runCommand2({
         args: invocation.args,
         command: spec.command,
         cwd: options.repoRoot,
         env: options.env,
+        onStderrChunk: streamObserver?.onStderrChunk,
+        onStdoutChunk: streamObserver?.onStdoutChunk,
         prompt: options.payload.prompt,
         timeoutSeconds: options.timeoutSeconds
       });
+      streamObserver?.onStdoutEnd?.();
       if (commandResult.kind === "spawn-error") {
         return providerFailure({
           code: "missing_binary",
@@ -26211,7 +26372,7 @@ function createCommandProviderAdapter(spec, dependencies = {}) {
         return providerFailure({
           code: "timed_out",
           message: spec.formatTimeoutMessage(options.timeoutSeconds),
-          output: commandResult.output,
+          output: spec.includeTimeoutOutput === false ? void 0 : commandResult.output,
           provider: spec.id
         });
       }
@@ -26321,20 +26482,109 @@ function selectProviderBoolean(providerConfig, key) {
   return providerConfig[key] === true;
 }
 
+// src/ai/providers/streaming.ts
+function createJsonLineStreamObserver(options) {
+  let buffer = "";
+  let lineNumber = 0;
+  return {
+    flush() {
+      processLine(buffer);
+      buffer = "";
+    },
+    onChunk(chunk) {
+      buffer += chunk.replace(/\r/g, "");
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        processLine(line);
+      }
+    }
+  };
+  function processLine(line) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+    lineNumber += 1;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (isJsonObject(parsed)) {
+        options.onJsonLine(parsed, lineNumber);
+      }
+    } catch {
+    }
+  }
+}
+function emitHumanResponseText(streaming, text) {
+  if (!streaming?.responseText || !streaming.onEvent || text === null || text.length === 0 || looksLikePushgateReviewContractText(text)) {
+    return false;
+  }
+  streaming.onEvent({
+    kind: "response-text-delta",
+    text
+  });
+  return true;
+}
+function looksLikePushgateReviewContractText(text) {
+  const candidate = unwrapJsonCandidate(text.trim());
+  if (candidate === null || !/^[{[]/.test(candidate)) {
+    return false;
+  }
+  try {
+    return isReviewContractObject(JSON.parse(candidate));
+  } catch {
+    return false;
+  }
+}
+function isJsonObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function unwrapJsonCandidate(text) {
+  const fencedJson = text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i);
+  if (fencedJson) {
+    return fencedJson[1]?.trim() ?? null;
+  }
+  return text;
+}
+function isReviewContractObject(value) {
+  return isJsonObject(value) && "schema_version" in value && "findings" in value;
+}
+
 // src/ai/providers/claude.ts
 var claudeProvider = createCommandProviderAdapter({
   id: "claude",
+  displayName: "Claude",
+  streamingCapability: "human_response_and_final_result",
   structuredOutputCapability: "native_json_schema",
   command: "claude",
   buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
     const bare = selectProviderBoolean(options.providerConfig, "bare");
+    const streamJson = options.streaming?.responseText === true;
     return {
-      args: buildClaudeArgs(options.repoRoot, model, bare),
+      args: buildClaudeArgs(options.repoRoot, model, bare, streamJson),
       context: {
-        bare
+        bare,
+        streamJson
       },
       model
+    };
+  },
+  createStreamObserver(_invocation, options) {
+    if (!options.streaming?.responseText) {
+      return void 0;
+    }
+    const stdoutObserver = createJsonLineStreamObserver({
+      onJsonLine(event) {
+        emitHumanResponseText(
+          options.streaming,
+          readClaudeStreamResponseText(event)
+        );
+      }
+    });
+    return {
+      onStdoutChunk: stdoutObserver.onChunk,
+      onStdoutEnd: stdoutObserver.flush
     };
   },
   missingBinaryMessage: "Claude Code CLI was not found on PATH. Install it before running Pushgate local AI review.",
@@ -26411,13 +26661,14 @@ var claudeProvider = createCommandProviderAdapter({
     };
   }
 });
-function buildClaudeArgs(repoRoot, model, bare) {
+function buildClaudeArgs(repoRoot, model, bare, streamJson) {
   const reviewSchema = JSON.stringify(generateAiReviewOutputJsonSchema());
   const args = [
     "-p",
     "Review the provided Pushgate review input exactly as instructed.",
     "--output-format",
-    "json",
+    streamJson ? "stream-json" : "json",
+    ...streamJson ? ["--verbose", "--include-partial-messages"] : [],
     "--json-schema",
     reviewSchema,
     bare ? "--bare" : "--safe-mode",
@@ -26447,12 +26698,52 @@ function extractClaudeStructuredReviewObject(stdout) {
   try {
     parsed = JSON.parse(rawOutput);
   } catch (error51) {
+    const streamedReview = extractClaudeStreamedStructuredReviewObject(
+      rawOutput
+    );
+    if (streamedReview !== null) {
+      return streamedReview;
+    }
     return {
       detail: `Claude structured output failed to parse JSON (${formatUnknownError2(error51)}).`,
       kind: "malformed-json"
     };
   }
   return extractClaudeStructuredReviewEnvelope(parsed);
+}
+function extractClaudeStreamedStructuredReviewObject(rawOutput) {
+  const lines = rawOutput.replace(/\r/g, "").split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+  if (lines.length <= 1) {
+    return null;
+  }
+  let resultEvent = null;
+  for (const [index, line] of lines.entries()) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch (error51) {
+      return {
+        detail: `Claude stream-json line ${String(index + 1)} failed to parse JSON (${formatUnknownError2(error51)}).`,
+        kind: "malformed-json"
+      };
+    }
+    if (!isJsonObject(event)) {
+      return {
+        detail: `Claude stream-json line ${String(index + 1)} was ${typeof event}, not a JSON object.`,
+        kind: "malformed-json"
+      };
+    }
+    if (event.type === CLAUDE_STRUCTURED_OUTPUT_TYPE) {
+      resultEvent = event;
+    }
+  }
+  if (resultEvent === null) {
+    return {
+      detail: `Claude stream-json output parsed ${String(lines.length)} event(s), but did not include a final result event.`,
+      kind: "malformed-json"
+    };
+  }
+  return extractClaudeStructuredReviewEnvelope(resultEvent);
 }
 function extractClaudeStructuredReviewEnvelope(envelope) {
   if (!isJsonObject(envelope)) {
@@ -26556,29 +26847,61 @@ async function isClaudeUnauthenticated(repoRoot, env) {
     return false;
   }
 }
-function isJsonObject(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 function formatUnknownError2(error51) {
   return error51 instanceof Error ? error51.message : String(error51);
+}
+function readClaudeStreamResponseText(event) {
+  if (event.type !== "stream_event") {
+    return null;
+  }
+  const streamEvent = isJsonObject(event.event) ? event.event : event;
+  const delta = isJsonObject(streamEvent.delta) ? streamEvent.delta : void 0;
+  if (streamEvent.type === "content_block_delta" && delta?.type === "text_delta" && typeof delta.text === "string") {
+    return delta.text;
+  }
+  if (delta?.type === "thinking_delta" || delta?.type === "signature_delta" || streamEvent.type === "thinking") {
+    return null;
+  }
+  return typeof streamEvent.text === "string" ? streamEvent.text : null;
 }
 
 // src/ai/providers/copilot.ts
 var copilotProvider = createCommandProviderAdapter({
   id: "copilot",
+  displayName: "GitHub Copilot",
+  streamingCapability: "human_response_and_final_result",
   structuredOutputCapability: "jsonl_transport",
   command: "copilot",
   buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
     return {
-      args: buildCopilotArgs(model),
+      args: buildCopilotArgs({
+        model,
+        streamResponse: options.streaming?.responseText === true
+      }),
       model
+    };
+  },
+  createStreamObserver(_invocation, options) {
+    if (!options.streaming?.responseText) {
+      return void 0;
+    }
+    const responseStream = createCopilotResponseStreamEmitter();
+    const stdoutObserver = createJsonLineStreamObserver({
+      onJsonLine(event) {
+        responseStream.emit(event, options.streaming);
+      }
+    });
+    return {
+      onStdoutChunk: stdoutObserver.onChunk,
+      onStdoutEnd: stdoutObserver.flush
     };
   },
   missingBinaryMessage: "GitHub Copilot CLI was not found on PATH. Install the standalone `copilot` command before running Pushgate local AI review.",
   formatTimeoutMessage(timeoutSeconds) {
     return `GitHub Copilot CLI timed out after ${String(timeoutSeconds)}s.`;
   },
+  includeTimeoutOutput: false,
   formatCommandFailedMessage(code) {
     return `GitHub Copilot CLI exited with code ${String(code)}.`;
   },
@@ -26625,11 +26948,11 @@ var copilotProvider = createCommandProviderAdapter({
     };
   }
 });
-function buildCopilotArgs(model) {
+function buildCopilotArgs(options) {
   const args = [
     "-s",
     "--no-ask-user",
-    "--stream=off",
+    `--stream=${options.streamResponse ? "on" : "off"}`,
     "--output-format=json",
     "--no-color",
     "--no-custom-instructions",
@@ -26641,8 +26964,8 @@ function buildCopilotArgs(model) {
     "--deny-tool=write",
     "--deny-tool=url"
   ];
-  if (model) {
-    args.push(`--model=${model}`);
+  if (options.model) {
+    args.push(`--model=${options.model}`);
   }
   return args;
 }
@@ -26680,7 +27003,7 @@ function extractCopilotFinalAssistantResponse(stdout) {
         kind: "malformed-jsonl"
       };
     }
-    if (!isJsonObject2(event)) {
+    if (!isJsonObject(event)) {
       return {
         detail: `JSONL line ${String(index + 1)} was ${typeof event}, not a JSON object.`,
         kind: "malformed-jsonl"
@@ -26709,7 +27032,7 @@ function extractCopilotFinalAssistantResponse(stdout) {
 }
 function readAssistantMessageContent(event) {
   const type = typeof event.type === "string" ? event.type : void 0;
-  const data = isJsonObject2(event.data) ? event.data : void 0;
+  const data = isJsonObject(event.data) ? event.data : void 0;
   if (type === "assistant.message") {
     if (data && typeof data.content === "string") {
       return data.content;
@@ -26723,15 +27046,84 @@ function readAssistantMessageContent(event) {
   }
   return null;
 }
+function createCopilotResponseStreamEmitter() {
+  let previousCumulativeContent = "";
+  let wroteResponseContent = false;
+  return {
+    emit(event, streaming) {
+      const delta = readAssistantMessageDelta(event);
+      if (delta !== null) {
+        if (emitHumanResponseText(streaming, delta)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+      const content = readAssistantMessageContent(event);
+      if (content === null) {
+        return;
+      }
+      if (previousCumulativeContent.length > 0 && content.startsWith(previousCumulativeContent)) {
+        const suffix = content.slice(previousCumulativeContent.length);
+        previousCumulativeContent = content;
+        if (emitHumanResponseText(streaming, suffix)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+      previousCumulativeContent = content;
+      const prefix = wroteResponseContent ? "\n" : "";
+      if (emitHumanResponseText(streaming, `${prefix}${content}`)) {
+        wroteResponseContent = true;
+      }
+    }
+  };
+}
+function readAssistantMessageDelta(event) {
+  if (!isAssistantDeltaEvent(event)) {
+    return null;
+  }
+  const data = isJsonObject(event.data) ? event.data : void 0;
+  return readDeltaText(event.delta) ?? readDeltaText(data?.delta) ?? readDeltaText(event.text_delta) ?? readDeltaText(data?.text_delta) ?? readDeltaText(event.content_delta) ?? readDeltaText(data?.content_delta) ?? readDeltaText(event.deltaContent) ?? readDeltaText(data?.deltaContent);
+}
+function isAssistantDeltaEvent(event) {
+  const type = typeof event.type === "string" ? event.type : void 0;
+  const data = isJsonObject(event.data) ? event.data : void 0;
+  const role = typeof event.role === "string" ? event.role : typeof data?.role === "string" ? data.role : void 0;
+  if (type === "assistant.message.delta" || type === "assistant.delta" || type === "assistant.reasoning_delta") {
+    return true;
+  }
+  if (type === "message.delta" || type === "delta") {
+    return role === void 0 || role === "assistant";
+  }
+  return false;
+}
+function readDeltaText(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (!isJsonObject(value)) {
+    return null;
+  }
+  if (typeof value.text === "string") {
+    return value.text;
+  }
+  if (typeof value.content === "string") {
+    return value.content;
+  }
+  if (typeof value.value === "string") {
+    return value.value;
+  }
+  if (typeof value.deltaContent === "string") {
+    return value.deltaContent;
+  }
+  return null;
+}
 function isMainAssistantMessage(event) {
-  const data = isJsonObject2(event.data) ? event.data : void 0;
+  const data = isJsonObject(event.data) ? event.data : void 0;
   if (data && typeof data.parentToolCallId === "string" && data.parentToolCallId.length > 0) {
     return false;
   }
   return !data || typeof data.phase !== "string" || data.phase.toLowerCase() !== "thinking";
-}
-function isJsonObject2(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function formatUnknownError3(error51) {
   return error51 instanceof Error ? error51.message : String(error51);
@@ -26762,13 +27154,15 @@ function resolveLocalAiProviderRuntime(aiConfig, providers = LOCAL_AI_PROVIDERS)
   const providerConfig = aiConfig.providers[provider.id] ?? aiConfig.providers[aiConfig.provider ?? provider.id] ?? {};
   return {
     kind: "ready",
+    providerDisplayName: provider.displayName,
     providerId: provider.id,
     runReview(options) {
       return provider.runReview({
         ...options,
         providerConfig
       });
-    }
+    },
+    streamingCapability: provider.streamingCapability
   };
 }
 
@@ -27053,11 +27447,11 @@ async function runLocalAiReview(options) {
   const transcript = options.transcript ?? createLocalAiTranscript(process.stdout);
   const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
   if (providerRuntime.kind === "provider-error") {
-    return renderVerdict(
-      options.aiConfig.mode,
-      providerRuntime.result,
+    return renderVerdict({
+      aiMode: options.aiConfig.mode,
+      result: providerRuntime.result,
       transcript
-    );
+    });
   }
   const changedFileGuardrail = evaluateChangedFileGuardrails({
     changedFiles: options.changedFileResolution.files,
@@ -27099,6 +27493,7 @@ async function runLocalAiReview(options) {
       {
         kind: "review-start",
         providerId: providerRuntime.providerId,
+        providerLabel: providerRuntime.providerDisplayName,
         changedFileCount: payload.changedFiles.length
       }
     ]
@@ -27114,20 +27509,96 @@ async function runLocalAiReview(options) {
       ]
     );
   }
-  return renderVerdict(
-    options.aiConfig.mode,
-    await providerRuntime.runReview({
-      env: options.env ?? process.env,
-      payload,
-      repoRoot: options.repoRoot,
-      timeoutSeconds: options.aiConfig.timeout_seconds
-    }),
+  let providerResponseStarted = false;
+  const responseTextRequested = options.aiConfig.verbose && providerRuntime.streamingCapability === "human_response_and_final_result";
+  transcript.writeEvents([
+    {
+      kind: "provider-wait-start",
+      providerLabel: providerRuntime.providerDisplayName
+    }
+  ]);
+  const providerResult = await providerRuntime.runReview({
+    env: options.env ?? process.env,
+    payload,
+    repoRoot: options.repoRoot,
+    streaming: {
+      progress: true,
+      responseText: responseTextRequested,
+      onEvent(event) {
+        providerResponseStarted = renderProviderStreamEvent({
+          event,
+          providerLabel: providerRuntime.providerDisplayName,
+          responseTextRequested,
+          responseStarted: providerResponseStarted,
+          transcript
+        });
+      }
+    },
+    timeoutSeconds: options.aiConfig.timeout_seconds
+  });
+  return renderVerdict({
+    aiMode: options.aiConfig.mode,
+    emptyProviderResponseLabel: responseTextRequested && !providerResponseStarted && providerResult.kind === "review" ? providerRuntime.providerDisplayName : void 0,
+    result: providerResult,
     transcript
-  );
+  });
 }
-function renderVerdict(aiMode, result, transcript) {
-  const verdict = buildLocalAiVerdict(aiMode, result);
-  transcript.writeEvents(verdict.transcriptEvents);
+function renderProviderStreamEvent(options) {
+  if (options.event.kind === "progress") {
+    if (options.event.message.trim().length > 0) {
+      options.transcript.writeEvents([
+        {
+          kind: "provider-wait-stop"
+        },
+        {
+          kind: "provider-progress",
+          message: options.event.message
+        }
+      ]);
+    }
+    return options.responseStarted;
+  }
+  if (!options.responseTextRequested || options.event.text.length === 0) {
+    return options.responseStarted;
+  }
+  if (!options.responseStarted) {
+    options.transcript.writeEvents([
+      {
+        kind: "provider-wait-stop"
+      },
+      {
+        kind: "provider-response-start",
+        providerLabel: options.providerLabel
+      }
+    ]);
+  }
+  options.transcript.writeEvents([
+    {
+      kind: "provider-response-delta",
+      text: options.event.text
+    }
+  ]);
+  return true;
+}
+function renderVerdict(options) {
+  const verdict = buildLocalAiVerdict(options.aiMode, options.result);
+  const preVerdictEvents = [
+    { kind: "provider-wait-stop" }
+  ];
+  if (options.emptyProviderResponseLabel) {
+    preVerdictEvents.push(
+      {
+        kind: "provider-response-start",
+        providerLabel: options.emptyProviderResponseLabel
+      },
+      {
+        kind: "provider-response-empty"
+      }
+    );
+  }
+  preVerdictEvents.push({ kind: "validated-findings-start" });
+  options.transcript.writeEvents(preVerdictEvents);
+  options.transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,
     warningCount: verdict.warningCount

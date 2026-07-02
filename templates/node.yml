@@ -7,6 +7,7 @@ version: 2
 
 ai:
   mode: blocking
+  verbose: true
   max_changed_lines: 500
   max_prompt_tokens: 12000
   timeout_seconds: 120

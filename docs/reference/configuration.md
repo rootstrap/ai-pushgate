@@ -48,6 +48,7 @@ plugins:
 
 ai:
   mode: blocking
+  verbose: true
   max_changed_lines: 500
   max_prompt_tokens: 12000
   timeout_seconds: 120
@@ -81,6 +82,7 @@ extension point for provider-specific nested settings.
 | `plugins` | `{}` |
 | `ignore_paths` | `[]` |
 | `ai.mode` | `blocking` |
+| `ai.verbose` | `true` |
 | `tools[].timeout_seconds` | `60` |
 | `tools[].mode` | `blocking` |
 | `tools[].run` | `changed_files` |

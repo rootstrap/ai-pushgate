@@ -260,7 +260,7 @@ test("Copilot local AI warnings continue after confirmation", async () => {
     });
 
     assert.equal(result.code, 0, formatResult(result));
-    assert.match(result.stdout, /Provider: Copilot/);
+    assert.match(result.stdout, /Provider: GitHub Copilot/);
     assert.match(result.stdout, /\[warn\] AI performance\s+src\/changed\.ts:2/);
     assert.match(
       result.stdout,

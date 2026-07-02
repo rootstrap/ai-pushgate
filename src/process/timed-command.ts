@@ -29,6 +29,8 @@ export interface RunTimedCommandOptions {
   cwd: string;
   env: NodeJS.ProcessEnv;
   killGraceMs?: number;
+  onStderrChunk?: (chunk: string) => void;
+  onStdoutChunk?: (chunk: string) => void;
   outputCaptureLimit?: number | null;
   outputTailLimit?: number;
   stdin?: string;
@@ -45,6 +47,14 @@ export async function runTimedCommand(
     env: options.env,
     ignoreStdinErrors: true,
     killGraceMs: options.killGraceMs ?? DEFAULT_TIMED_COMMAND_KILL_GRACE_MS,
+    onStderrChunk: options.onStderrChunk,
+    onStdoutChunk: options.onStdoutChunk
+      ? (chunk) => {
+          if (typeof chunk === "string") {
+            options.onStdoutChunk?.(chunk);
+          }
+        }
+      : undefined,
     outputCaptureLimit:
       options.outputCaptureLimit === null
         ? undefined

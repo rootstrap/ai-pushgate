@@ -12,6 +12,7 @@ import type {
   LocalAiProviderFailureCode,
   LocalAiProviderResult,
   LocalAiProviderRunOptions,
+  LocalAiProviderStreamingCapability,
   LocalAiProviderStructuredOutputCapability,
 } from "../types.js";
 
@@ -51,6 +52,11 @@ export interface CommandProviderAdapterSpec<TContext> {
     options: LocalAiProviderRunOptions,
   ): CommandProviderInvocation<TContext>;
   command: string;
+  createStreamObserver?(
+    invocation: CommandProviderInvocation<TContext>,
+    options: LocalAiProviderRunOptions,
+  ): CommandProviderStreamObserver | undefined;
+  displayName: string;
   emptyOutputMessage: string;
   extractReview(
     commandResult: CompletedProviderCommandResult,
@@ -59,6 +65,7 @@ export interface CommandProviderAdapterSpec<TContext> {
   ): CommandProviderReviewExtraction;
   formatCommandFailedMessage(code: number | null): string;
   formatTimeoutMessage(timeoutSeconds: number): string;
+  includeTimeoutOutput?: boolean;
   id: string;
   invalidOutputMessage: string;
   mapCommandFailure?(
@@ -72,7 +79,14 @@ export interface CommandProviderAdapterSpec<TContext> {
     options: LocalAiProviderRunOptions,
   ): Promise<LocalAiProviderFailure | null> | LocalAiProviderFailure | null;
   missingBinaryMessage: string;
+  streamingCapability: LocalAiProviderStreamingCapability;
   structuredOutputCapability: LocalAiProviderStructuredOutputCapability;
+}
+
+export interface CommandProviderStreamObserver {
+  onStderrChunk?: (chunk: string) => void;
+  onStdoutChunk?: (chunk: string) => void;
+  onStdoutEnd?: () => void;
 }
 
 export interface CommandProviderAdapterDependencies {
@@ -86,18 +100,24 @@ export function createCommandProviderAdapter<TContext = undefined>(
   const runCommand = dependencies.runCommand ?? runProviderCommand;
 
   return {
+    displayName: spec.displayName,
     id: spec.id,
+    streamingCapability: spec.streamingCapability,
     structuredOutputCapability: spec.structuredOutputCapability,
     async runReview(options) {
       const invocation = spec.buildInvocation(options);
+      const streamObserver = spec.createStreamObserver?.(invocation, options);
       const commandResult = await runCommand({
         args: invocation.args,
         command: spec.command,
         cwd: options.repoRoot,
         env: options.env,
+        onStderrChunk: streamObserver?.onStderrChunk,
+        onStdoutChunk: streamObserver?.onStdoutChunk,
         prompt: options.payload.prompt,
         timeoutSeconds: options.timeoutSeconds,
       });
+      streamObserver?.onStdoutEnd?.();
 
       if (commandResult.kind === "spawn-error") {
         return providerFailure({
@@ -111,7 +131,10 @@ export function createCommandProviderAdapter<TContext = undefined>(
         return providerFailure({
           code: "timed_out",
           message: spec.formatTimeoutMessage(options.timeoutSeconds),
-          output: commandResult.output,
+          output:
+            spec.includeTimeoutOutput === false
+              ? undefined
+              : commandResult.output,
           provider: spec.id,
         });
       }

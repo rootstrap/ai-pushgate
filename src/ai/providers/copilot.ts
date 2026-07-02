@@ -1,16 +1,45 @@
 import { createCommandProviderAdapter } from "./command-provider-adapter.js";
 import { selectProviderModel } from "./config.js";
+import {
+  createJsonLineStreamObserver,
+  emitHumanResponseText,
+  isJsonObject,
+} from "./streaming.js";
+
+type JsonObject = Record<string, unknown>;
 
 export const copilotProvider = createCommandProviderAdapter({
   id: "copilot",
+  displayName: "GitHub Copilot",
+  streamingCapability: "human_response_and_final_result",
   structuredOutputCapability: "jsonl_transport",
   command: "copilot",
   buildInvocation(options) {
     const model = selectProviderModel(options.providerConfig);
 
     return {
-      args: buildCopilotArgs(model),
+      args: buildCopilotArgs({
+        model,
+        streamResponse: options.streaming?.responseText === true,
+      }),
       model,
+    };
+  },
+  createStreamObserver(_invocation, options) {
+    if (!options.streaming?.responseText) {
+      return undefined;
+    }
+
+    const responseStream = createCopilotResponseStreamEmitter();
+    const stdoutObserver = createJsonLineStreamObserver({
+      onJsonLine(event) {
+        responseStream.emit(event, options.streaming);
+      },
+    });
+
+    return {
+      onStdoutChunk: stdoutObserver.onChunk,
+      onStdoutEnd: stdoutObserver.flush,
     };
   },
   missingBinaryMessage:
@@ -18,6 +47,7 @@ export const copilotProvider = createCommandProviderAdapter({
   formatTimeoutMessage(timeoutSeconds) {
     return `GitHub Copilot CLI timed out after ${String(timeoutSeconds)}s.`;
   },
+  includeTimeoutOutput: false,
   formatCommandFailedMessage(code) {
     return `GitHub Copilot CLI exited with code ${String(code)}.`;
   },
@@ -75,11 +105,14 @@ export const copilotProvider = createCommandProviderAdapter({
   },
 });
 
-function buildCopilotArgs(model?: string): string[] {
+function buildCopilotArgs(options: {
+  model?: string;
+  streamResponse: boolean;
+}): string[] {
   const args = [
     "-s",
     "--no-ask-user",
-    "--stream=off",
+    `--stream=${options.streamResponse ? "on" : "off"}`,
     "--output-format=json",
     "--no-color",
     "--no-custom-instructions",
@@ -92,8 +125,8 @@ function buildCopilotArgs(model?: string): string[] {
     "--deny-tool=url",
   ];
 
-  if (model) {
-    args.push(`--model=${model}`);
+  if (options.model) {
+    args.push(`--model=${options.model}`);
   }
 
   return args;
@@ -116,8 +149,6 @@ function isCopilotAuthFailure(output: string): boolean {
     /access.*copilot/i,
   ].some((pattern) => pattern.test(output));
 }
-
-type JsonObject = Record<string, unknown>;
 
 function extractCopilotFinalAssistantResponse(stdout: string):
   | {
@@ -221,6 +252,126 @@ function readAssistantMessageContent(event: JsonObject): string | null {
   return null;
 }
 
+function createCopilotResponseStreamEmitter(): {
+  emit(
+    event: JsonObject,
+    streaming: Parameters<typeof emitHumanResponseText>[0],
+  ): void;
+} {
+  let previousCumulativeContent = "";
+  let wroteResponseContent = false;
+
+  return {
+    emit(event, streaming) {
+      const delta = readAssistantMessageDelta(event);
+
+      if (delta !== null) {
+        if (emitHumanResponseText(streaming, delta)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+
+      const content = readAssistantMessageContent(event);
+
+      if (content === null) {
+        return;
+      }
+
+      if (
+        previousCumulativeContent.length > 0 &&
+        content.startsWith(previousCumulativeContent)
+      ) {
+        const suffix = content.slice(previousCumulativeContent.length);
+        previousCumulativeContent = content;
+        if (emitHumanResponseText(streaming, suffix)) {
+          wroteResponseContent = true;
+        }
+        return;
+      }
+
+      previousCumulativeContent = content;
+      const prefix = wroteResponseContent ? "\n" : "";
+
+      if (emitHumanResponseText(streaming, `${prefix}${content}`)) {
+        wroteResponseContent = true;
+      }
+    },
+  };
+}
+
+function readAssistantMessageDelta(event: JsonObject): string | null {
+  if (!isAssistantDeltaEvent(event)) {
+    return null;
+  }
+
+  const data = isJsonObject(event.data) ? event.data : undefined;
+
+  return (
+    readDeltaText(event.delta) ??
+    readDeltaText(data?.delta) ??
+    readDeltaText(event.text_delta) ??
+    readDeltaText(data?.text_delta) ??
+    readDeltaText(event.content_delta) ??
+    readDeltaText(data?.content_delta) ??
+    readDeltaText(event.deltaContent) ??
+    readDeltaText(data?.deltaContent)
+  );
+}
+
+function isAssistantDeltaEvent(event: JsonObject): boolean {
+  const type = typeof event.type === "string" ? event.type : undefined;
+  const data = isJsonObject(event.data) ? event.data : undefined;
+  const role =
+    typeof event.role === "string"
+      ? event.role
+      : typeof data?.role === "string"
+        ? data.role
+        : undefined;
+
+  if (
+    type === "assistant.message.delta" ||
+    type === "assistant.delta" ||
+    type === "assistant.reasoning_delta"
+  ) {
+    return true;
+  }
+
+  if (type === "message.delta" || type === "delta") {
+    return role === undefined || role === "assistant";
+  }
+
+  return false;
+}
+
+function readDeltaText(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (!isJsonObject(value)) {
+    return null;
+  }
+
+  if (typeof value.text === "string") {
+    return value.text;
+  }
+
+  if (typeof value.content === "string") {
+    return value.content;
+  }
+
+  if (typeof value.value === "string") {
+    return value.value;
+  }
+
+  if (typeof value.deltaContent === "string") {
+    return value.deltaContent;
+  }
+
+  return null;
+}
+
 function isMainAssistantMessage(event: JsonObject): boolean {
   const data = isJsonObject(event.data) ? event.data : undefined;
 
@@ -237,10 +388,6 @@ function isMainAssistantMessage(event: JsonObject): boolean {
     typeof data.phase !== "string" ||
     data.phase.toLowerCase() !== "thinking"
   );
-}
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function formatUnknownError(error: unknown): string {

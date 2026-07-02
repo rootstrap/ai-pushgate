@@ -103,6 +103,35 @@ test("runTimedCommand reports timeout with captured output tail", async () => {
   }
 });
 
+test("runTimedCommand observes stdout and stderr chunks before returning final output", async () => {
+  const stdoutChunks: string[] = [];
+  const stderrChunks: string[] = [];
+  const result = await runTimedCommand({
+    args: [
+      "-e",
+      "process.stdout.write('streamed stdout'); process.stderr.write('streamed stderr');",
+    ],
+    command: process.execPath,
+    cwd: process.cwd(),
+    env: process.env,
+    onStderrChunk(chunk) {
+      stderrChunks.push(chunk);
+    },
+    onStdoutChunk(chunk) {
+      stdoutChunks.push(chunk);
+    },
+    timeoutSeconds: 1,
+  });
+
+  assert.equal(result.kind, "completed");
+  if (result.kind === "completed") {
+    assert.equal(result.stdout, "streamed stdout");
+    assert.equal(result.stderr, "streamed stderr");
+  }
+  assert.equal(stdoutChunks.join(""), "streamed stdout");
+  assert.equal(stderrChunks.join(""), "streamed stderr");
+});
+
 test("runTimedCommand clears stale kill timers after SIGTERM exits", async () => {
   if (process.platform === "win32") {
     return;

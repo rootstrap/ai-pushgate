@@ -106,11 +106,28 @@ export type LocalAiProviderResult =
   | LocalAiProviderFailure
   | LocalAiProviderReview;
 
+export type LocalAiProviderStreamEvent =
+  | {
+      kind: "progress";
+      message: string;
+    }
+  | {
+      kind: "response-text-delta";
+      text: string;
+    };
+
+export interface LocalAiProviderStreamingOptions {
+  onEvent?: (event: LocalAiProviderStreamEvent) => void;
+  progress: boolean;
+  responseText: boolean;
+}
+
 export interface LocalAiProviderRunOptions {
   env: NodeJS.ProcessEnv;
   payload: LocalAiReviewPayload;
   providerConfig: ProviderConfig;
   repoRoot: string;
+  streaming?: LocalAiProviderStreamingOptions;
   timeoutSeconds: number;
 }
 
@@ -121,8 +138,15 @@ export type LocalAiProviderStructuredOutputCapability =
   | "jsonl_transport"
   | "text_fallback";
 
+export type LocalAiProviderStreamingCapability =
+  | "human_response_and_final_result"
+  | "progress_only"
+  | "none";
+
 export interface LocalAiProviderAdapter {
+  displayName: string;
   id: string;
+  streamingCapability: LocalAiProviderStreamingCapability;
   structuredOutputCapability: LocalAiProviderStructuredOutputCapability;
   runReview(
     options: LocalAiProviderRunOptions,

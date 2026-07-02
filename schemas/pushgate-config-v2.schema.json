@@ -272,6 +272,11 @@
           "enum": ["blocking", "advisory", "off"],
           "default": "blocking"
         },
+        "verbose": {
+          "description": "Whether local AI review streams human-readable provider response text while it runs.",
+          "type": "boolean",
+          "default": true
+        },
         "max_changed_lines": {
           "description": "Maximum total added plus deleted text lines before local AI review blocks the push.",
           "type": "integer",

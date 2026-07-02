@@ -121,6 +121,7 @@ version: 2
 ai:
   # Supported modes: blocking (default), advisory, off.
   mode: blocking
+  verbose: true              # stream provider response text during local AI review
   max_changed_lines: 500      # block push when changed text lines exceed this
   max_prompt_tokens: 12000    # approximate rendered prompt budget
   timeout_seconds: 120        # provider timeout before mode-specific failure handling
@@ -198,7 +199,7 @@ commands are argv arrays rather than shell strings. See
 full schema boundary, defaults, changed-file policy, and migration behavior for
 `.push-review.yml`.
 
-AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. Providers that support native JSON Schema, strict tool calls, or JSON mode can use stronger generation-time constraints in future adapters; current Claude and Copilot CLI adapters are text fallback providers, so Pushgate prompts them for the schema, safely repairs a small set of low-risk formatting damage, and rejects output that still does not match the contract.
+AI review output is provider-independent. Pushgate validates every provider response against the same local schema before consuming findings. When available, provider response text streams in the transcript while the provider runs; only the final `Review findings` section controls whether the push passes, warns, or blocks.
 
 ## Available templates
 
