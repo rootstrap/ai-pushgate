@@ -17,6 +17,8 @@ import type {
   DeterministicTranscriptSummary,
   LocalAiSkipReason,
   LocalAiTranscriptEvent,
+  ReviewTargetTranscriptDiagnostic,
+  ReviewTargetTranscriptSelection,
   WarningConfirmationPhase,
 } from "./events.js";
 
@@ -32,6 +34,12 @@ export interface LocalAiTranscript {
   writeEvents(events: readonly LocalAiTranscriptEvent[]): void;
   writeSection(): void;
   writeSkipped(options: { reason: LocalAiSkipReason }): void;
+}
+
+export interface ReviewTargetTranscript {
+  writeDiagnostics(diagnostics: readonly ReviewTargetTranscriptDiagnostic[]): void;
+  writeSelected(selection: ReviewTargetTranscriptSelection): void;
+  writeUnavailable(options: { message: string }): void;
 }
 
 export interface WarningConfirmationTranscript {
@@ -54,6 +62,7 @@ export interface PushgateTranscript {
   deterministic: DeterministicTranscript;
   localAi: LocalAiTranscript;
   push: PushTranscript;
+  reviewTarget: ReviewTargetTranscript;
   warningConfirmation: WarningConfirmationTranscript;
 }
 
@@ -64,6 +73,7 @@ export function createPushgateTranscript(
     deterministic: createDeterministicTranscript(stdout),
     localAi: createLocalAiTranscript(stdout),
     push: createPushTranscript(stdout),
+    reviewTarget: createReviewTargetTranscript(stdout),
     warningConfirmation: createWarningConfirmationTranscript(stdout),
   };
 }
@@ -297,6 +307,62 @@ interface LocalAiStreamingTranscriptState {
   waitSpinnerFrame: number;
   waitSpinnerLabel?: string;
   waitSpinnerTimer?: NodeJS.Timeout;
+}
+
+function createReviewTargetTranscript(
+  stdout: NodeJS.WritableStream,
+): ReviewTargetTranscript {
+  let sectionWritten = false;
+
+  return {
+    writeDiagnostics(diagnostics) {
+      if (diagnostics.length === 0) {
+        return;
+      }
+
+      ensureSection();
+
+      for (const diagnostic of diagnostics) {
+        writeResultRow(
+          stdout,
+          diagnostic.level === "warning" ? "warning" : "info",
+          "Review target",
+          diagnostic.message,
+        );
+
+        if (diagnostic.tip) {
+          writeDetail(stdout, diagnostic.tip);
+        }
+      }
+    },
+
+    writeSelected(selection) {
+      ensureSection();
+      writeDetail(stdout, `Review target: ${selection.label}`);
+      writeDetail(stdout, `Review range: ${selection.reviewRange}`);
+      writeDetail(stdout, `Scan range: ${selection.scanRange}`);
+      writeLine(stdout);
+    },
+
+    writeUnavailable(options) {
+      ensureSection();
+      writeLine(stdout, options.message);
+      writeLine(
+        stdout,
+        "Push blocked because Review Target Selection could not be collected.",
+      );
+      writeLine(stdout);
+    },
+  };
+
+  function ensureSection(): void {
+    if (sectionWritten) {
+      return;
+    }
+
+    writeSection(stdout, "Review target");
+    sectionWritten = true;
+  }
 }
 
 function createWarningConfirmationTranscript(

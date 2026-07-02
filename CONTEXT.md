@@ -33,11 +33,19 @@ The repository-owned configuration that defines how Pushgate should evaluate pus
 _Avoid_: settings file, config blob
 
 **Target Branch**:
-The branch or ref a push is reviewed against when Pushgate determines changed files.
+The configured default branch or ref Pushgate starts from when selecting a review target.
 _Avoid_: base branch, main branch
 
+**Review Target**:
+The branch, ref, or commit selected for this push before Pushgate determines changed files.
+_Avoid_: base branch, comparison branch
+
+**Review Target Selection**:
+The explicit local choice Pushgate asks for when several review targets could be correct.
+_Avoid_: automatic base switching, branch guessing
+
 **Changed File**:
-A repository file whose path or content differs from the target branch for the push being evaluated.
+A repository file whose path or content differs from the selected review target for the push being evaluated.
 _Avoid_: staged file, touched file
 
 **Changed-File Resolution**:
@@ -99,6 +107,10 @@ _Avoid_: validation rule, safety check
 **Skip Control**:
 A one-push instruction that bypasses all Pushgate work or only local AI review.
 _Avoid_: bypass flag, disable switch
+
+**Review Target Override**:
+A one-push instruction that selects the review target without terminal interaction.
+_Avoid_: persisted target, saved branch choice
 
 **Warning Confirmation**:
 The explicit developer acknowledgement required before Pushgate allows a push to continue after warning results.

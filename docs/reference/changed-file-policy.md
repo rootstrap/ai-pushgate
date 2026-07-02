@@ -5,22 +5,51 @@ into the file and range facts Pushgate phases consume.
 
 ## Resolution Contract
 
-`resolveChangedFiles` receives a repository root, `review.target_branch`, and
-`ignore_paths`. It returns one `ChangedFileResolution`:
+Before `resolveChangedFiles` runs, the workflow selects one review target for
+the push. In the simple case that target is `review.target_branch`. When local
+state is ambiguous, Pushgate asks the developer to choose from the configured
+target, the fetched remote target, the destination branch tip for incremental
+push review, likely stacked remote ancestors, or an advanced custom ref.
+
+`resolveChangedFiles` receives a repository root, the selected review target,
+and `ignore_paths`. It returns one `ChangedFileResolution`:
 
 | Field | Meaning |
 |---|---|
-| `targetRef` | Configured target branch or ref. |
-| `targetCommit` | Commit selected by the configured target ref at resolution time. |
+| `targetRef` | Selected review target branch, ref, or commit. |
+| `targetCommit` | Commit selected by the review target at resolution time. |
 | `diffBase` | Merge base selected by the `<target>...HEAD` diff contract. |
 | `files` | Globally filtered changed files for deterministic and AI consumers. |
 | `reviewRange` | Git range used to prepare human-readable local AI review context. |
 | `scanRange` | Git range used by deterministic scanners that inspect pushed commits. |
 
-The target ref must already exist locally. Pushgate fails with an explicit
-diagnostic if the ref is missing or there is no usable merge base with `HEAD`.
-It does not fetch, guess a remote variant, or switch to a different history
-range.
+The review target must already exist in local Git state. Pushgate fails with an
+explicit diagnostic if the ref is missing or there is no usable merge base with
+`HEAD`. It does not fetch or silently switch to a different history range.
+
+## Review Target Selection
+
+Pushgate compares the configured target branch with its remote counterpart when
+both refs exist locally. It maps `main` to `main@{upstream}` first, then falls
+back to `<push-remote>/main`. It warns when the configured target is behind or
+diverged from the fetched remote-tracking target and suggests running
+`git fetch`.
+
+Pushgate prompts for a review target only when changed-file resolution is needed
+and one of these ambiguities exists:
+
+- the configured target is behind or diverged from its fetched remote target
+- the destination branch already exists, so incremental review is possible
+- likely stacked bases exist among remote branches whose tips are ancestors of
+  `HEAD`
+
+For incremental review, pre-push stdin's remote object id is preferred over a
+remote-tracking ref. If stdin is unavailable or incomplete, Pushgate falls back
+to `<push-remote>/<current-branch>` when that ref exists locally.
+
+`git -c pushgate.review-target=<ref> push` selects a review target for one push
+and skips the terminal selection prompt. Diagnostics still print when Pushgate
+can determine that the configured target is stale.
 
 ## Range Semantics
 

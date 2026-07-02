@@ -32,6 +32,7 @@ Architecture decisions live in [ADR](./adr/):
 - [0004 - Centralized Changed-File Resolution](./adr/0004-centralized-changed-file-resolution.md)
 - [0005 - Provider-Neutral Local AI Review Contract](./adr/0005-provider-neutral-local-ai-review-contract.md)
 - [0006 - Checked-In Generated Runner](./adr/0006-checked-in-generated-runner.md)
+- [0007 - Explicit Review Target Selection](./adr/0007-explicit-review-target-selection.md)
 
 ## Reference
 

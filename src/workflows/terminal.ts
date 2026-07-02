@@ -1,7 +1,17 @@
 import { closeSync, openSync, readSync, writeSync } from "node:fs";
 
 export interface InteractiveTerminal {
+  choose?(
+    question: string,
+    choices: readonly InteractiveTerminalChoice[],
+  ): number;
   confirm(question: string): boolean;
+  prompt?(question: string): string;
+}
+
+export interface InteractiveTerminalChoice {
+  detail?: string;
+  label: string;
 }
 
 interface TerminalFileDescriptors {
@@ -26,10 +36,67 @@ export class InteractiveTerminalError extends Error {
 
 export function createInteractiveTerminal(): InteractiveTerminal {
   return {
+    choose(question, choices) {
+      return chooseWithInteractiveTerminal(question, choices);
+    },
     confirm(question) {
       return confirmWithInteractiveTerminal(question);
     },
+    prompt(question) {
+      return promptWithInteractiveTerminal(question);
+    },
   };
+}
+
+function chooseWithInteractiveTerminal(
+  question: string,
+  choices: readonly InteractiveTerminalChoice[],
+): number {
+  if (choices.length === 0) {
+    throw new InteractiveTerminalError("No terminal choices were available.");
+  }
+
+  let terminal: TerminalFileDescriptors | undefined;
+
+  try {
+    terminal = openInteractiveTerminal();
+
+    for (;;) {
+      writeSync(terminal.outputFd, `${question}\n`);
+
+      for (const [index, choice] of choices.entries()) {
+        const detail = choice.detail ? ` - ${choice.detail}` : "";
+        writeSync(
+          terminal.outputFd,
+          `  ${String(index + 1)}. ${choice.label}${detail}\n`,
+        );
+      }
+
+      writeSync(terminal.outputFd, `Select 1-${String(choices.length)}: `);
+
+      const answer = readLineSync(terminal.inputFd).trim();
+      const selected = Number.parseInt(answer, 10);
+
+      if (
+        Number.isInteger(selected) &&
+        String(selected) === answer &&
+        selected >= 1 &&
+        selected <= choices.length
+      ) {
+        return selected - 1;
+      }
+
+      writeSync(terminal.outputFd, "Please enter one of the listed numbers.\n");
+    }
+  } catch (error) {
+    if (error instanceof InteractiveTerminalError) {
+      throw error;
+    }
+
+    throw new InteractiveTerminalError("No interactive terminal is available.");
+  } finally {
+    terminal?.close();
+  }
 }
 
 function confirmWithInteractiveTerminal(question: string): boolean {
@@ -56,6 +123,24 @@ function confirmWithInteractiveTerminal(question: string): boolean {
         "Please answer `y` or `n`.\n",
       );
     }
+  } catch (error) {
+    if (error instanceof InteractiveTerminalError) {
+      throw error;
+    }
+
+    throw new InteractiveTerminalError("No interactive terminal is available.");
+  } finally {
+    terminal?.close();
+  }
+}
+
+function promptWithInteractiveTerminal(question: string): string {
+  let terminal: TerminalFileDescriptors | undefined;
+
+  try {
+    terminal = openInteractiveTerminal();
+    writeSync(terminal.outputFd, `${question} `);
+    return readLineSync(terminal.inputFd).trim();
   } catch (error) {
     if (error instanceof InteractiveTerminalError) {
       throw error;

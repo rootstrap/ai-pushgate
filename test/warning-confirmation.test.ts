@@ -7,6 +7,11 @@ import {
   createTerminalWarningConfirmer,
   WarningConfirmationError,
 } from "../src/workflows/warning-confirmation.js";
+import {
+  createTerminalReviewTargetSelector,
+  REVIEW_TARGET_CONFIG_KEY,
+  ReviewTargetSelectionError,
+} from "../src/workflows/review-target-selection.js";
 
 test("terminal warning confirmer asks the default-no push question through the terminal", async () => {
   const questions: string[] = [];
@@ -47,6 +52,35 @@ test("terminal warning confirmer maps terminal unavailability to a warning confi
         error.message,
         /Warning confirmation required for local AI review, but no interactive terminal is available/,
       );
+      return true;
+    },
+  );
+});
+
+test("terminal review target selector fails closed without interactive choice support", async () => {
+  const terminal: InteractiveTerminal = {
+    confirm() {
+      return false;
+    },
+  };
+  const selector = createTerminalReviewTargetSelector({ terminal });
+
+  await assert.rejects(
+    () =>
+      selector({
+        candidates: [
+          {
+            label: "main",
+            ref: "main",
+            source: "configured",
+          },
+        ],
+        diagnostics: [],
+      }),
+    (error) => {
+      assert.ok(error instanceof ReviewTargetSelectionError);
+      assert.match(error.message, /no interactive terminal is available/);
+      assert.match(error.message, new RegExp(REVIEW_TARGET_CONFIG_KEY));
       return true;
     },
   );
