@@ -27447,11 +27447,11 @@ async function runLocalAiReview(options) {
   const transcript = options.transcript ?? createLocalAiTranscript(process.stdout);
   const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
   if (providerRuntime.kind === "provider-error") {
-    return renderVerdict(
-      options.aiConfig.mode,
-      providerRuntime.result,
+    return renderVerdict({
+      aiMode: options.aiConfig.mode,
+      result: providerRuntime.result,
       transcript
-    );
+    });
   }
   const changedFileGuardrail = evaluateChangedFileGuardrails({
     changedFiles: options.changedFileResolution.files,
@@ -27517,29 +27517,31 @@ async function runLocalAiReview(options) {
       providerLabel: providerRuntime.providerDisplayName
     }
   ]);
-  return renderVerdict(
-    options.aiConfig.mode,
-    await providerRuntime.runReview({
-      env: options.env ?? process.env,
-      payload,
-      repoRoot: options.repoRoot,
-      streaming: {
-        progress: true,
-        responseText: responseTextRequested,
-        onEvent(event) {
-          providerResponseStarted = renderProviderStreamEvent({
-            event,
-            providerLabel: providerRuntime.providerDisplayName,
-            responseTextRequested,
-            responseStarted: providerResponseStarted,
-            transcript
-          });
-        }
-      },
-      timeoutSeconds: options.aiConfig.timeout_seconds
-    }),
+  const providerResult = await providerRuntime.runReview({
+    env: options.env ?? process.env,
+    payload,
+    repoRoot: options.repoRoot,
+    streaming: {
+      progress: true,
+      responseText: responseTextRequested,
+      onEvent(event) {
+        providerResponseStarted = renderProviderStreamEvent({
+          event,
+          providerLabel: providerRuntime.providerDisplayName,
+          responseTextRequested,
+          responseStarted: providerResponseStarted,
+          transcript
+        });
+      }
+    },
+    timeoutSeconds: options.aiConfig.timeout_seconds
+  });
+  return renderVerdict({
+    aiMode: options.aiConfig.mode,
+    emptyProviderResponseLabel: responseTextRequested && !providerResponseStarted && providerResult.kind === "review" ? providerRuntime.providerDisplayName : void 0,
+    result: providerResult,
     transcript
-  );
+  });
 }
 function renderProviderStreamEvent(options) {
   if (options.event.kind === "progress") {
@@ -27578,13 +27580,25 @@ function renderProviderStreamEvent(options) {
   ]);
   return true;
 }
-function renderVerdict(aiMode, result, transcript) {
-  const verdict = buildLocalAiVerdict(aiMode, result);
-  transcript.writeEvents([
-    { kind: "provider-wait-stop" },
-    { kind: "validated-findings-start" }
-  ]);
-  transcript.writeEvents(verdict.transcriptEvents);
+function renderVerdict(options) {
+  const verdict = buildLocalAiVerdict(options.aiMode, options.result);
+  const preVerdictEvents = [
+    { kind: "provider-wait-stop" }
+  ];
+  if (options.emptyProviderResponseLabel) {
+    preVerdictEvents.push(
+      {
+        kind: "provider-response-start",
+        providerLabel: options.emptyProviderResponseLabel
+      },
+      {
+        kind: "provider-response-empty"
+      }
+    );
+  }
+  preVerdictEvents.push({ kind: "validated-findings-start" });
+  options.transcript.writeEvents(preVerdictEvents);
+  options.transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,
     warningCount: verdict.warningCount

@@ -32,9 +32,10 @@ Current deliberate limits:
 - Streamed provider response text is terminal-only and is not persisted.
 - Provider response text is terminal-sanitized, but not length-truncated.
 - Provider adapters may differ in streaming capability; unsupported providers
-  fall back to progress and final validated findings.
-- TTY spinners and idle heartbeats are future transcript polish, not part of the
-  first streaming contract.
+  fall back to progress and final review findings.
+- TTY output includes a provider wait spinner before response text starts; idle
+  heartbeats are future transcript polish, not part of the first streaming
+  contract.
 
 ## Guardrails
 

@@ -1215,6 +1215,71 @@ test("streams Claude response text before validated findings", async () => {
   });
 });
 
+test("renders an empty Claude response section when no streamable text arrives", async () => {
+  await withAiRepo(async (repoRoot) => {
+    const binDir = join(repoRoot, "bin");
+    const output = captureOutput();
+
+    await mkdir(binDir, { recursive: true });
+    await writeFile(
+      join(binDir, "claude"),
+      [
+        "#!/usr/bin/env bash",
+        "set -eu",
+        "cat > /dev/null",
+        "cat <<'EOF'",
+        claudeStreamJsonOutput({
+          deltas: [],
+          structuredOutput: {
+            schema_version: 1,
+            findings: [],
+          },
+        }),
+        "EOF",
+      ].join("\n"),
+    );
+    await chmod(join(binDir, "claude"), 0o755);
+
+    const changedFileResolution = await resolveChangedFiles({
+      repoRoot,
+      targetBranch: "main",
+      ignorePaths: [],
+    });
+    const result = await runLocalAiReview({
+      aiConfig: {
+        mode: "blocking",
+        verbose: true,
+        max_changed_lines: 500,
+        max_prompt_tokens: 12_000,
+        timeout_seconds: 120,
+        provider: "claude",
+        providers: {
+          claude: {},
+        },
+      },
+      changedFileResolution,
+      env: {
+        ...sanitizeGitLocalEnv(process.env),
+        PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
+      },
+      repoRoot,
+      reviewConfig: {
+        context_lines: 10,
+        max_lines_for_full_file: 300,
+        target_branch: "main",
+      },
+      transcript: createLocalAiTranscript(output.stream),
+    });
+    const text = output.text();
+
+    assert.equal(result.exitCode, 0, text);
+    assert.match(
+      text,
+      /Claude response\n  No streamable response text was produced by this provider\.\n\nReview findings\n  \[ok\] No findings/,
+    );
+  });
+});
+
 test("streams Claude final JSONL response event without a trailing newline", async () => {
   await withAiRepo(async (repoRoot) => {
     const binDir = join(repoRoot, "bin");

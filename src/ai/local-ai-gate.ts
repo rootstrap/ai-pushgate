@@ -35,11 +35,11 @@ export async function runLocalAiReview(options: {
   const providerRuntime = resolveLocalAiProviderRuntime(options.aiConfig);
 
   if (providerRuntime.kind === "provider-error") {
-    return renderVerdict(
-      options.aiConfig.mode,
-      providerRuntime.result,
+    return renderVerdict({
+      aiMode: options.aiConfig.mode,
+      result: providerRuntime.result,
       transcript,
-    );
+    });
   }
 
   const changedFileGuardrail = evaluateChangedFileGuardrails({
@@ -116,29 +116,37 @@ export async function runLocalAiReview(options: {
     },
   ]);
 
-  return renderVerdict(
-    options.aiConfig.mode,
-    await providerRuntime.runReview({
-      env: options.env ?? process.env,
-      payload,
-      repoRoot: options.repoRoot,
-      streaming: {
-        progress: true,
-        responseText: responseTextRequested,
-        onEvent(event) {
-          providerResponseStarted = renderProviderStreamEvent({
-            event,
-            providerLabel: providerRuntime.providerDisplayName,
-            responseTextRequested,
-            responseStarted: providerResponseStarted,
-            transcript,
-          });
-        },
+  const providerResult = await providerRuntime.runReview({
+    env: options.env ?? process.env,
+    payload,
+    repoRoot: options.repoRoot,
+    streaming: {
+      progress: true,
+      responseText: responseTextRequested,
+      onEvent(event) {
+        providerResponseStarted = renderProviderStreamEvent({
+          event,
+          providerLabel: providerRuntime.providerDisplayName,
+          responseTextRequested,
+          responseStarted: providerResponseStarted,
+          transcript,
+        });
       },
-      timeoutSeconds: options.aiConfig.timeout_seconds,
-    }),
+    },
+    timeoutSeconds: options.aiConfig.timeout_seconds,
+  });
+
+  return renderVerdict({
+    aiMode: options.aiConfig.mode,
+    emptyProviderResponseLabel:
+      responseTextRequested &&
+      !providerResponseStarted &&
+      providerResult.kind === "review"
+        ? providerRuntime.providerDisplayName
+        : undefined,
+    result: providerResult,
     transcript,
-  );
+  });
 }
 
 function renderProviderStreamEvent(options: {
@@ -190,17 +198,33 @@ function renderProviderStreamEvent(options: {
   return true;
 }
 
-function renderVerdict(
-  aiMode: AiConfig["mode"],
-  result: LocalAiProviderResult,
-  transcript: LocalAiTranscript,
-): LocalAiRunSummary {
-  const verdict = buildLocalAiVerdict(aiMode, result);
-  transcript.writeEvents([
+function renderVerdict(options: {
+  aiMode: AiConfig["mode"];
+  emptyProviderResponseLabel?: string;
+  result: LocalAiProviderResult;
+  transcript: LocalAiTranscript;
+}): LocalAiRunSummary {
+  const verdict = buildLocalAiVerdict(options.aiMode, options.result);
+  const preVerdictEvents: LocalAiTranscriptEvent[] = [
     { kind: "provider-wait-stop" },
-    { kind: "validated-findings-start" },
-  ]);
-  transcript.writeEvents(verdict.transcriptEvents);
+  ];
+
+  if (options.emptyProviderResponseLabel) {
+    preVerdictEvents.push(
+      {
+        kind: "provider-response-start",
+        providerLabel: options.emptyProviderResponseLabel,
+      },
+      {
+        kind: "provider-response-empty",
+      },
+    );
+  }
+
+  preVerdictEvents.push({ kind: "validated-findings-start" });
+
+  options.transcript.writeEvents(preVerdictEvents);
+  options.transcript.writeEvents(verdict.transcriptEvents);
   return {
     exitCode: verdict.exitCode,
     warningCount: verdict.warningCount,
