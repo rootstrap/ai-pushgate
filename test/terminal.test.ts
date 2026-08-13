@@ -79,6 +79,19 @@ test("interactive terminal choice prompt still accepts numeric selection", async
   assert.equal(selected, 2);
 });
 
+test("interactive terminal preserves input typed immediately after escape", async () => {
+  let selected = -1;
+
+  await withTerminalInput("\x1B2\n", (terminal) => {
+    selected = terminal.choose?.("Choose review target", [
+      { label: "main" },
+      { label: "origin/main" },
+    ]) ?? -1;
+  });
+
+  assert.equal(selected, 1);
+});
+
 async function withTempDir<T>(
   callback: (tempDir: string) => Promise<T>,
 ): Promise<T> {

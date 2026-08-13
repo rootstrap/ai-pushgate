@@ -28373,6 +28373,9 @@ function readChoiceKey(fd) {
         return { kind: "down" };
       }
     }
+    if (second !== null && second !== "[" && second !== "O") {
+      pendingInputByFd.set(fd, second);
+    }
   }
   return { kind: "ignored" };
 }
@@ -28568,6 +28571,7 @@ function closeFd(fd) {
 var REVIEW_TARGET_CONFIG_KEY = "pushgate.review-target";
 var MAX_STACKED_CANDIDATES = 3;
 var MAX_STACKED_DISTANCE_CANDIDATES = 25;
+var FULL_OBJECT_NAME = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
 var ZERO_OBJECT = /^0+$/;
 var ReviewTargetSelectionError = class extends Error {
   constructor(message) {
@@ -28590,6 +28594,11 @@ async function selectReviewTarget(options) {
   const discovery = await discoverReviewTargets(options);
   options.onDiagnostics?.(discovery.diagnostics);
   if (overrideRef) {
+    if (!await resolveCommit(options.repoRoot, overrideRef)) {
+      throw new ReviewTargetSelectionError(
+        `One-push override ${REVIEW_TARGET_CONFIG_KEY}="${overrideRef}" cannot be resolved locally. Check the ref and retry.`
+      );
+    }
     return {
       diagnostics: discovery.diagnostics,
       label: overrideRef,
@@ -28733,22 +28742,19 @@ async function discoverReviewTargets(options) {
     pushRemote: options.hookContext.remote,
     targetRemoteRef: resolvedTargetRemote?.ref
   });
-  const candidates = dedupeCandidatesByCommit([
+  const candidatePool = [
     configuredTarget,
     resolvedTargetRemote,
     incremental,
     ...stacked
-  ]).map((candidate) => ({
+  ];
+  const recommended = recommendedCandidate({
+    candidates: candidatePool,
+    freshness
+  });
+  const candidates = dedupeCandidatesByCommit(candidatePool).map((candidate) => ({
     ...candidate,
-    recommended: candidate === recommendedCandidate({
-      candidates: [
-        configuredTarget,
-        resolvedTargetRemote,
-        incremental,
-        ...stacked
-      ],
-      freshness
-    })
+    recommended: candidate === recommended
   }));
   return {
     candidates,
@@ -28797,8 +28803,10 @@ async function compareCommits(repoRoot, localCommit, remoteCommit) {
   if (localCommit === remoteCommit) {
     return "same";
   }
-  const localIsAncestor = await isAncestor(repoRoot, localCommit, remoteCommit);
-  const remoteIsAncestor = await isAncestor(repoRoot, remoteCommit, localCommit);
+  const [localIsAncestor, remoteIsAncestor] = await Promise.all([
+    isAncestor(repoRoot, localCommit, remoteCommit),
+    isAncestor(repoRoot, remoteCommit, localCommit)
+  ]);
   if (localIsAncestor) {
     return "behind";
   }
@@ -28985,7 +28993,7 @@ async function resolveCurrentBranch(repoRoot) {
   return result.code === 0 ? result.stdout.trim() : void 0;
 }
 function isSimpleBranchName(ref) {
-  return !ref.startsWith("refs/") && !ref.includes("..") && !ref.includes("@{") && !ref.includes(":") && !/^[0-9a-f]{40}$/i.test(ref);
+  return !ref.startsWith("refs/") && !ref.includes("..") && !ref.includes("@{") && !ref.includes(":") && !FULL_OBJECT_NAME.test(ref);
 }
 function isRemoteRefForPushRemote(ref, pushRemote) {
   return ref === pushRemote || ref.startsWith(`${pushRemote}/`) || ref.startsWith("refs/remotes/");
@@ -28994,7 +29002,7 @@ function isZeroObjectName(value) {
   return ZERO_OBJECT.test(value);
 }
 function isLikelyObjectName(value) {
-  return /^[0-9a-f]{40,64}$/i.test(value);
+  return FULL_OBJECT_NAME.test(value);
 }
 function fetchTip(remote, targetRef) {
   const fetchCommand = remote ? `git fetch ${remote}` : "git fetch";

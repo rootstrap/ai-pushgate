@@ -289,6 +289,10 @@ function readChoiceKey(fd: number): ChoiceKey {
         return { kind: "down" };
       }
     }
+
+    if (second !== null && second !== "[" && second !== "O") {
+      pendingInputByFd.set(fd, second);
+    }
   }
 
   return { kind: "ignored" };

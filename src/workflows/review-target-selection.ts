@@ -73,6 +73,7 @@ type TargetFreshness = "ahead" | "behind" | "diverged" | "missing" | "same";
 
 const MAX_STACKED_CANDIDATES = 3;
 const MAX_STACKED_DISTANCE_CANDIDATES = 25;
+const FULL_OBJECT_NAME = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
 const ZERO_OBJECT = /^0+$/;
 
 export class ReviewTargetSelectionError extends Error {
@@ -102,6 +103,12 @@ export async function selectReviewTarget(
   options.onDiagnostics?.(discovery.diagnostics);
 
   if (overrideRef) {
+    if (!(await resolveCommit(options.repoRoot, overrideRef))) {
+      throw new ReviewTargetSelectionError(
+        `One-push override ${REVIEW_TARGET_CONFIG_KEY}="${overrideRef}" cannot be resolved locally. Check the ref and retry.`,
+      );
+    }
+
     return {
       diagnostics: discovery.diagnostics,
       label: overrideRef,
@@ -296,22 +303,19 @@ async function discoverReviewTargets(options: SelectReviewTargetOptions): Promis
     targetRemoteRef: resolvedTargetRemote?.ref,
   });
 
-  const candidates = dedupeCandidatesByCommit([
+  const candidatePool = [
     configuredTarget,
     resolvedTargetRemote,
     incremental,
     ...stacked,
-  ]).map((candidate) => ({
+  ];
+  const recommended = recommendedCandidate({
+    candidates: candidatePool,
+    freshness,
+  });
+  const candidates = dedupeCandidatesByCommit(candidatePool).map((candidate) => ({
     ...candidate,
-    recommended: candidate === recommendedCandidate({
-      candidates: [
-        configuredTarget,
-        resolvedTargetRemote,
-        incremental,
-        ...stacked,
-      ],
-      freshness,
-    }),
+    recommended: candidate === recommended,
   }));
 
   return {
@@ -388,8 +392,10 @@ async function compareCommits(
     return "same";
   }
 
-  const localIsAncestor = await isAncestor(repoRoot, localCommit, remoteCommit);
-  const remoteIsAncestor = await isAncestor(repoRoot, remoteCommit, localCommit);
+  const [localIsAncestor, remoteIsAncestor] = await Promise.all([
+    isAncestor(repoRoot, localCommit, remoteCommit),
+    isAncestor(repoRoot, remoteCommit, localCommit),
+  ]);
 
   if (localIsAncestor) {
     return "behind";
@@ -690,7 +696,7 @@ function isSimpleBranchName(ref: string): boolean {
     !ref.includes("..") &&
     !ref.includes("@{") &&
     !ref.includes(":") &&
-    !/^[0-9a-f]{40}$/i.test(ref)
+    !FULL_OBJECT_NAME.test(ref)
   );
 }
 
@@ -707,7 +713,7 @@ function isZeroObjectName(value: string): boolean {
 }
 
 function isLikelyObjectName(value: string): boolean {
-  return /^[0-9a-f]{40,64}$/i.test(value);
+  return FULL_OBJECT_NAME.test(value);
 }
 
 function fetchTip(remote: string | undefined, targetRef: string): string {

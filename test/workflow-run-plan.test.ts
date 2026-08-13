@@ -284,6 +284,33 @@ test("one-push review target override skips interactive selection", async () => 
   });
 });
 
+test("one-push review target override reports an invalid ref explicitly", async () => {
+  await withIncrementalPushRepo(async (repoRoot, commits) => {
+    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    await checkedRun(
+      "git",
+      ["config", "pushgate.review-target", "does-not-exist"],
+      { cwd: repoRoot },
+    );
+
+    const result = await runWorkflowInRepo(repoRoot, {
+      hookArgs: ["origin", "git@example.test:repo.git"],
+      reviewTargetSelector: async () => {
+        throw new Error("override should skip review target selection");
+      },
+      stdin: Readable.from(
+        `refs/heads/feature ${commits.head} refs/heads/feature ${commits.remoteFeature}\n`,
+      ),
+    });
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /pushgate\.review-target="does-not-exist"/);
+    assert.match(result.stdout, /cannot be resolved locally/);
+    assert.doesNotMatch(result.stdout, /Configured review\.target_branch/);
+    assert.equal(result.stderr, "");
+  });
+});
+
 test("multi-branch pushes fail before choosing one review target", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
     await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
