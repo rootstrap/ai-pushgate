@@ -9,3 +9,4 @@ and the result of a real trade-off.
 - [0004 - Centralized Changed-File Resolution](./0004-centralized-changed-file-resolution.md)
 - [0005 - Provider-Neutral Local AI Review Contract](./0005-provider-neutral-local-ai-review-contract.md)
 - [0006 - Checked-In Generated Runner](./0006-checked-in-generated-runner.md)
+- [0007 - Explicit Review Target Selection](./0007-explicit-review-target-selection.md)

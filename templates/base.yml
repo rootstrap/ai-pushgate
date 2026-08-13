@@ -41,7 +41,7 @@ ai:
     #   model: auto
 
 review:
-  # Branch to diff against when collecting changes.
+  # Configured default review target.
   target_branch: main
 
   # Lines of surrounding context included in the diff sent to the provider.

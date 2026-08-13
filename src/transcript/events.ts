@@ -111,6 +111,18 @@ export type LocalAiTranscriptEvent =
       kind: "review-blocked";
     };
 
+export interface ReviewTargetTranscriptDiagnostic {
+  level: "info" | "warning";
+  message: string;
+  tip?: string;
+}
+
+export interface ReviewTargetTranscriptSelection {
+  label: string;
+  reviewRange: string;
+  scanRange: string;
+}
+
 export type WarningConfirmationPhase =
   | "deterministic checks"
   | "local AI review";

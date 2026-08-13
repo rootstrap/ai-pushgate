@@ -10013,6 +10013,30 @@ async function readGitBooleanConfig(repoRoot, key, env = process.env, options = 
     `Could not read Git config ${key}. git config exited with ${String(result.code)}.${trimmedStderr ? ` ${trimmedStderr}` : ""}`
   );
 }
+async function readGitStringConfig(repoRoot, key, env = process.env, options = {}) {
+  let result;
+  try {
+    result = await runGit(repoRoot, ["config", "--get", key], {
+      env,
+      preserveGitConfigOverlay: options.preserveGitConfigOverlay
+    });
+  } catch (error51) {
+    throw new GitConfigError(
+      `Failed to read Git config ${key}: ${errorMessage(error51)}`
+    );
+  }
+  const trimmedStdout = result.stdout.trim();
+  const trimmedStderr = result.stderr.trim();
+  if (result.code === 0) {
+    return trimmedStdout;
+  }
+  if (result.code === 1 && trimmedStderr === "") {
+    return void 0;
+  }
+  throw new GitConfigError(
+    `Could not read Git config ${key}. git config exited with ${String(result.code)}.${trimmedStderr ? ` ${trimmedStderr}` : ""}`
+  );
+}
 function errorMessage(error51) {
   return error51 instanceof Error ? error51.message : String(error51);
 }
@@ -10250,6 +10274,7 @@ function createPushgateTranscript(stdout) {
     deterministic: createDeterministicTranscript(stdout),
     localAi: createLocalAiTranscript(stdout),
     push: createPushTranscript(stdout),
+    reviewTarget: createReviewTargetTranscript(stdout),
     warningConfirmation: createWarningConfirmationTranscript(stdout)
   };
 }
@@ -10417,6 +10442,51 @@ function createLocalAiTranscript(stdout) {
       );
     }
   };
+}
+function createReviewTargetTranscript(stdout) {
+  let sectionWritten = false;
+  return {
+    writeDiagnostics(diagnostics) {
+      if (diagnostics.length === 0) {
+        return;
+      }
+      ensureSection();
+      for (const diagnostic of diagnostics) {
+        writeResultRow(
+          stdout,
+          diagnostic.level === "warning" ? "warning" : "info",
+          "Review target",
+          diagnostic.message
+        );
+        if (diagnostic.tip) {
+          writeDetail(stdout, diagnostic.tip);
+        }
+      }
+    },
+    writeSelected(selection) {
+      ensureSection();
+      writeDetail(stdout, `Review target: ${selection.label}`);
+      writeDetail(stdout, `Review range: ${selection.reviewRange}`);
+      writeDetail(stdout, `Scan range: ${selection.scanRange}`);
+      writeLine(stdout);
+    },
+    writeUnavailable(options) {
+      ensureSection();
+      writeLine(stdout, options.message);
+      writeLine(
+        stdout,
+        "Push blocked because Review Target Selection could not be collected."
+      );
+      writeLine(stdout);
+    }
+  };
+  function ensureSection() {
+    if (sectionWritten) {
+      return;
+    }
+    writeSection(stdout, "Review target");
+    sectionWritten = true;
+  }
 }
 function createWarningConfirmationTranscript(stdout) {
   return {
@@ -28110,6 +28180,7 @@ function requireChangedFileResolution(changedFileResolution) {
 }
 
 // src/workflows/terminal.ts
+import { spawnSync } from "node:child_process";
 import { closeSync, openSync, readSync, writeSync } from "node:fs";
 var pendingInputByFd = /* @__PURE__ */ new Map();
 var InteractiveTerminalError = class extends Error {
@@ -28120,8 +28191,223 @@ var InteractiveTerminalError = class extends Error {
 };
 function createInteractiveTerminal() {
   return {
+    choose(question, choices) {
+      return chooseWithInteractiveTerminal(question, choices);
+    },
     confirm(question) {
       return confirmWithInteractiveTerminal(question);
+    },
+    prompt(question) {
+      return promptWithInteractiveTerminal(question);
+    }
+  };
+}
+function chooseWithInteractiveTerminal(question, choices) {
+  if (choices.length === 0) {
+    throw new InteractiveTerminalError("No terminal choices were available.");
+  }
+  let terminal;
+  try {
+    terminal = openInteractiveTerminal();
+    const rawMode = enableRawMode(terminal.inputFd);
+    try {
+      return chooseWithKeyNavigation(terminal, question, choices);
+    } finally {
+      rawMode.restore();
+    }
+  } catch (error51) {
+    if (error51 instanceof InteractiveTerminalError) {
+      throw error51;
+    }
+    throw new InteractiveTerminalError("No interactive terminal is available.");
+  } finally {
+    terminal?.close();
+  }
+}
+function chooseWithKeyNavigation(terminal, question, choices) {
+  let selectedIndex = 0;
+  let renderedLineCount = 0;
+  let numericInput = "";
+  let message;
+  const render = () => {
+    renderedLineCount = renderChoicePrompt({
+      choices,
+      message,
+      numericInput,
+      outputFd: terminal.outputFd,
+      previousLineCount: renderedLineCount,
+      question,
+      selectedIndex
+    });
+  };
+  render();
+  for (; ; ) {
+    const key = readChoiceKey(terminal.inputFd);
+    switch (key.kind) {
+      case "up":
+        selectedIndex = (selectedIndex - 1 + choices.length) % choices.length;
+        numericInput = "";
+        message = void 0;
+        render();
+        break;
+      case "down":
+        selectedIndex = (selectedIndex + 1) % choices.length;
+        numericInput = "";
+        message = void 0;
+        render();
+        break;
+      case "digit":
+        numericInput += key.value;
+        message = void 0;
+        render();
+        break;
+      case "backspace":
+        numericInput = numericInput.slice(0, -1);
+        message = void 0;
+        render();
+        break;
+      case "enter": {
+        if (!numericInput) {
+          clearChoicePrompt(terminal.outputFd, renderedLineCount);
+          return selectedIndex;
+        }
+        const selected = Number.parseInt(numericInput, 10);
+        if (selected >= 1 && selected <= choices.length) {
+          clearChoicePrompt(terminal.outputFd, renderedLineCount);
+          return selected - 1;
+        }
+        message = `Please enter a number from 1 to ${String(choices.length)}.`;
+        numericInput = "";
+        render();
+        break;
+      }
+      case "interrupt":
+        throw new InteractiveTerminalError("Terminal input was interrupted.");
+      case "ignored":
+        break;
+    }
+  }
+}
+function renderChoicePrompt(options) {
+  const lines = [
+    options.question,
+    ...options.choices.map((choice, index) => {
+      const detail = choice.detail ? ` - ${choice.detail}` : "";
+      const marker = index === options.selectedIndex ? ">" : " ";
+      return `${marker} ${String(index + 1)}. ${choice.label}${detail}`;
+    }),
+    "Use Up/Down arrows, Enter to select, or type a number."
+  ];
+  if (options.numericInput) {
+    lines.push(`Selection: ${options.numericInput}`);
+  }
+  if (options.message) {
+    lines.push(options.message);
+  }
+  rewriteTerminalBlock(options.outputFd, options.previousLineCount, lines);
+  return lines.length;
+}
+function rewriteTerminalBlock(outputFd, previousLineCount, lines) {
+  if (previousLineCount > 0) {
+    writeSync(outputFd, `\x1B[${String(previousLineCount)}A`);
+  }
+  for (const line of lines) {
+    writeSync(outputFd, `\r\x1B[2K${line}
+`);
+  }
+  for (let index = lines.length; index < previousLineCount; index += 1) {
+    writeSync(outputFd, "\r\x1B[2K\n");
+  }
+  if (previousLineCount > lines.length) {
+    writeSync(outputFd, `\x1B[${String(previousLineCount - lines.length)}A`);
+  }
+}
+function clearChoicePrompt(outputFd, lineCount) {
+  if (lineCount === 0) {
+    return;
+  }
+  writeSync(outputFd, `\x1B[${String(lineCount)}A`);
+  for (let index = 0; index < lineCount; index += 1) {
+    writeSync(outputFd, "\r\x1B[2K\n");
+  }
+  writeSync(outputFd, `\x1B[${String(lineCount)}A`);
+}
+function readChoiceKey(fd) {
+  const char = readCharSync(fd);
+  if (char === null) {
+    throw new InteractiveTerminalError("No terminal input was available.");
+  }
+  if (char === "") {
+    return { kind: "interrupt" };
+  }
+  if (char === "\n") {
+    return { kind: "enter" };
+  }
+  if (char === "\r") {
+    consumeOptionalLfAfterCarriageReturn(fd);
+    return { kind: "enter" };
+  }
+  if (char === "\x7F" || char === "\b") {
+    return { kind: "backspace" };
+  }
+  if (/^\d$/.test(char)) {
+    return { kind: "digit", value: char };
+  }
+  if (char === "\x1B") {
+    const second = readCharSync(fd);
+    if (second === "[") {
+      const third = readCharSync(fd);
+      if (third === "A") {
+        return { kind: "up" };
+      }
+      if (third === "B") {
+        return { kind: "down" };
+      }
+    }
+    if (second === "O") {
+      const third = readCharSync(fd);
+      if (third === "A") {
+        return { kind: "up" };
+      }
+      if (third === "B") {
+        return { kind: "down" };
+      }
+    }
+    if (second !== null && second !== "[" && second !== "O") {
+      pendingInputByFd.set(fd, second);
+    }
+  }
+  return { kind: "ignored" };
+}
+function enableRawMode(fd) {
+  if (process.platform === "win32") {
+    return noopRawMode();
+  }
+  const state = spawnSync("stty", ["-g"], {
+    encoding: "utf8",
+    stdio: [fd, "pipe", "ignore"]
+  });
+  if (state.status !== 0 || state.error || !state.stdout.trim()) {
+    return noopRawMode();
+  }
+  const savedState = state.stdout.trim();
+  const raw = spawnSync("stty", ["raw", "-echo"], {
+    stdio: [fd, "ignore", "ignore"]
+  });
+  if (raw.status !== 0 || raw.error) {
+    return noopRawMode();
+  }
+  return {
+    restore() {
+      spawnSync("stty", [savedState], {
+        stdio: [fd, "ignore", "ignore"]
+      });
+    }
+  };
+}
+function noopRawMode() {
+  return {
+    restore() {
     }
   };
 }
@@ -28143,6 +28429,21 @@ function confirmWithInteractiveTerminal(question) {
         "Please answer `y` or `n`.\n"
       );
     }
+  } catch (error51) {
+    if (error51 instanceof InteractiveTerminalError) {
+      throw error51;
+    }
+    throw new InteractiveTerminalError("No interactive terminal is available.");
+  } finally {
+    terminal?.close();
+  }
+}
+function promptWithInteractiveTerminal(question) {
+  let terminal;
+  try {
+    terminal = openInteractiveTerminal();
+    writeSync(terminal.outputFd, `${question} `);
+    return readLineSync(terminal.inputFd).trim();
   } catch (error51) {
     if (error51 instanceof InteractiveTerminalError) {
       throw error51;
@@ -28266,6 +28567,451 @@ function closeFd(fd) {
   }
 }
 
+// src/workflows/review-target-selection.ts
+var REVIEW_TARGET_CONFIG_KEY = "pushgate.review-target";
+var MAX_STACKED_CANDIDATES = 3;
+var MAX_STACKED_DISTANCE_CANDIDATES = 25;
+var FULL_OBJECT_NAME = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
+var ZERO_OBJECT = /^0+$/;
+var ReviewTargetSelectionError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = new.target.name;
+  }
+};
+async function selectReviewTarget(options) {
+  if (options.hookContext.branchUpdates.length > 1) {
+    throw new ReviewTargetSelectionError(
+      "Pushgate cannot choose one review target for a push that updates multiple branches. Push one branch at a time."
+    );
+  }
+  const overrideRef = await readGitStringConfig(
+    options.repoRoot,
+    REVIEW_TARGET_CONFIG_KEY,
+    options.env,
+    { preserveGitConfigOverlay: true }
+  );
+  const discovery = await discoverReviewTargets(options);
+  options.onDiagnostics?.(discovery.diagnostics);
+  if (overrideRef) {
+    if (!await resolveCommit(options.repoRoot, overrideRef)) {
+      throw new ReviewTargetSelectionError(
+        `One-push override ${REVIEW_TARGET_CONFIG_KEY}="${overrideRef}" cannot be resolved locally. Check the ref and retry.`
+      );
+    }
+    return {
+      diagnostics: discovery.diagnostics,
+      label: overrideRef,
+      prompted: false,
+      ref: overrideRef,
+      source: "override"
+    };
+  }
+  if (!discovery.promptRequired) {
+    const configured = discovery.candidates.find(
+      (candidate) => candidate.source === "configured"
+    );
+    if (!configured) {
+      throw new ReviewTargetSelectionError(
+        "Pushgate could not prepare the configured review target."
+      );
+    }
+    return {
+      diagnostics: discovery.diagnostics,
+      label: configured.label,
+      prompted: false,
+      ref: configured.ref,
+      source: configured.source
+    };
+  }
+  const selector = options.selector ?? createTerminalReviewTargetSelector();
+  const selected = await selector({
+    candidates: discovery.candidates,
+    diagnostics: discovery.diagnostics
+  });
+  return {
+    diagnostics: discovery.diagnostics,
+    label: selected.label,
+    prompted: true,
+    ref: selected.ref,
+    source: selected.source
+  };
+}
+function createTerminalReviewTargetSelector(options = {}) {
+  const terminal = options.terminal ?? createInteractiveTerminal();
+  return async (request) => {
+    if (!terminal.choose || !terminal.prompt) {
+      throw new ReviewTargetSelectionError(noInteractiveTerminalMessage());
+    }
+    try {
+      const choices = request.candidates.map(
+        (candidate) => ({
+          detail: candidate.detail,
+          label: candidate.recommended ? `${candidate.label} (recommended)` : candidate.label
+        })
+      );
+      choices.push({
+        detail: "advanced",
+        label: "Enter another ref"
+      });
+      const selectedIndex = terminal.choose("Choose review target", choices);
+      if (selectedIndex < request.candidates.length) {
+        const selected = request.candidates[selectedIndex];
+        if (!selected) {
+          throw new ReviewTargetSelectionError(
+            "Pushgate could not read the selected review target."
+          );
+        }
+        return selected;
+      }
+      const customRef = terminal.prompt("Review target ref:").trim();
+      if (!customRef) {
+        throw new ReviewTargetSelectionError(
+          "Pushgate needs a non-empty review target ref."
+        );
+      }
+      return {
+        label: customRef,
+        ref: customRef,
+        source: "custom"
+      };
+    } catch (error51) {
+      if (error51 instanceof ReviewTargetSelectionError) {
+        throw error51;
+      }
+      if (error51 instanceof InteractiveTerminalError) {
+        throw new ReviewTargetSelectionError(noInteractiveTerminalMessage());
+      }
+      throw error51;
+    }
+  };
+}
+async function discoverReviewTargets(options) {
+  const diagnostics = [];
+  const configuredTarget = await candidateForRef({
+    repoRoot: options.repoRoot,
+    detail: "configured review.target_branch",
+    label: options.configuredTargetRef,
+    ref: options.configuredTargetRef,
+    source: "configured"
+  });
+  const targetRemoteRef = await resolveTargetRemoteRef({
+    configuredTargetRef: options.configuredTargetRef,
+    pushRemote: options.hookContext.remote,
+    repoRoot: options.repoRoot
+  });
+  const targetRemote = targetRemoteRef && targetRemoteRef !== options.configuredTargetRef ? await candidateForRef({
+    repoRoot: options.repoRoot,
+    detail: "latest fetched target remote",
+    label: targetRemoteRef,
+    ref: targetRemoteRef,
+    source: "target-remote"
+  }) : null;
+  const resolvedTargetRemote = targetRemote?.commit ? targetRemote : null;
+  const freshness = configuredTarget.commit && resolvedTargetRemote?.commit ? await compareCommits(
+    options.repoRoot,
+    configuredTarget.commit,
+    resolvedTargetRemote.commit
+  ) : "missing";
+  const branchUpdate = options.hookContext.branchUpdates.length === 1 ? options.hookContext.branchUpdates[0] : void 0;
+  const currentBranch = branchUpdate ? branchUpdate.localBranch : await resolveCurrentBranch(options.repoRoot);
+  const fallbackCurrentRemoteRef = !branchUpdate && currentBranch && options.hookContext.remote ? `${options.hookContext.remote}/${currentBranch}` : void 0;
+  const incremental = branchUpdate ? await incrementalCandidateFromPrePush(options.repoRoot, branchUpdate) ?? await incrementalCandidateFromRemoteTrackingRef({
+    currentBranch,
+    currentRemoteRef: remoteTrackingRefForUpdate(
+      options.hookContext.remote,
+      branchUpdate
+    ),
+    repoRoot: options.repoRoot
+  }) : await incrementalCandidateFromRemoteTrackingRef({
+    currentBranch,
+    currentRemoteRef: fallbackCurrentRemoteRef,
+    repoRoot: options.repoRoot
+  });
+  const stacked = await findStackedCandidates({
+    currentRemoteRef: branchUpdate ? remoteTrackingRefForUpdate(options.hookContext.remote, branchUpdate) : fallbackCurrentRemoteRef,
+    repoRoot: options.repoRoot,
+    targetRemoteRef: resolvedTargetRemote?.ref
+  });
+  const promptRequired = freshness === "behind" || freshness === "diverged" || incremental !== null || stacked.length > 0;
+  appendFreshnessDiagnostic({
+    configuredTargetRef: options.configuredTargetRef,
+    diagnostics,
+    freshness,
+    promptRequired,
+    pushRemote: options.hookContext.remote,
+    targetRemoteRef: resolvedTargetRemote?.ref
+  });
+  const candidatePool = [
+    configuredTarget,
+    resolvedTargetRemote,
+    incremental,
+    ...stacked
+  ];
+  const recommended = recommendedCandidate({
+    candidates: candidatePool,
+    freshness
+  });
+  const candidates = dedupeCandidatesByCommit(candidatePool).map((candidate) => ({
+    ...candidate,
+    recommended: candidate === recommended
+  }));
+  return {
+    candidates,
+    diagnostics,
+    promptRequired
+  };
+}
+async function candidateForRef(options) {
+  return {
+    detail: options.detail,
+    label: options.label,
+    recommended: options.recommended,
+    ref: options.ref,
+    source: options.source,
+    commit: await resolveCommit(options.repoRoot, options.ref)
+  };
+}
+async function resolveCommit(repoRoot, ref) {
+  const result = await runGit(repoRoot, [
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    `${ref}^{commit}`
+  ]);
+  return result.code === 0 ? result.stdout.trim() : void 0;
+}
+async function resolveTargetRemoteRef(options) {
+  const upstreamResult = await runGit(options.repoRoot, [
+    "rev-parse",
+    "--abbrev-ref",
+    "--symbolic-full-name",
+    `${options.configuredTargetRef}@{upstream}`
+  ]);
+  if (upstreamResult.code === 0) {
+    const upstream = upstreamResult.stdout.trim();
+    if (upstream) {
+      return upstream;
+    }
+  }
+  if (!options.pushRemote || isRemoteRefForPushRemote(options.configuredTargetRef, options.pushRemote) || !isSimpleBranchName(options.configuredTargetRef)) {
+    return null;
+  }
+  return `${options.pushRemote}/${options.configuredTargetRef}`;
+}
+async function compareCommits(repoRoot, localCommit, remoteCommit) {
+  if (localCommit === remoteCommit) {
+    return "same";
+  }
+  const [localIsAncestor, remoteIsAncestor] = await Promise.all([
+    isAncestor(repoRoot, localCommit, remoteCommit),
+    isAncestor(repoRoot, remoteCommit, localCommit)
+  ]);
+  if (localIsAncestor) {
+    return "behind";
+  }
+  if (remoteIsAncestor) {
+    return "ahead";
+  }
+  return "diverged";
+}
+function appendFreshnessDiagnostic(options) {
+  if (!options.targetRemoteRef) {
+    return;
+  }
+  if (options.freshness === "behind") {
+    options.diagnostics.push({
+      level: "warning",
+      message: `${options.configuredTargetRef} is behind ${options.targetRemoteRef}. Pushgate may review against stale code.`,
+      tip: fetchTip(options.pushRemote, options.configuredTargetRef)
+    });
+    return;
+  }
+  if (options.freshness === "diverged") {
+    options.diagnostics.push({
+      level: "warning",
+      message: `${options.configuredTargetRef} has diverged from ${options.targetRemoteRef}. Pushgate may review against stale code.`,
+      tip: fetchTip(options.pushRemote, options.configuredTargetRef)
+    });
+    return;
+  }
+  if (options.freshness === "ahead" && options.promptRequired) {
+    options.diagnostics.push({
+      level: "info",
+      message: `${options.configuredTargetRef} is ahead of ${options.targetRemoteRef}. Choose ${options.configuredTargetRef} only if those local commits belong in the review target.`
+    });
+  }
+}
+async function incrementalCandidateFromPrePush(repoRoot, branchUpdate) {
+  if (isZeroObjectName(branchUpdate.remoteSha) || !isLikelyObjectName(branchUpdate.remoteSha)) {
+    return null;
+  }
+  const commit = await resolveCommit(repoRoot, branchUpdate.remoteSha);
+  if (!commit) {
+    return null;
+  }
+  return {
+    commit,
+    detail: `review only commits not already on ${branchUpdate.remoteRef}`,
+    label: `destination ${branchUpdate.remoteBranch ?? branchUpdate.localBranch} tip`,
+    ref: commit,
+    source: "incremental"
+  };
+}
+async function incrementalCandidateFromRemoteTrackingRef(options) {
+  if (!options.currentBranch || !options.currentRemoteRef) {
+    return null;
+  }
+  const commit = await resolveCommit(options.repoRoot, options.currentRemoteRef);
+  if (!commit) {
+    return null;
+  }
+  return {
+    commit,
+    detail: `review only commits not already on ${options.currentRemoteRef}`,
+    label: `destination ${options.currentBranch} tip`,
+    ref: commit,
+    source: "incremental"
+  };
+}
+async function findStackedCandidates(options) {
+  const result = await runGit(options.repoRoot, [
+    "for-each-ref",
+    "--merged=HEAD",
+    "--sort=-committerdate",
+    "--format=%(refname:short)%00%(objectname)",
+    "refs/remotes"
+  ]);
+  if (result.code !== 0) {
+    return [];
+  }
+  const ancestorCandidates = [];
+  for (const line of result.stdout.split("\n")) {
+    if (!line.trim()) {
+      continue;
+    }
+    const [ref, commit] = line.split("\0", 2);
+    if (!ref || !commit || ref.endsWith("/HEAD") || ref === options.currentRemoteRef || ref === options.targetRemoteRef || isZeroObjectName(commit)) {
+      continue;
+    }
+    ancestorCandidates.push({
+      commit,
+      label: ref,
+      ref,
+      source: "stacked"
+    });
+    if (ancestorCandidates.length >= MAX_STACKED_DISTANCE_CANDIDATES) {
+      break;
+    }
+  }
+  const candidatesWithDistance = await Promise.all(
+    ancestorCandidates.map(async (candidate) => {
+      const distance = await commitDistance(
+        options.repoRoot,
+        candidate.commit ?? candidate.ref,
+        "HEAD"
+      );
+      if (distance === null || distance === 0) {
+        return null;
+      }
+      return {
+        ...candidate,
+        detail: `${String(distance)} commit(s) behind HEAD`,
+        distance
+      };
+    })
+  );
+  return candidatesWithDistance.filter(
+    (candidate) => candidate !== null
+  ).sort((left, right) => left.distance - right.distance).slice(0, MAX_STACKED_CANDIDATES).map(({ distance: _distance, ...candidate }) => candidate);
+}
+function recommendedCandidate(options) {
+  const candidates = options.candidates.filter(
+    (candidate) => candidate !== null
+  );
+  return candidates.find((candidate) => candidate.source === "incremental") ?? candidates.find((candidate) => candidate.source === "stacked") ?? (options.freshness === "behind" || options.freshness === "diverged" ? candidates.find((candidate) => candidate.source === "target-remote") : void 0) ?? candidates.find((candidate) => candidate.source === "configured") ?? null;
+}
+function dedupeCandidatesByCommit(candidates) {
+  const deduped = [];
+  const seenCommits = /* @__PURE__ */ new Set();
+  const seenRefs = /* @__PURE__ */ new Set();
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    const commitKey = candidate.commit;
+    const refKey = candidate.ref;
+    if (commitKey && seenCommits.has(commitKey)) {
+      continue;
+    }
+    if (seenRefs.has(refKey)) {
+      continue;
+    }
+    if (commitKey) {
+      seenCommits.add(commitKey);
+    }
+    seenRefs.add(refKey);
+    deduped.push(candidate);
+  }
+  return deduped;
+}
+function remoteTrackingRefForUpdate(remote, update) {
+  if (!remote) {
+    return void 0;
+  }
+  const remoteBranch = update.remoteBranch ?? update.localBranch;
+  return `${remote}/${remoteBranch}`;
+}
+async function isAncestor(repoRoot, ancestor, descendant) {
+  const result = await runGit(repoRoot, [
+    "merge-base",
+    "--is-ancestor",
+    ancestor,
+    descendant
+  ]);
+  return result.code === 0;
+}
+async function commitDistance(repoRoot, ancestor, descendant) {
+  const result = await runGit(repoRoot, [
+    "rev-list",
+    "--count",
+    `${ancestor}..${descendant}`
+  ]);
+  if (result.code !== 0) {
+    return null;
+  }
+  const distance = Number.parseInt(result.stdout.trim(), 10);
+  return Number.isFinite(distance) ? distance : null;
+}
+async function resolveCurrentBranch(repoRoot) {
+  const result = await runGit(repoRoot, [
+    "symbolic-ref",
+    "--quiet",
+    "--short",
+    "HEAD"
+  ]);
+  return result.code === 0 ? result.stdout.trim() : void 0;
+}
+function isSimpleBranchName(ref) {
+  return !ref.startsWith("refs/") && !ref.includes("..") && !ref.includes("@{") && !ref.includes(":") && !FULL_OBJECT_NAME.test(ref);
+}
+function isRemoteRefForPushRemote(ref, pushRemote) {
+  return ref === pushRemote || ref.startsWith(`${pushRemote}/`) || ref.startsWith("refs/remotes/");
+}
+function isZeroObjectName(value) {
+  return ZERO_OBJECT.test(value);
+}
+function isLikelyObjectName(value) {
+  return FULL_OBJECT_NAME.test(value);
+}
+function fetchTip(remote, targetRef) {
+  const fetchCommand = remote ? `git fetch ${remote}` : "git fetch";
+  return `Run \`${fetchCommand}\` and update \`${targetRef}\` before retrying, or choose a review target now.`;
+}
+function noInteractiveTerminalMessage() {
+  return `Pushgate needs a review target selection, but no interactive terminal is available. Re-run from a terminal, set review.target_branch explicitly, or use \`git -c ${REVIEW_TARGET_CONFIG_KEY}=<ref> push\`.`;
+}
+
 // src/workflows/warning-confirmation.ts
 var WarningConfirmationError = class extends Error {
   constructor(message) {
@@ -28293,11 +29039,24 @@ function createTerminalWarningConfirmer(options = {}) {
 async function runLocalPushGate(options) {
   const transcript = createPushgateTranscript(options.stdout);
   const localAi = getLocalAiPhaseDecision(options.config, options.skipControls);
-  const changedFileResolution = await resolveChangedFilesIfRequired({
-    config: options.config,
-    localAi,
-    repoRoot: options.repoRoot
-  });
+  let changedFileResolution;
+  try {
+    changedFileResolution = await resolveChangedFilesIfRequired({
+      config: options.config,
+      env: options.env,
+      hookContext: options.hookContext,
+      localAi,
+      repoRoot: options.repoRoot,
+      reviewTargetSelector: options.reviewTargetSelector,
+      transcript
+    });
+  } catch (error51) {
+    if (error51 instanceof ReviewTargetSelectionError) {
+      transcript.reviewTarget.writeUnavailable({ message: error51.message });
+      return 1;
+    }
+    throw error51;
+  }
   const deterministicSummary = await runDeterministicChecks({
     changedFileResolution,
     config: options.config,
@@ -28345,11 +29104,27 @@ async function resolveChangedFilesIfRequired(options) {
   if (!deterministicPlan.needsChangedFileResolution && options.localAi.kind !== "run") {
     return null;
   }
-  return await resolveChangedFiles({
+  const selectedReviewTarget = await selectReviewTarget({
+    configuredTargetRef: options.config.review.target_branch,
+    env: options.env,
+    hookContext: options.hookContext,
+    onDiagnostics(diagnostics) {
+      options.transcript.reviewTarget.writeDiagnostics(diagnostics);
+    },
     repoRoot: options.repoRoot,
-    targetBranch: options.config.review.target_branch,
+    selector: options.reviewTargetSelector
+  });
+  const resolution = await resolveChangedFiles({
+    repoRoot: options.repoRoot,
+    targetBranch: selectedReviewTarget.ref,
     ignorePaths: options.config.ignore_paths
   });
+  options.transcript.reviewTarget.writeSelected({
+    label: selectedReviewTarget.label,
+    reviewRange: resolution.reviewRange,
+    scanRange: resolution.scanRange
+  });
+  return resolution;
 }
 async function runLocalAiPhase(options) {
   if (options.decision.kind === "skip") {
@@ -28427,44 +29202,53 @@ function requireChangedFileResolution2(changedFileResolution, phaseName) {
 
 // src/workflows/pre-push-hook-context.ts
 function buildPrePushContext(options) {
+  const branchUpdates = options.input?.branchUpdates ?? [];
   return {
-    branch: options.branch,
+    branch: options.branch ?? branchUpdates[0]?.localBranch,
+    branchUpdates,
     remote: options.args[0]
   };
 }
 var MAX_PRE_PUSH_STDIN_LINE_CHARS = 8 * 1024;
-function parseBranchFromPrePushLine(line) {
+function parsePrePushLine(line) {
   const trimmed = line.trim();
   if (!trimmed) {
-    return void 0;
+    return null;
   }
-  const [localRef] = trimmed.split(/\s+/, 1);
-  if (localRef?.startsWith("refs/heads/")) {
-    return localRef.slice("refs/heads/".length);
+  const [localRef, localSha, remoteRef, remoteSha] = trimmed.split(/\s+/, 4);
+  if (!localRef?.startsWith("refs/heads/") || !localSha || !remoteRef || !remoteSha) {
+    return null;
   }
-  return void 0;
+  return {
+    localBranch: localRef.slice("refs/heads/".length),
+    localRef,
+    localSha,
+    remoteBranch: remoteRef.startsWith("refs/heads/") ? remoteRef.slice("refs/heads/".length) : void 0,
+    remoteRef,
+    remoteSha
+  };
 }
-function readPrePushBranchFromStdin(stdin) {
+function readPrePushInputFromStdin(stdin) {
   return new Promise((resolve, reject) => {
     if (stdin.isTTY) {
-      resolve(void 0);
+      resolve({ branchUpdates: [] });
       return;
     }
-    let branch;
+    const branchUpdates = [];
     let line = "";
     let lineOverflowed = false;
     const parseLine = () => {
-      if (branch !== void 0 || lineOverflowed) {
+      if (lineOverflowed) {
         return;
       }
-      branch = parseBranchFromPrePushLine(line);
+      const update = parsePrePushLine(line);
+      if (update) {
+        branchUpdates.push(update);
+      }
     };
     stdin.setEncoding("utf8");
     stdin.on("error", reject);
     stdin.on("data", (chunk) => {
-      if (branch !== void 0) {
-        return;
-      }
       for (const character of chunk) {
         if (character === "\n") {
           if (line.endsWith("\r")) {
@@ -28488,7 +29272,7 @@ function readPrePushBranchFromStdin(stdin) {
     });
     stdin.on("end", () => {
       parseLine();
-      resolve(branch);
+      resolve({ branchUpdates });
     });
     stdin.resume();
   });
@@ -28496,9 +29280,11 @@ function readPrePushBranchFromStdin(stdin) {
 
 // src/workflows/pre-push.ts
 async function runPrePushWorkflow(io) {
+  const prePushInput = await readPrePushInputFromStdin(io.stdin);
   const hookContext = buildPrePushContext({
     args: io.hookArgs ?? [],
-    branch: await readPrePushBranchFromStdin(io.stdin)
+    branch: void 0,
+    input: prePushInput
   });
   const repoRoot = await resolveGitRepositoryRoot(io.env);
   writePrePushHeader(io.stdout, repoRoot, hookContext);
@@ -28515,7 +29301,9 @@ async function runPrePushWorkflow(io) {
   return await runLocalPushGate({
     config: loaded.config,
     env: io.env,
+    hookContext,
     repoRoot,
+    ...io.reviewTargetSelector ? { reviewTargetSelector: io.reviewTargetSelector } : {},
     stdout: io.stdout,
     skipControls,
     ...io.warningConfirmer ? { warningConfirmer: io.warningConfirmer } : {}

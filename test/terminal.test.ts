@@ -51,6 +51,47 @@ test("interactive terminal consumes CRLF as one line ending", async () => {
   assert.equal(output, "Continue with push? [y/N] ".repeat(2));
 });
 
+test("interactive terminal choice prompt supports arrow-key navigation", async () => {
+  let selected = -1;
+  const output = await withTerminalInput("\x1B[B\x1B[B\x1B[A\r", (terminal) => {
+    selected = terminal.choose?.("Choose review target", [
+      { label: "main", detail: "configured review.target_branch" },
+      { label: "origin/main", detail: "latest fetched target remote" },
+      { label: "Enter another ref", detail: "advanced" },
+    ]) ?? -1;
+  });
+
+  assert.equal(selected, 1);
+  assert.match(output, /> 2\. origin\/main - latest fetched target remote/);
+});
+
+test("interactive terminal choice prompt still accepts numeric selection", async () => {
+  let selected = -1;
+
+  await withTerminalInput("3\n", (terminal) => {
+    selected = terminal.choose?.("Choose review target", [
+      { label: "main" },
+      { label: "origin/main" },
+      { label: "Enter another ref" },
+    ]) ?? -1;
+  });
+
+  assert.equal(selected, 2);
+});
+
+test("interactive terminal preserves input typed immediately after escape", async () => {
+  let selected = -1;
+
+  await withTerminalInput("\x1B2\n", (terminal) => {
+    selected = terminal.choose?.("Choose review target", [
+      { label: "main" },
+      { label: "origin/main" },
+    ]) ?? -1;
+  });
+
+  assert.equal(selected, 1);
+});
+
 async function withTempDir<T>(
   callback: (tempDir: string) => Promise<T>,
 ): Promise<T> {

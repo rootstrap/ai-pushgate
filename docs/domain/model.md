@@ -14,10 +14,12 @@ the product treats that as a Git reality rather than pretending otherwise.
    `--no-verify`.
 3. The hook delegates to the Pushgate runner.
 4. Pushgate loads repository config and evaluates the push locally.
-5. Deterministic checks run before local AI review.
-6. Blocking results stop the push. Warning results require explicit terminal
+5. If changed-file resolution is needed, Pushgate selects one review target for
+   this push.
+6. Deterministic checks run before local AI review.
+7. Blocking results stop the push. Warning results require explicit terminal
    confirmation before the push continues.
-7. The transcript explains what ran, what was skipped, and why the push passed
+8. The transcript explains what ran, what was skipped, and why the push passed
    or failed.
 
 ## Core Relationships
@@ -28,6 +30,7 @@ the product treats that as a Git reality rather than pretending otherwise.
 | Pre-Push Hook | The Git entry point that delegates to the runner. |
 | Pushgate Runner | The executable that owns config loading, phase order, and local verdicts. |
 | Pushgate Config | Repository-owned policy for deterministic checks, local AI, path filtering, and provider settings. |
+| Review Target Selection | The per-push choice of target ref or commit when the configured target, remote target, incremental push base, or stacked base could all be valid. |
 | Changed-File Resolution | One normalized view of changed files and Git ranges shared by deterministic checks and local AI. |
 | Deterministic Check | A local check whose result does not depend on a language model. |
 | Local AI Review | A provider-backed review phase that runs only after deterministic checks pass. |
@@ -53,7 +56,9 @@ docs, issues, and code comments.
   runtime control.
 - `pushgate.skip-all-checks` skips all local Pushgate work for one push.
 - `pushgate.skip-ai-check` skips only local AI review for one push.
+- `pushgate.review-target=<ref>` selects the review target for one push without
+  persisting that choice.
 - `.pushgate.yml` is the public config vocabulary. `.push-review.yml` is legacy
   migration input, not an alternate runtime format.
-- Pushgate resolves changed files from locally available Git state. It does not
-  fetch, guess a remote, or silently choose a fallback range.
+- Pushgate resolves review targets and changed files from locally available Git
+  state. It does not fetch or silently switch ranges.

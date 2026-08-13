@@ -12,6 +12,7 @@ know.
 | Installer | `install.sh [--template name]` | `install.sh`, `templates/*.yml` | Owns runner placement, hook backup, template install, and validation. |
 | CLI | `main(argv, io)` and `pushgate` subcommands | `src/cli.ts` | Public command surface for hook use. |
 | Pre-push workflow | `runPrePushWorkflow(io)` | `src/workflows/pre-push.ts`, `src/workflows/local-push-gate-run.ts`, `src/workflows/pre-push-hook-context.ts` | Owns pre-push context, phase order, and warning confirmation. |
+| Review target selection | `selectReviewTarget` | `src/workflows/review-target-selection.ts`, `src/workflows/terminal.ts` | Chooses one per-push review target from local Git state before changed-file resolution. |
 | Config | `loadConfig`, `parseConfigYaml`, `PushgateConfig` | `src/config/*`, `schemas/pushgate-config-v2.schema.json` | Converts user YAML into one normalized internal shape. |
 | Path policy | `resolveChangedFiles`, changed-file projections | `src/path-policy/*`, `src/git/*` | Owns Git range, diff parsing, ignore, live-path semantics, and changed-line metrics. |
 | Process execution | `runCommand`, `runTimedCommand`, `runProcessOutcome`, `runInheritedCommand` | `src/process/*` | Shared child-process mechanics and outcome formatting. |
@@ -27,6 +28,7 @@ know.
 |---|---|---|---|
 | `PushgateConfig` | Config module | Workflow, runner, AI, path policy | Defaults are normalized; active AI modes require a selected provider block. |
 | `ChangedFileResolution` | Path policy | Deterministic runner, local AI | Contains target ref, target commit, merge base, filtered files, review range, and scan range. |
+| `SelectedReviewTarget` | Review target selection | Workflow, path policy | Contains the per-push review target ref, display label, source, and diagnostics. |
 | `ChangedFile` and projections | Path policy | Policies, tools, AI payload builder | Includes status, optional previous path, binary marker, additions, deletions, live-path selection, and changed text-line counts. |
 | `ToolResult` | Deterministic runner | Transcript and summary | Status is `passed`, `skipped`, `warning`, or `blocked`. |
 | `LocalAiReviewPayload` | AI review context | Provider adapters | Contains changed files, rendered diff, optional full-file context, and final prompt. |
@@ -62,3 +64,4 @@ helper.
 | Process outcome behavior | `test/process.test.ts` |
 | Local AI prompt context, guardrails, provider adapters, output repair, verdicts | `test/ai.test.ts` |
 | Transcript rendering for Local Push Gate output | `test/transcript.test.ts` |
+| Review target selection, stale target warnings, incremental and stacked targets | `test/workflow-run-plan.test.ts`, `test/pre-push-stdin.test.ts` |

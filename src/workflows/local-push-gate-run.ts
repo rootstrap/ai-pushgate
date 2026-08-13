@@ -15,6 +15,12 @@ import {
   type WarningConfirmationTranscript,
 } from "../transcript/index.js";
 import type { SkipControlState } from "../skip-controls.js";
+import type { PrePushHookContext } from "./pre-push-hook-context.js";
+import {
+  ReviewTargetSelectionError,
+  selectReviewTarget,
+  type ReviewTargetSelector,
+} from "./review-target-selection.js";
 import {
   createTerminalWarningConfirmer,
   WarningConfirmationError,
@@ -24,7 +30,9 @@ import {
 export interface LocalPushGateRunOptions {
   config: PushgateConfig;
   env: NodeJS.ProcessEnv;
+  hookContext: PrePushHookContext;
   repoRoot: string;
+  reviewTargetSelector?: ReviewTargetSelector;
   skipControls: Pick<SkipControlState, "active">;
   stdout: NodeJS.WritableStream;
   warningConfirmer?: WarningConfirmer;
@@ -50,11 +58,26 @@ export async function runLocalPushGate(
 ): Promise<number> {
   const transcript = createPushgateTranscript(options.stdout);
   const localAi = getLocalAiPhaseDecision(options.config, options.skipControls);
-  const changedFileResolution = await resolveChangedFilesIfRequired({
-    config: options.config,
-    localAi,
-    repoRoot: options.repoRoot,
-  });
+  let changedFileResolution: ChangedFileResolution | null;
+
+  try {
+    changedFileResolution = await resolveChangedFilesIfRequired({
+      config: options.config,
+      env: options.env,
+      hookContext: options.hookContext,
+      localAi,
+      repoRoot: options.repoRoot,
+      reviewTargetSelector: options.reviewTargetSelector,
+      transcript,
+    });
+  } catch (error) {
+    if (error instanceof ReviewTargetSelectionError) {
+      transcript.reviewTarget.writeUnavailable({ message: error.message });
+      return 1;
+    }
+
+    throw error;
+  }
 
   const deterministicSummary = await runDeterministicChecks({
     changedFileResolution,
@@ -111,8 +134,12 @@ export async function runLocalPushGate(
 
 async function resolveChangedFilesIfRequired(options: {
   config: PushgateConfig;
+  env: NodeJS.ProcessEnv;
+  hookContext: PrePushHookContext;
   localAi: LocalAiPhaseDecision;
   repoRoot: string;
+  reviewTargetSelector: ReviewTargetSelector | undefined;
+  transcript: ReturnType<typeof createPushgateTranscript>;
 }): Promise<ChangedFileResolution | null> {
   const deterministicPlan = buildDeterministicCheckPlan(options.config);
 
@@ -123,11 +150,29 @@ async function resolveChangedFilesIfRequired(options: {
     return null;
   }
 
-  return await resolveChangedFiles({
+  const selectedReviewTarget = await selectReviewTarget({
+    configuredTargetRef: options.config.review.target_branch,
+    env: options.env,
+    hookContext: options.hookContext,
+    onDiagnostics(diagnostics) {
+      options.transcript.reviewTarget.writeDiagnostics(diagnostics);
+    },
     repoRoot: options.repoRoot,
-    targetBranch: options.config.review.target_branch,
+    selector: options.reviewTargetSelector,
+  });
+  const resolution = await resolveChangedFiles({
+    repoRoot: options.repoRoot,
+    targetBranch: selectedReviewTarget.ref,
     ignorePaths: options.config.ignore_paths,
   });
+
+  options.transcript.reviewTarget.writeSelected({
+    label: selectedReviewTarget.label,
+    reviewRange: resolution.reviewRange,
+    scanRange: resolution.scanRange,
+  });
+
+  return resolution;
 }
 
 async function runLocalAiPhase(options: {

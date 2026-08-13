@@ -108,9 +108,15 @@ extension point for provider-specific nested settings.
 
 | Field | Meaning |
 |---|---|
-| `target_branch` | Local or remote-tracking branch/ref used as the changed-file target. |
+| `target_branch` | Configured default branch/ref used when selecting the per-push review target. |
 | `context_lines` | Surrounding diff lines included when local AI review context is prepared. |
 | `max_lines_for_full_file` | Diff-size cutoff below which local AI may include full file context. |
+
+When Pushgate detects that the configured target is stale, the destination
+branch already exists, or a likely stacked remote ancestor exists, it prompts
+for a review target before changed-file resolution. Use
+`git -c pushgate.review-target=<ref> push` to select a target for one push
+without persisting that choice.
 
 ## Tool Commands
 
