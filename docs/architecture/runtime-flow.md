@@ -60,7 +60,8 @@ flowchart TD
   ConfigDecision -->|yes| Done0["exit 0"]
   ConfigDecision -->|no| Config["loadConfig"]
   Config --> Changed{"changed files required?"}
-  Changed -->|yes| Path["resolveChangedFiles"]
+  Changed -->|yes| Target["selectReviewTarget"]
+  Target --> Path["resolveChangedFiles"]
   Changed -->|no| NoPath["changedFileResolution = null"]
   Path --> Det["runDeterministicChecks"]
   NoPath --> Det
@@ -75,9 +76,12 @@ flowchart TD
   Confirm2 --> DoneAI["return final exit code"]
 ```
 
-Changed files are resolved once and shared between deterministic checks and
-local AI. Deleted files remain in the normalized changed-file result for diff
-and AI context, but configured tools receive only live current paths.
+When changed files are required, Pushgate first selects one review target. It
+prompts only for ambiguous local Git state such as stale configured targets,
+existing destination branches, or likely stacked bases. Changed files are then
+resolved once and shared between deterministic checks and local AI. Deleted
+files remain in the normalized changed-file result for diff and AI context, but
+configured tools receive only live current paths.
 
 ## Deterministic Phase
 

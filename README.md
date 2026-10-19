@@ -9,7 +9,7 @@ git push
     │
     ▼
 ┌─────────────────────────────────────┐
-│  Changed files vs target branch     │
+│  Changed files vs review target     │
 │  (ignore_paths filtering applied)   │
 └──────────────┬──────────────────────┘
                │
@@ -137,7 +137,7 @@ ai:
     #   model: auto
 
 review:
-  target_branch: main       # local ref used to resolve changed files
+  target_branch: main       # configured default review target
   context_lines: 10         # surrounding context lines included in the diff
   max_lines_for_full_file: 300  # below this threshold, full file contents are sent
                                 # instead of just the diff for richer context
@@ -226,6 +226,16 @@ follows. They use Git's temporary config channel:
 ```bash
 git -c pushgate.skip-ai-check=true push
 git -c pushgate.skip-all-checks=true push
+```
+
+When several review targets could be correct, Pushgate asks before resolving
+changed files. This can happen when local `main` is behind `origin/main`, the
+destination branch already exists and an incremental review is possible, or a
+likely stacked remote branch is found. To select a target for one push without
+using the terminal prompt:
+
+```bash
+git -c pushgate.review-target=origin/part-1-of-feature-A push
 ```
 
 ## Runner overrides

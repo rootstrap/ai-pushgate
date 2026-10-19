@@ -14,19 +14,23 @@ import { PUSHGATE_VERSION } from "../version.js";
 import { runLocalPushGate } from "./local-push-gate-run.js";
 import {
   buildPrePushContext,
-  readPrePushBranchFromStdin,
+  readPrePushInputFromStdin,
   type PrePushHookContext,
 } from "./pre-push-hook-context.js";
+import type { ReviewTargetSelector } from "./review-target-selection.js";
 import type { WarningConfirmer } from "./warning-confirmation.js";
 
 export {
+  parsePrePushLine,
   parseBranchFromPrePushLine,
+  readPrePushInputFromStdin,
   readPrePushBranchFromStdin,
 } from "./pre-push-hook-context.js";
 
 export interface PrePushWorkflowIO {
   env: NodeJS.ProcessEnv;
   hookArgs?: readonly string[];
+  reviewTargetSelector?: ReviewTargetSelector;
   stderr: NodeJS.WritableStream;
   stdin: NodeJS.ReadableStream;
   stdout: NodeJS.WritableStream;
@@ -36,9 +40,11 @@ export interface PrePushWorkflowIO {
 export async function runPrePushWorkflow(
   io: PrePushWorkflowIO,
 ): Promise<number> {
+  const prePushInput = await readPrePushInputFromStdin(io.stdin);
   const hookContext = buildPrePushContext({
     args: io.hookArgs ?? [],
-    branch: await readPrePushBranchFromStdin(io.stdin),
+    branch: undefined,
+    input: prePushInput,
   });
 
   const repoRoot = await resolveGitRepositoryRoot(io.env);
@@ -60,7 +66,11 @@ export async function runPrePushWorkflow(
   return await runLocalPushGate({
     config: loaded.config,
     env: io.env,
+    hookContext,
     repoRoot,
+    ...(io.reviewTargetSelector
+      ? { reviewTargetSelector: io.reviewTargetSelector }
+      : {}),
     stdout: io.stdout,
     skipControls,
     ...(io.warningConfirmer

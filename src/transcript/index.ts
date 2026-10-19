@@ -6,6 +6,7 @@ export {
   type LocalAiTranscript,
   type PushgateTranscript,
   type PushTranscript,
+  type ReviewTargetTranscript,
   type WarningConfirmationTranscript,
 } from "./pushgate-transcript.js";
 
@@ -16,5 +17,7 @@ export type {
   DeterministicTranscriptSummary,
   LocalAiSkipReason,
   LocalAiTranscriptEvent,
+  ReviewTargetTranscriptDiagnostic,
+  ReviewTargetTranscriptSelection,
   WarningConfirmationPhase,
 } from "./events.js";
