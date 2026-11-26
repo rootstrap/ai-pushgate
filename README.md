@@ -36,6 +36,8 @@ local checks and AI review run before the push proceeds.
 
 Local deterministic checks can block a push. Warning results require an explicit yes/no confirmation before the push continues. Local AI supports `blocking`, `advisory`, and `off` modes; `blocking` is the default, matching the review gate shown above. CI and PR checks remain the final enforcement point for policy that must survive local hook skips.
 
+Checks run against the commit being pushed, not your working directory. Pushgate checks out the pushed commit (the local SHA Git passes to the hook) into a temporary detached `git worktree`, loads `.pushgate.yml` from it, runs every check and the AI review there, then removes it. Staged, unstaged, and untracked changes can therefore neither fail nor rescue a push; when any exist, Pushgate prints an orange warning saying they are not included. A top-level `node_modules` is symlinked into the worktree; other gitignored build artifacts are not available to checks.
+
 `.pushgate.yml` is the primary project config. `.push-review.yml` belongs to migration compatibility rather than the public config contract.
 
 The current runner boundary is intentionally thin: the installer wires the hook

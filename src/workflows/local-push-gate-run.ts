@@ -29,6 +29,8 @@ import {
 
 export interface LocalPushGateRunOptions {
   config: PushgateConfig;
+  /** Branch checked out in the developer's repo; see `SelectReviewTargetOptions`. */
+  currentBranch?: string;
   env: NodeJS.ProcessEnv;
   hookContext: PrePushHookContext;
   repoRoot: string;
@@ -63,6 +65,7 @@ export async function runLocalPushGate(
   try {
     changedFileResolution = await resolveChangedFilesIfRequired({
       config: options.config,
+      currentBranch: options.currentBranch,
       env: options.env,
       hookContext: options.hookContext,
       localAi,
@@ -134,6 +137,7 @@ export async function runLocalPushGate(
 
 async function resolveChangedFilesIfRequired(options: {
   config: PushgateConfig;
+  currentBranch: string | undefined;
   env: NodeJS.ProcessEnv;
   hookContext: PrePushHookContext;
   localAi: LocalAiPhaseDecision;
@@ -152,6 +156,7 @@ async function resolveChangedFilesIfRequired(options: {
 
   const selectedReviewTarget = await selectReviewTarget({
     configuredTargetRef: options.config.review.target_branch,
+    ...(options.currentBranch ? { currentBranch: options.currentBranch } : {}),
     env: options.env,
     hookContext: options.hookContext,
     onDiagnostics(diagnostics) {

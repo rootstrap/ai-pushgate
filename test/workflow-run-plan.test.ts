@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable, Writable } from "node:stream";
@@ -49,9 +49,8 @@ test("skip-ai-check still loads config", async () => {
 
 test("inactive deterministic checks and local AI do not resolve changed files", async () => {
   await withGitRepo(async (repoRoot) => {
-    await writeRepoFile(
+    await commitConfig(
       repoRoot,
-      ".pushgate.yml",
       [
         "version: 2",
         "review:",
@@ -72,11 +71,125 @@ test("inactive deterministic checks and local AI do not resolve changed files", 
   });
 });
 
+test("checks run on the pushed commit, ignoring uncommitted changes that would fail", async () => {
+  await withChangedFileRepo(async (repoRoot) => {
+    await commitConfig(repoRoot, markerToolConfig());
+    const head = await gitStdout(repoRoot, ["rev-parse", "HEAD"]);
+
+    await writeRepoFile(repoRoot, "src/changed.ts", "export const BAD = 3;\n");
+    await writeRepoFile(repoRoot, "src/untracked.ts", "export const BAD = 4;\n");
+
+    const result = await runWorkflowInRepo(repoRoot);
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /Pushed commit/);
+    assert.ok(result.stdout.includes(head), "expected full commit hash in output");
+    assert.match(result.stdout, /Subject: config/);
+    assert.match(result.stdout, /\u26A0\uFE0F\s+Uncommitted files: Checks run on the commit above/);
+    assert.match(result.stdout, /NOT included/);
+    assert.equal(result.stderr, "");
+    assert.equal(
+      await readFile(join(repoRoot, "src/changed.ts"), "utf8"),
+      "export const BAD = 3;\n",
+    );
+    assert.equal(
+      (await gitStdout(repoRoot, ["worktree", "list", "--porcelain"]))
+        .split("\n")
+        .filter((line) => line.startsWith("worktree ")).length,
+      1,
+      "expected the temporary worktree to be removed",
+    );
+  });
+});
+
+test("uncommitted fixes cannot rescue a failing pushed commit", async () => {
+  await withChangedFileRepo(async (repoRoot) => {
+    await writeRepoFile(repoRoot, "src/changed.ts", "export const BAD = 2;\n");
+    await checkedRun("git", ["add", "--all"], { cwd: repoRoot });
+    await commitConfig(repoRoot, markerToolConfig());
+    await writeRepoFile(repoRoot, "src/changed.ts", "export const value = 2;\n");
+
+    const result = await runWorkflowInRepo(repoRoot);
+
+    assert.equal(result.code, 1, formatResult(result));
+    assert.match(result.stdout, /\u26A0\uFE0F\s+Uncommitted files: Checks run on the commit above/);
+  });
+});
+
+test("clean working tree prints the pushed commit without the uncommitted warning", async () => {
+  await withChangedFileRepo(async (repoRoot) => {
+    await commitConfig(repoRoot, markerToolConfig());
+
+    const result = await runWorkflowInRepo(repoRoot);
+
+    assert.equal(result.code, 0, formatResult(result));
+    assert.match(result.stdout, /Pushed commit/);
+    assert.doesNotMatch(result.stdout, /Uncommitted files/);
+  });
+});
+
+function markerToolConfig(): string {
+  const script =
+    "const fs = require('node:fs'); process.exit(fs.readFileSync('src/changed.ts', 'utf8').includes('BAD') ? 1 : 0);";
+
+  return [
+    "version: 2",
+    "ignore_paths:",
+    "  - .pushgate.yml",
+    "ai:",
+    "  mode: off",
+    "tools:",
+    "  - name: marker-tool",
+    `    command: ${JSON.stringify([process.execPath, "-e", script])}`,
+    "    run: always",
+    "",
+  ].join("\n");
+}
+
+test("symbolic remote HEAD alias does not force a review target prompt", async () => {
+  await withChangedFileRepo(async (repoRoot) => {
+    await commitConfig(
+      repoRoot,
+      [
+        "version: 2",
+        "ignore_paths:",
+        "  - .pushgate.yml",
+        "ai:",
+        "  mode: off",
+        "tools: []",
+        "",
+      ].join("\n"),
+    );
+    const mainTip = await gitStdout(repoRoot, ["rev-parse", "main"]);
+    const head = await gitStdout(repoRoot, ["rev-parse", "HEAD"]);
+
+    await checkedRun("git", ["update-ref", "refs/remotes/origin/main", mainTip], {
+      cwd: repoRoot,
+    });
+    await checkedRun(
+      "git",
+      ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
+      { cwd: repoRoot },
+    );
+
+    const result = await runWorkflowInRepo(repoRoot, {
+      hookArgs: ["origin", "git@example.test:repo.git"],
+      reviewTargetSelector: async () => {
+        throw new Error("review target prompt should not appear");
+      },
+      stdin: Readable.from(
+        `refs/heads/feature ${head} refs/heads/feature ${ZERO_OBJECT}\n`,
+      ),
+    });
+
+    assert.equal(result.code, 0, formatResult(result));
+  });
+});
+
 test("skip-ai-check keeps deterministic changed-file work", async () => {
   await withChangedFileRepo(async (repoRoot) => {
-    await writeRepoFile(
+    await commitConfig(
       repoRoot,
-      ".pushgate.yml",
       [
         "version: 2",
         "ai:",
@@ -111,7 +224,7 @@ test("skip-ai-check keeps deterministic changed-file work", async () => {
 
 test("existing destination branch can review only the incremental push diff", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
 
     const seenCandidates: ReviewTargetCandidate[] = [];
     const selector: ReviewTargetSelector = async (request) => {
@@ -149,7 +262,7 @@ test("existing destination branch can review only the incremental push diff", as
 
 test("missing pre-push stdin falls back to the current branch remote-tracking ref", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
     await checkedRun(
       "git",
       ["update-ref", "refs/remotes/origin/feature", commits.remoteFeature],
@@ -182,7 +295,7 @@ test("missing pre-push stdin falls back to the current branch remote-tracking re
 
 test("stale local target prompts with the fetched remote target candidate", async () => {
   await withStaleTargetRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/feature.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/feature.ts"]);
 
     const seenDiagnostics: string[] = [];
     const seenCandidates: ReviewTargetCandidate[] = [];
@@ -222,7 +335,7 @@ test("stale local target prompts with the fetched remote target candidate", asyn
 
 test("stacked remote ancestor can review only the stacked branch diff", async () => {
   await withStackedFeatureRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/part2.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/part2.ts"]);
 
     const seenCandidates: ReviewTargetCandidate[] = [];
     const selector: ReviewTargetSelector = async (request) => {
@@ -259,7 +372,7 @@ test("stacked remote ancestor can review only the stacked branch diff", async ()
 
 test("one-push review target override skips interactive selection", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, [
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, [
       "src/one.ts",
       "src/two.ts",
     ]);
@@ -286,7 +399,7 @@ test("one-push review target override skips interactive selection", async () => 
 
 test("one-push review target override reports an invalid ref explicitly", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
     await checkedRun(
       "git",
       ["config", "pushgate.review-target", "does-not-exist"],
@@ -313,7 +426,7 @@ test("one-push review target override reports an invalid ref explicitly", async 
 
 test("multi-branch pushes fail before choosing one review target", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
 
     const result = await runWorkflowInRepo(repoRoot, {
       hookArgs: ["origin", "git@example.test:repo.git"],
@@ -335,7 +448,7 @@ test("multi-branch pushes fail before choosing one review target", async () => {
 
 test("multi-branch pushes fail even when review target override is set", async () => {
   await withIncrementalPushRepo(async (repoRoot, commits) => {
-    await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
+    commits.head = await writeChangedFilesAssertionConfig(repoRoot, ["src/two.ts"]);
     await checkedRun("git", ["config", "pushgate.review-target", "main"], {
       cwd: repoRoot,
     });
@@ -610,7 +723,7 @@ async function withStackedFeatureRepo(
 async function writeChangedFilesAssertionConfig(
   repoRoot: string,
   expectedPaths: readonly string[],
-): Promise<void> {
+): Promise<string> {
   const assertion = [
     "const assert = require('node:assert/strict');",
     `const expected = ${JSON.stringify([...expectedPaths].sort())};`,
@@ -618,13 +731,14 @@ async function writeChangedFilesAssertionConfig(
     "assert.deepEqual(actual, expected);",
   ].join(" ");
 
-  await writeRepoFile(
+  await commitConfig(
     repoRoot,
-    ".pushgate.yml",
     [
       "version: 2",
       "review:",
       "  target_branch: main",
+      "ignore_paths:",
+      "  - .pushgate.yml",
       "ai:",
       "  mode: off",
       "tools:",
@@ -633,6 +747,42 @@ async function writeChangedFilesAssertionConfig(
       "    run: changed_files",
       "",
     ].join("\n"),
+  );
+
+  return await gitStdout(repoRoot, ["rev-parse", "HEAD"]);
+}
+
+/**
+ * Write `.pushgate.yml` and commit it when the repo already has history.
+ *
+ * Pushgate reads config from the pushed commit, so an uncommitted config would
+ * be invisible to the run.
+ */
+async function commitConfig(repoRoot: string, content: string): Promise<void> {
+  await writeRepoFile(repoRoot, ".pushgate.yml", content);
+
+  try {
+    await checkedRun("git", ["rev-parse", "--verify", "--quiet", "HEAD"], {
+      cwd: repoRoot,
+    });
+  } catch {
+    return;
+  }
+
+  await checkedRun("git", ["add", ".pushgate.yml"], { cwd: repoRoot });
+  await checkedRun(
+    "git",
+    [
+      "-c",
+      "user.email=workflow@example.test",
+      "-c",
+      "user.name=Pushgate Workflow",
+      "commit",
+      "--quiet",
+      "-m",
+      "config",
+    ],
+    { cwd: repoRoot },
   );
 }
 
