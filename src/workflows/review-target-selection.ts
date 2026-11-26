@@ -53,6 +53,11 @@ export interface SelectedReviewTarget {
 
 export interface SelectReviewTargetOptions {
   configuredTargetRef: string;
+  /**
+   * Branch checked out in the developer's repository. Needed when `repoRoot`
+   * is a detached checkout of the pushed commit, where `HEAD` names no branch.
+   */
+  currentBranch?: string;
   env: NodeJS.ProcessEnv;
   hookContext: PrePushHookContext;
   onDiagnostics?: (diagnostics: readonly ReviewTargetDiagnostic[]) => void;
@@ -261,7 +266,7 @@ async function discoverReviewTargets(options: SelectReviewTargetOptions): Promis
       : undefined;
   const currentBranch = branchUpdate
     ? branchUpdate.localBranch
-    : await resolveCurrentBranch(options.repoRoot);
+    : (options.currentBranch ?? (await resolveCurrentBranch(options.repoRoot)));
   const fallbackCurrentRemoteRef =
     !branchUpdate && currentBranch && options.hookContext.remote
       ? `${options.hookContext.remote}/${currentBranch}`
@@ -505,7 +510,7 @@ async function findStackedCandidates(options: {
     "for-each-ref",
     "--merged=HEAD",
     "--sort=-committerdate",
-    "--format=%(refname:short)%00%(objectname)",
+    "--format=%(refname:short)%00%(objectname)%00%(refname)",
     "refs/remotes",
   ]);
 
@@ -520,12 +525,15 @@ async function findStackedCandidates(options: {
       continue;
     }
 
-    const [ref, commit] = line.split("\0", 2);
+    const [ref, commit, fullRef] = line.split("\0", 3);
 
+    // `refname:short` renders `refs/remotes/origin/HEAD` as just `origin`, so
+    // the symbolic remote HEAD alias must be detected on the full ref name.
     if (
       !ref ||
       !commit ||
-      ref.endsWith("/HEAD") ||
+      !fullRef ||
+      fullRef.endsWith("/HEAD") ||
       ref === options.currentRemoteRef ||
       ref === options.targetRemoteRef ||
       isZeroObjectName(commit)

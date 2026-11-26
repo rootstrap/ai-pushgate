@@ -444,6 +444,9 @@ async function writePushgateConfig(
   content: string,
 ): Promise<void> {
   await writeFile(join(harness.repoRoot, ".pushgate.yml"), `${content.trimEnd()}\n`);
+  // Pushgate reads config from the pushed commit, so it must be committed.
+  await harness.git(["add", ".pushgate.yml"]);
+  await harness.git(["commit", "--quiet", "-m", "pushgate config"]);
 }
 
 function escapeRegex(value: string): string {

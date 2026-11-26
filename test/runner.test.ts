@@ -168,8 +168,8 @@ test("skip-all-checks bypasses config loading and deterministic work", async () 
 
 test("skip-ai-check keeps deterministic work and prints visible AI skip output", async () => {
   await withGitRepo(async (repoRoot) => {
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -203,8 +203,8 @@ test("skip-ai-check keeps deterministic work and prints visible AI skip output",
 
 test("blocking local AI findings block the pre-push runner", async () => {
   await withAiRepo(async (repoRoot, env) => {
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -235,8 +235,8 @@ test("blocking local AI findings block the pre-push runner", async () => {
 test("Copilot local AI warnings continue after confirmation", async () => {
   await withAiRepo(async (repoRoot, env) => {
     await installCopilotStub(join(repoRoot, "bin"));
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -280,8 +280,8 @@ test("Copilot local AI warnings continue after confirmation", async () => {
 test("declining local AI warnings blocks the pre-push runner", async () => {
   await withAiRepo(async (repoRoot, env) => {
     await installCopilotStub(join(repoRoot, "bin"));
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -319,8 +319,8 @@ test("declining local AI warnings blocks the pre-push runner", async () => {
 
 test("blocking local AI provider failures block the pre-push runner", async () => {
   await withAiRepo(async (repoRoot) => {
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -351,8 +351,8 @@ test("blocking local AI provider failures block the pre-push runner", async () =
 
 test("default local AI mode is blocking in the pre-push runner", async () => {
   await withAiRepo(async (repoRoot) => {
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -381,8 +381,8 @@ test("default local AI mode is blocking in the pre-push runner", async () => {
 
 test("advisory local AI provider failures continue after confirmation", async () => {
   await withAiRepo(async (repoRoot) => {
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -422,8 +422,8 @@ test("advisory local AI provider failures continue after confirmation", async ()
 
 test("AI changed-line guardrail blocks provider invocation visibly", async () => {
   await withAiRepo(async (repoRoot, env) => {
-    await writeFile(
-      join(repoRoot, ".pushgate.yml"),
+    await commitConfig(
+      repoRoot,
       [
         "version: 2",
         "ai:",
@@ -561,6 +561,40 @@ function captureOutput(): {
       return output;
     },
   };
+}
+
+/**
+ * Write `.pushgate.yml` and commit it when the repo already has history.
+ *
+ * Pushgate reads config from the pushed commit, so an uncommitted config would
+ * be invisible to the run.
+ */
+async function commitConfig(repoRoot: string, content: string): Promise<void> {
+  await writeFile(join(repoRoot, ".pushgate.yml"), content);
+
+  try {
+    await checkedRun("git", ["rev-parse", "--verify", "--quiet", "HEAD"], {
+      cwd: repoRoot,
+    });
+  } catch {
+    return;
+  }
+
+  await checkedRun("git", ["add", ".pushgate.yml"], { cwd: repoRoot });
+  await checkedRun(
+    "git",
+    [
+      "-c",
+      "user.email=runner@example.test",
+      "-c",
+      "user.name=Pushgate Runner",
+      "commit",
+      "--quiet",
+      "-m",
+      "config",
+    ],
+    { cwd: repoRoot },
+  );
 }
 
 async function withRunnerRepo(

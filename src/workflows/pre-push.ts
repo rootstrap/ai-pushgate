@@ -1,14 +1,25 @@
 import { basename } from "node:path";
 
 import { loadConfig } from "../config/index.js";
+import {
+  createPushedCommitWorktree,
+  hasUncommittedChanges,
+  resolvePushedCommit,
+  type PushedCommit,
+} from "../git/pushed-commit.js";
+import { runGit } from "../git/command.js";
 import { resolveGitRepositoryRoot } from "../git/repository.js";
 import {
   resolveSkipControlState,
   SKIP_ALL_CHECKS_CONFIG_KEY,
 } from "../skip-controls.js";
 import {
+  writeAttentionRow,
+  writeDetail,
   writeHeader,
+  writeLine,
   writeResultRow,
+  writeSection,
 } from "../terminal/format.js";
 import { PUSHGATE_VERSION } from "../version.js";
 import { runLocalPushGate } from "./local-push-gate-run.js";
@@ -57,26 +68,107 @@ export async function runPrePushWorkflow(
     return 0;
   }
 
-  const loaded = await loadConfig(repoRoot);
+  const currentBranch = await resolveCheckedOutBranch(repoRoot, io.env);
+  const pushedCommit = await resolvePushedCommit({
+    branchUpdates: hookContext.branchUpdates,
+    env: io.env,
+    repoRoot,
+  });
 
-  for (const warning of loaded.warnings) {
-    io.stdout.write(`[pushgate] Warning: ${warning}\n`);
+  if (pushedCommit === null) {
+    // Nothing committed yet (manual run in an empty repository): there is no
+    // pushed state to isolate, so evaluate the working directory as-is.
+    return await runInCheckout(repoRoot);
   }
 
-  return await runLocalPushGate({
-    config: loaded.config,
+  const dirty = await hasUncommittedChanges({ env: io.env, repoRoot });
+
+  writePushedCommitNotice(io.stdout, pushedCommit, dirty);
+
+  // Everything below runs in a detached checkout of the pushed commit so that
+  // uncommitted edits cannot change (or rescue) the result.
+  const worktree = await createPushedCommitWorktree({
+    commit: pushedCommit,
     env: io.env,
-    hookContext,
     repoRoot,
-    ...(io.reviewTargetSelector
-      ? { reviewTargetSelector: io.reviewTargetSelector }
-      : {}),
-    stdout: io.stdout,
-    skipControls,
-    ...(io.warningConfirmer
-      ? { warningConfirmer: io.warningConfirmer }
-      : {}),
   });
+  const onSignal = (signal: NodeJS.Signals): void => {
+    void worktree.dispose().finally(() => {
+      process.kill(process.pid, signal);
+    });
+  };
+
+  const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
+
+  for (const signal of signals) {
+    process.once(signal, onSignal);
+  }
+
+  try {
+    return await runInCheckout(worktree.path);
+  } finally {
+    for (const signal of signals) {
+      process.off(signal, onSignal);
+    }
+    await worktree.dispose();
+  }
+
+  async function runInCheckout(checkoutRoot: string): Promise<number> {
+    const loaded = await loadConfig(checkoutRoot);
+
+    for (const warning of loaded.warnings) {
+      io.stdout.write(`[pushgate] Warning: ${warning}\n`);
+    }
+
+    return await runLocalPushGate({
+      config: loaded.config,
+      ...(currentBranch ? { currentBranch } : {}),
+      env: io.env,
+      hookContext,
+      repoRoot: checkoutRoot,
+      ...(io.reviewTargetSelector
+        ? { reviewTargetSelector: io.reviewTargetSelector }
+        : {}),
+      stdout: io.stdout,
+      skipControls,
+      ...(io.warningConfirmer
+        ? { warningConfirmer: io.warningConfirmer }
+        : {}),
+    });
+  }
+}
+
+async function resolveCheckedOutBranch(
+  repoRoot: string,
+  env: NodeJS.ProcessEnv,
+): Promise<string | undefined> {
+  const result = await runGit(
+    repoRoot,
+    ["symbolic-ref", "--quiet", "--short", "HEAD"],
+    { env },
+  );
+
+  return result.code === 0 ? result.stdout.trim() : undefined;
+}
+
+function writePushedCommitNotice(
+  stdout: NodeJS.WritableStream,
+  commit: PushedCommit,
+  dirty: boolean,
+): void {
+  writeSection(stdout, "Pushed commit");
+  writeDetail(stdout, `Commit: ${commit.shortSha} (${commit.sha})`);
+  writeDetail(stdout, `Subject: ${commit.subject}`);
+
+  if (dirty) {
+    writeAttentionRow(
+      stdout,
+      "Uncommitted files",
+      "Checks run on the commit above. Staged, unstaged, and untracked changes are NOT included.",
+    );
+  }
+
+  writeLine(stdout);
 }
 
 function writeSkipAllChecksReason(stdout: NodeJS.WritableStream): void {

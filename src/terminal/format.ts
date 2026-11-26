@@ -16,6 +16,7 @@ const ANSI = {
   bold: ["\u001B[1m", "\u001B[22m"],
   dim: ["\u001B[2m", "\u001B[22m"],
   green: ["\u001B[32m", "\u001B[39m"],
+  orange: ["\u001B[38;5;208m", "\u001B[39m"],
   red: ["\u001B[31m", "\u001B[39m"],
   yellow: ["\u001B[33m", "\u001B[39m"],
 } as const;
@@ -80,6 +81,32 @@ export function writeResultRow(
   writeLine(
     stream,
     formatResultRow(status, label, detail, withStream(stream, options)),
+  );
+}
+
+/**
+ * Write an attention-grabbing notice: the whole line in bold orange with a
+ * warning emoji (`[warn]` when ASCII output is requested).
+ *
+ * Reserved for notices that must stand apart from ordinary yellow warnings,
+ * such as checks not covering uncommitted files.
+ */
+export function writeAttentionRow(
+  stream: NodeJS.WritableStream,
+  label: string,
+  detail?: string,
+  options: TerminalStyleOptions = {},
+): void {
+  const styleOptions = withStream(stream, options);
+  const marker =
+    (styleOptions.env ?? process.env).PUSHGATE_ASCII === "1"
+      ? "[warn]"
+      : "\u26A0\uFE0F ";
+  const text = `  ${marker} ${label}${detail ? `: ${detail}` : ""}`;
+
+  writeLine(
+    stream,
+    style(style(text, "bold", styleOptions), "orange", styleOptions),
   );
 }
 
